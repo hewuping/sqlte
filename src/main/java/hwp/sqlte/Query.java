@@ -16,44 +16,53 @@ import java.util.stream.Collectors;
  */
 public class Query {
 
-    private String sql;
+    private Sql sql;
     private Connection connection;
     private Session session;
     private ResultSet resultSet;
-    private Object[] args;
+    private boolean executed;
+    private SQLException err;
 
-    protected Query(Session session, String sql, Object... args) {
+    protected Query(Session session, Sql sql) {
         this.session = session;
         this.sql = sql;
-        this.args = args;
         this.connection = session.connection();//当前连接
     }
 
     protected Query execute() throws SQLException {
-        if (resultSet == null) {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            Helper.fillStatement(statement, this.args);
-            this.resultSet = Helper.convert(statement.executeQuery(sql));
+        if (executed) {
+            if (err == null) {
+                return this;
+            }
+            throw err;
         }
-        return this;
+        executed = true;
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql.sql());
+            Helper.fillStatement(statement, sql.args());
+            this.resultSet = Helper.convert(statement.executeQuery());
+            return this;
+        } catch (SQLException e) {
+            err = e;
+            throw e;
+        }
     }
 
     public <T> List<T> list(RowMapper<T> mapper) throws SQLException {
-        execute();
         return execute().resultSet.getRows().stream().map(mapper::map).collect(Collectors.toList());
     }
 
     public List<String> listAsString() throws SQLException {
-        execute();
-        return resultSet.getRows().stream().map(StringMapper.MAPPER::map).collect(Collectors.toList());
+        return list(StringMapper.MAPPER);
     }
 
-    public <T> Optional<T> first(RowMapper<T> mapper) throws SQLException {
+    public <T> Optional<T> first(RowMapper<? extends T> mapper) throws SQLException {
         execute();
         if (resultSet.getRows().isEmpty()) {
             return Optional.empty();
         }
-        return Optional.ofNullable((T) resultSet.getRows().get(0));
+        T map = mapper.map(resultSet.getRows().get(0));
+        return Optional.ofNullable(map);
     }
 
     public Query cacheIf(boolean b, long survivalTime) throws SQLException {
@@ -78,16 +87,12 @@ public class Query {
     }
 
 
-
-
     public static void main(String[] args) throws SQLException {
-        Query query = new Query(null, "");
-        query.cache(0).list(row -> {
-            return "";
-        });
-        Optional<String> first = query.first(resultSet -> "Hello");
-        query.first(result -> {
-
+        Session.runOnTx(session -> {
+            Query query = session.query("select * from user where username=?", "zero");
+            query.cache(0).list(row -> {
+                return "";
+            });
             return "";
         });
     }

@@ -1,6 +1,7 @@
 package hwp.sqlte;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -37,10 +38,14 @@ public class StandardSql implements Sql {
         return this.args.toArray();
     }
 
-    public List<NameParameter> parameters() {
-        return parameters;
-    }
 
+    public StandardSql args(Object... args) {
+        if (this.args.size() > 0) {
+            this.args.clear();
+        }
+        Collections.addAll(this.args, args);
+        return this;
+    }
 
     private StandardSql addWhere(Where where) {
         return this;
