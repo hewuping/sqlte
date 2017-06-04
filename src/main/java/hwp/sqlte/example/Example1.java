@@ -1,6 +1,9 @@
 package hwp.sqlte.example;
 
 import hwp.sqlte.Session;
+import hwp.sqlte.Sql;
+import hwp.sqlte.SqlConnection;
+import hwp.sqlte.SqlFunction;
 
 import java.util.Optional;
 
@@ -21,13 +24,17 @@ public class Example1 {
         });
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Session.runOnTx(session -> {
             session.insert("insert into user(username,password) values(?,?)", "").handleResult(rs->{
                 rs.firstRow().get("id");
             });
 //            session.insert("table",obj)
             return null;
+        });
+        Sql.runOnTx(conn -> {
+//            conn.query()
+            return "";
         });
 
     }

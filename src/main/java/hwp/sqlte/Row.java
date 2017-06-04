@@ -13,6 +13,10 @@ public class Row extends HashMap<String, Object> {
         return (String) get(name);
     }
 
+    public <T> T val(String name) {
+        return (T) get(name);
+    }
+
     public <T> T map(RowMapper<T> mapper) throws SQLException {
         return mapper.map(this);
     }

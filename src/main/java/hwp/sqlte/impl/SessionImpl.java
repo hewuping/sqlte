@@ -6,6 +6,7 @@ import hwp.sqlte.Session;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -54,6 +55,11 @@ public class SessionImpl implements Session {
 
     @Override
     public Insert insert(String sql, Object... objects) {
+        return null;
+    }
+
+    @Override
+    public Insert insert(String table, Map<String, Object> map) {
         return null;
     }
 
