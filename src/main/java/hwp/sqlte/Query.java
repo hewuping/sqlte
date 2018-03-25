@@ -18,15 +18,12 @@ public class Query {
 
     private Sql sql;
     private Connection connection;
-    private Session session;
-    private ResultSet resultSet;
+    private SqlResultSet resultSet;
     private boolean executed;
     private SQLException err;
 
-    protected Query(Session session, Sql sql) {
-        this.session = session;
+    protected Query(Sql sql) {
         this.sql = sql;
-        this.connection = session.connection();//当前连接
     }
 
     protected Query execute() throws SQLException {
@@ -77,24 +74,11 @@ public class Query {
         this.resultSet.unmodifiableRows();
         //本地缓存session之后清理,
         if (survivalTime == 0) {
-            session.addCloseListener(session1 -> {
-                //TODO
-            });
         } else if (survivalTime > 0) {
 
         }
         return this;
     }
 
-
-    public static void main(String[] args) throws SQLException {
-        Session.runOnTx(session -> {
-            Query query = session.query("select * from user where username=?", "zero");
-            query.cache(0).list(row -> {
-                return "";
-            });
-            return "";
-        });
-    }
 
 }

@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 /**
  * @author Zero
- *         Created on 2017/3/21.
+ * Created on 2017/3/21.
  */
 public class TemplateSql implements Sql {
     //StandardSql,SqlTemplate
@@ -142,6 +142,7 @@ public class TemplateSql implements Sql {
         user.put("age", 18);
         user.put("city", "SZ");
         user.put("password", "123456");
+        user.put("ages", new int[]{1, 2, 3});
 
 
         TemplateSql sql = new TemplateSql("select * from user");
@@ -149,7 +150,7 @@ public class TemplateSql implements Sql {
         sql.where(w -> {
             w.add("username=:user.name");
             w.add("and password=:user.password");
-            w.add("and password=:user.pp_22d");
+            w.add("and age in :ages");
         });
 
         System.out.println(sql.sql());

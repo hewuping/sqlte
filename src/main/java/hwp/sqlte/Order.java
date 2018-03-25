@@ -12,7 +12,7 @@ public class Order {
 //    private String name;
 //    private String solr;
 //
-//    public static Order desc(String culumnName) {
+//    public static Order desc(String columnName) {
 //
 //    }
 

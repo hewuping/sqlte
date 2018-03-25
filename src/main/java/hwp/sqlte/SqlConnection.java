@@ -1,26 +1,31 @@
 package hwp.sqlte;
 
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.util.Map;
-import java.util.WeakHashMap;
+import hwp.sqlte.mapper.LongMapper;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.sql.*;
+import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * @author Zero
- *         Created by Zero on 2017/6/4 0004.
+ * Created by Zero on 2017/6/4 0004.
  */
 public class SqlConnection implements AutoCloseable {
 
-    private Connection conn;
+    private final Connection conn;
+
+    private NameConverter nameConverter = NameConverter.DEFAULT;
+
+    private final Properties SQLS = Sql.SQLS;
 
     private SqlConnection(Connection conn) {
         this.conn = conn;
     }
 
-    private static Map<Connection, SqlConnection> cache = new WeakHashMap<>();
+    private final static Map<Connection, SqlConnection> cache = new WeakHashMap<>();
 
     public static SqlConnection warp(Connection conn) {
         SqlConnection c = cache.get(conn);
@@ -31,8 +36,9 @@ public class SqlConnection implements AutoCloseable {
         return new SqlConnection(conn);
     }
 
-    public hwp.sqlte.ResultSet query(String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(sql)) {
+
+    public SqlResultSet query(String sql, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
@@ -41,17 +47,140 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public hwp.sqlte.ResultSet insert(String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(sql)) {
+    public SqlResultSet query(Consumer<SqlBuilder> consumer) throws SQLException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        return query(sb.sql(), sb.args());
+    }
+
+    public Optional<Long> incInsert(String sql, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), Statement.RETURN_GENERATED_KEYS)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             int i = stat.executeUpdate();
-            if (stat.getMoreResults()) {
-                return Helper.convert(stat.getGeneratedKeys());
+            if (i > 0) {
+                SqlResultSet rs = Helper.convert(stat.getGeneratedKeys());
+                return rs.first(LongMapper.MAPPER);
             }
-            return ResultSet.EMPTY;
+            return Optional.empty();
         }
+    }
+
+    public boolean insert(String sql, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+            if (args.length > 0) {
+                Helper.fillStatement(stat, args);
+            }
+            return stat.executeUpdate() > 0;
+        }
+    }
+
+
+    public boolean insert(Object bean, String table) throws Exception {
+        Field[] fields = bean.getClass().getFields();//只映射public字段，public字段必须有
+        Field[] fs = new Field[fields.length];
+        int count = 0;
+        Field idField = null;
+        Id id = null;
+        for (int i = 0; i < fields.length; i++) {
+            Field field = fields[i];
+            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                fs[count++] = field;
+                //ID
+                id = field.getAnnotation(Id.class);
+                if (id != null) {
+                    idField = field;
+                }
+            }
+        }
+        if (count == 0) {
+            throw new IllegalArgumentException("The bean must contain public fields");
+        }
+        String[] columns = new String[count];
+        Object[] values = new Object[count];
+        for (int i = 0; i < count; i++) {
+            Field field = fs[i];
+            if (id != null && field == idField) {
+                String idColumn = id.column().isEmpty() ? idField.getName() : id.column();
+                columns[i] = idColumn;
+            } else {
+                columns[i] = field.getName();
+            }
+            values[i] = field.get(bean);
+        }
+
+
+        if (idField != null && id != null && id.auto()) {
+            Optional<Long> aLong = incInsert(Insert.make(table, columns), values);
+            if (aLong.isPresent()) {
+                idField.set(bean, aLong.get());
+                return true;
+            }
+            return false;
+        } else {
+            return insert(Insert.make(table, columns), values);
+        }
+    }
+
+    public boolean insert(Object bean) throws Exception {
+        return insert(bean, nameConverter.tableName(bean.getClass().getSimpleName()));
+    }
+
+
+    /////////////////////////////
+    public void update(String sql, Object... args) throws SQLException {
+        PreparedStatement statement = conn.prepareStatement(sql);
+        Helper.fillStatement(statement, args);
+        statement.execute();
+    }
+
+    public <T> void update(T bean, String table) throws Exception {
+        //只映射public字段，public字段必须有
+        StringBuilder builder = new StringBuilder();
+        builder.append("UPDATE ").append(table).append(" SET \n");
+        Field[] fields = bean.getClass().getFields();
+        List<Object> args = new ArrayList<>();
+        String idColumn = null;
+        Object idValue = null;
+        for (int i = 0; i < fields.length; i++) {
+            Field field = fields[i];
+            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                builder.append(nameConverter.columnName(field)).append("=?\n");
+                args.add(field.get(bean));
+                Id id = field.getAnnotation(Id.class);
+                if (id != null) {
+                    idColumn = id.column().isEmpty() ? field.getName() : id.column();
+                    idValue = field.get(bean);
+                }
+            }
+        }
+        if (fields.length == 0) {
+            throw new IllegalArgumentException("The bean must contain public fields");
+        }
+        if (idColumn == null) {
+            //warn
+        } else {
+            builder.append("WHERE\n").append(idColumn).append("=?");
+            args.add(idValue);
+        }
+        update(builder.toString(), args.toArray());
+    }
+
+    public Sql update(Consumer<Update> function) {
+        Update update = new Update();
+        function.accept(update);
+        return update.build();
+    }
+
+    /////////////////////////////
+
+
+    private String toSql(String sql) {
+        if (sql.startsWith("#")) {
+            return SQLS.getProperty(sql);
+        }
+        return sql;
     }
 
 
@@ -100,6 +229,16 @@ public class SqlConnection implements AutoCloseable {
         return conn.getTransactionIsolation();
     }
 
+    public SqlConnection beginTransaction() throws SQLException {
+        conn.setAutoCommit(false);
+        return this;
+    }
+
+    public SqlConnection beginTransaction(int level) throws SQLException {
+        conn.setTransactionIsolation(level);
+        conn.setAutoCommit(false);
+        return this;
+    }
 
     public Savepoint setSavepoint() throws SQLException {
         return conn.setSavepoint();
@@ -137,5 +276,6 @@ public class SqlConnection implements AutoCloseable {
     public PreparedStatement prepareStatement(String sql) throws SQLException {
         return conn.prepareStatement(sql);
     }
+
 
 }

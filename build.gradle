@@ -3,8 +3,8 @@ apply plugin: 'idea'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
+    mavenLocal()
+    maven { url = 'http://maven.aliyun.com/nexus/content/groups/public' }
     jcenter()
 }
 
@@ -18,5 +18,7 @@ dependencies {
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
     testCompile 'junit:junit:4.12'
+//    testCompile 'mysql:mysql-connector-java:5.1.6'
+    testCompile 'mysql:mysql-connector-java:6.0.6'
 }
 

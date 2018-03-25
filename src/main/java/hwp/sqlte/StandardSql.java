@@ -3,6 +3,7 @@ package hwp.sqlte;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -113,7 +114,8 @@ public class StandardSql implements Sql {
     public static void main(String[] args) {
         StandardSql sql = new StandardSql("select * from user");
         sql.where(w -> {
-            w.add("username=?", "zero").add("123456".length() > 8, "and password=?", "123456");
+            w.add("username=?", "zero")
+                    .add("123456".length() > 8, "and password=?", "123456");
             w.add("and age in ?", new Object[]{1, 2}, 1);
         });
 

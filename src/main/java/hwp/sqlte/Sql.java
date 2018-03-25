@@ -9,8 +9,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Properties;
 
 /**
  * @author Zero
@@ -37,34 +36,21 @@ public interface Sql {
         return sql().concat("@").concat(Arrays.toString(args()));
     }
 
+    Properties SQLS = new Properties();
 
     ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
     Resource<DataSource> DATA_SOURCE_RESOURCE = new Resource<>();
 
     static <T> T runOnTx(SqlFunction<SqlConnection, T> function) throws Exception {
         try (SqlConnection connection = connection(null)) {
-            connection.setAutoCommit(true);
+            connection.setAutoCommit(false);
             try {
                 T rs = function.apply(connection);
                 connection.commit();
                 return rs;
             } catch (Exception e) {
-                log.error("rollback error", e);
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    //ignore
-                    log.error("rollback error", e1);
-                    //TODO logger.error(e); logger.error(e1);
-                    throw e1;
-                }
+                connection.rollback();
                 throw e;
-            } finally {
-                try {
-                    connection.close();//在已知的事务边界的情况下必须要关闭连接
-                } catch (SQLException e1) {
-                    //ignore
-                }
             }
         }
     }
@@ -126,8 +112,8 @@ public interface Sql {
         System.out.println(obj);
         exec(conn -> {
 //            prep(conn,"",)
-            ResultSet rs = conn.query("select * from user");
-            ResultSet rs3 = conn.query("#select * from user");
+            SqlResultSet rs = conn.query("select * from user");
+            SqlResultSet rs3 = conn.query("#user.all");
             List list;
             rs.stream().map(StringMapper.MAPPER);
 

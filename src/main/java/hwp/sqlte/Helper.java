@@ -11,7 +11,7 @@ import java.util.*;
  */
 public class Helper {
 
-    public static ResultSet convert(java.sql.ResultSet rs) throws SQLException {
+    public static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int cols = metaData.getColumnCount();
@@ -22,11 +22,11 @@ public class Helper {
         while (rs.next()) {
             Row row = new Row();
             for (int i = 1; i <= cols; i++) {
-                row.put(columnNames.get(i), rs.getObject(i));
+                row.put(columnNames.get(i-1), rs.getObject(i));
             }
             results.add(row);
         }
-        return new ResultSet(columnNames, results);
+        return new SqlResultSet(columnNames, results);
     }
 
     public static void fillStatement(PreparedStatement statement, Object[] args) throws SQLException {

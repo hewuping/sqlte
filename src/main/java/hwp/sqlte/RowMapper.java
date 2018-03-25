@@ -15,4 +15,5 @@ public interface RowMapper<T> extends Function<Row,T> {
         return map(row);
     }
 
+
 }
