@@ -129,10 +129,34 @@ public class SqlConnection implements AutoCloseable {
 
 
     /////////////////////////////
-    public void update(String sql, Object... args) throws SQLException {
+    public int update(String sql, Object... args) throws SQLException {
         PreparedStatement statement = conn.prepareStatement(sql);
         Helper.fillStatement(statement, args);
-        statement.execute();
+        return statement.executeUpdate();
+    }
+
+    public int update(Consumer<SqlBuilder> consumer) throws SQLException {
+        SqlBuilder builder = new SqlBuilder();
+        consumer.accept(builder);
+        PreparedStatement statement = conn.prepareStatement(builder.sql());
+        Helper.fillStatement(statement, builder.args());
+        return statement.executeUpdate();
+    }
+
+    public void batchUpdate(Consumer<SqlBuilder> consumer, ArgsProvider provider) throws SQLException {
+        SqlBuilder builder = new SqlBuilder();
+        consumer.accept(builder);
+        String sql = builder.sql();
+        PreparedStatement statement = conn.prepareStatement(sql);
+        int i = 0;
+        while (provider.hasNext()) {
+            Helper.fillStatement(statement, provider.nextArgs());
+            statement.addBatch();
+            if (i++ == provider.batchSize()) {
+                statement.executeBatch();
+            }
+        }
+        statement.executeUpdate();
     }
 
     public <T> void update(T bean, String table) throws Exception {
@@ -167,11 +191,6 @@ public class SqlConnection implements AutoCloseable {
         update(builder.toString(), args.toArray());
     }
 
-    public Sql update(Consumer<Update> function) {
-        Update update = new Update();
-        function.accept(update);
-        return update.build();
-    }
 
     /////////////////////////////
 

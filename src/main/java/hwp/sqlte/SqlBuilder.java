@@ -31,6 +31,10 @@ public class SqlBuilder implements Sql {
         return this.args.toArray();
     }
 
+    public SqlBuilder sql(String sql) {
+        this.sql.append(sql);
+        return this;
+    }
 
     public SqlBuilder args(Object... args) {
         if (this.args.size() > 0) {

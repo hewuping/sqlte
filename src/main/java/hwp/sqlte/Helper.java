@@ -2,7 +2,10 @@ package hwp.sqlte;
 
 
 import java.lang.reflect.Field;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -51,11 +54,6 @@ public class Helper {
             map.put(field.getName(), field.get(obj));
         }
         return map;
-    }
-
-    public static StandardSql fromBean(Object obj){
-
-        return null;
     }
 
 }

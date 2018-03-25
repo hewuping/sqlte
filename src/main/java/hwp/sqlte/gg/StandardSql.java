@@ -1,6 +1,10 @@
-package hwp.sqlte;
+package hwp.sqlte.gg;
+
+import hwp.sqlte.NameParameter;
+import hwp.sqlte.Sql;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -10,14 +14,14 @@ import java.util.regex.Pattern;
  * @author Zero
  *         Created on 2017/3/21.
  */
-public class NameParamSql implements Sql {
+public class StandardSql implements Sql {
     //StandardSql,SqlTemplate
     private String sql;
     private String normalizeSql;
     private List<NameParameter> parameters;
     private List<Object> args = new ArrayList<>();
 
-    public NameParamSql(String sql) {
+    public StandardSql(String sql) {
         this.sql = sql;
         if (sql.contains(":")) {
             this.normalizeSql = normalizeSql(sql);
@@ -37,35 +41,39 @@ public class NameParamSql implements Sql {
         return this.args.toArray();
     }
 
-    public List<NameParameter> parameters() {
-        return parameters;
-    }
 
-
-    private NameParamSql addWhere(Where where) {
+    public StandardSql args(Object... args) {
+        if (this.args.size() > 0) {
+            this.args.clear();
+        }
+        Collections.addAll(this.args, args);
         return this;
     }
 
-    public NameParamSql where(Consumer<Where> where) {
+    private StandardSql addWhere(Where where) {
+        return this;
+    }
+
+    public StandardSql where(Consumer<Where> where) {
         Where w = new Where(this);
         where.accept(w);
         addWhere(w);
         return this;
     }
 
-    public NameParamSql order(Where where) {
+    public StandardSql order(Where where) {
         return this;
     }
 
-    public NameParamSql limit(int offset, int size) {
+    public StandardSql limit(int offset, int size) {
         return this;
     }
 
 
     public static class Where {
-        private NameParamSql sql;
+        private StandardSql sql;
 
-        public Where(NameParamSql sql) {
+        public Where(StandardSql sql) {
             this.sql = sql;
         }
 
@@ -106,9 +114,10 @@ public class NameParamSql implements Sql {
     }
 
     public static void main(String[] args) {
-        NameParamSql sql = new NameParamSql("select * from user");
+        StandardSql sql = new StandardSql("select * from user");
         sql.where(w -> {
-            w.add("username=?", "zero").add("123456".length() > 8, "and password=?", "123456");
+            w.add("username=?", "zero")
+                    .add("123456".length() > 8, "and password=?", "123456");
             w.add("and age in ?", new Object[]{1, 2}, 1);
         });
 

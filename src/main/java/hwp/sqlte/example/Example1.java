@@ -1,12 +1,13 @@
 package hwp.sqlte.example;
 
+import hwp.sqlte.ArgsProvider;
 import hwp.sqlte.Sql;
 
 import java.util.Optional;
 
 /**
  * @author Zero
- *         Created on 2017/3/27.
+ * Created on 2017/3/27.
  */
 public class Example1 {
 
@@ -21,5 +22,35 @@ public class Example1 {
         });
     }
 
+    public String getUserOrders2(String username) throws Exception {
+        return Sql.runOnTx(conn -> {
+            conn.update(builder -> {
+                builder.sql("update orders set user_id=1");
+                builder.where(where -> {
+                    where.add("username = ?", "zeri");
+                });
+            });
+            return "haha";
+        });
+    }
+
+    public String getUserOrders3(String username) throws Exception {
+        return Sql.runOnTx(conn -> {
+            conn.batchUpdate(builder -> {
+                builder.sql("update orders set user_id=1");
+            }, new ArgsProvider() {
+                @Override
+                public boolean hasNext() {
+                    return false;
+                }
+
+                @Override
+                public Object[] nextArgs() {
+                    return new Object[0];
+                }
+            });
+            return "haha";
+        });
+    }
 
 }

@@ -1,6 +1,6 @@
 package hwp.sqlte;
 
-import hwp.sqlte.example.User;
+import hwp.sqlte.gg.StandardSql;
 
 import java.sql.*;
 import java.util.function.Consumer;

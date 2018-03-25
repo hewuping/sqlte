@@ -1,8 +1,11 @@
-package hwp.sqlte;
+package hwp.sqlte.gg;
+
+import hwp.sqlte.Builder;
+import hwp.sqlte.Order;
+import hwp.sqlte.Sql;
 
 import javax.script.*;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -108,7 +111,7 @@ public class TemplateSql implements Sql {
 
     private String normalizeSql() throws ScriptException {
         if (sqlBuilder.indexOf(":") > -1) {
-            ScriptEngine engine = Sqlte.getScriptEngine();
+            ScriptEngine engine = getScriptEngine();
             boolean hasDef = data.containsKey("_");
             Matcher matcher = pattern.matcher(sqlBuilder);
             while (matcher.find()) {
@@ -134,6 +137,13 @@ public class TemplateSql implements Sql {
         return sqlBuilder.toString();
     }
 
+    public static ScriptEngine getScriptEngine() {
+        ScriptEngineManager factory = new ScriptEngineManager();
+        ScriptEngine engine = factory.getEngineByName("JavaScript");
+//        ScriptContext context = new SimpleScriptContext();
+//        engine.eval()
+        return engine;
+    }
 
     public static void main(String[] args) {
 
