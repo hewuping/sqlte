@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 /**
@@ -77,6 +78,7 @@ public class Main {
         System.out.println(h1 == h2);
         System.out.println(h1 == h3);
         System.out.println(h3 == h4);
+        IntStream.range(1,10).flatMap(value -> IntStream.range(1, value)).forEach(System.out::println);
     }
 
     public static String hello() {

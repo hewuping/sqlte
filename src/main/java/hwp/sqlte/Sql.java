@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Zero
@@ -39,7 +40,7 @@ public interface Sql {
     Properties SQLS = new Properties();
 
     ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
-    Resource<DataSource> DATA_SOURCE_RESOURCE = new Resource<>();
+    AtomicReference<DataSource> DATA_SOURCE_RESOURCE = new AtomicReference<>();
 
     static <T> T runOnTx(SqlFunction<SqlConnection, T> function) throws Exception {
         try (SqlConnection connection = connection(null)) {

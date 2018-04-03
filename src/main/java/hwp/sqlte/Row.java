@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * @author Zero
- *         Created on 2017/3/20.
+ * Created on 2017/3/20.
  */
 public class Row extends HashMap<String, Object> {
 
@@ -16,8 +16,15 @@ public class Row extends HashMap<String, Object> {
         return (String) get(name);
     }
 
-    public <T> T val(String name) {
-        return (T) get(name);
+    @SuppressWarnings("unchecked")
+    public <T> T getValue(String name, T defValue) {
+        T v = (T) super.get(name);
+        return v == null ? defValue : v;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getValue(String name) {
+        return (T) super.get(name);
     }
 
     public <T> T map(RowMapper<T> mapper) throws SQLException {
@@ -47,5 +54,11 @@ public class Row extends HashMap<String, Object> {
         }
         return t;
     }
+
+    public static void main(String[] args) {
+        Row row = new Row();
+        int v = row.getValue("ss", -1);
+    }
+
 
 }
