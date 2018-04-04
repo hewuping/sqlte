@@ -12,7 +12,7 @@ import java.util.*;
  * @author Zero
  *         Created on 2017/3/20.
  */
-public class Helper {
+class Helper {
 
     public static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();
@@ -25,7 +25,7 @@ public class Helper {
         while (rs.next()) {
             Row row = new Row();
             for (int i = 1; i <= cols; i++) {
-                row.put(columnNames.get(i-1), rs.getObject(i));
+                row.put(columnNames.get(i - 1), rs.getObject(i));
             }
             results.add(row);
         }
@@ -37,7 +37,7 @@ public class Helper {
             Object value = args[i];
             if (value != null) {
                 if (value instanceof String) {
-                    statement.setString(i + 1, Objects.toString(value));
+                    statement.setString(i + 1, (String) value);
                 } else {
                     statement.setObject(i + 1, value);
                 }
@@ -47,7 +47,7 @@ public class Helper {
         }
     }
 
-    public static Map<String,Object> beanToArgs(Object obj) throws IllegalAccessException {
+    public static Map<String, Object> beanToArgs(Object obj) throws IllegalAccessException {
         Map<String, Object> map = new HashMap<>();
         Field[] fields = obj.getClass().getFields();
         for (Field field : fields) {

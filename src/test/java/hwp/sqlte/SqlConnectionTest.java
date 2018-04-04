@@ -7,6 +7,7 @@ import hwp.sqlte.example.User;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -22,6 +23,7 @@ public class SqlConnectionTest {
         ds.setUser("root");
         ds.getConnection().close();
         Sql.DATA_SOURCE_RESOURCE.set(ds);
+        Sql.setDatasource("default", ds);
     }
 
     @Test

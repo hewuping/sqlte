@@ -7,11 +7,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.sql.*;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Zero
- * Created by Zero on 2017/6/4 0004.
+ *         Created by Zero on 2017/6/4 0004.
  */
 public class SqlConnection implements AutoCloseable {
 
@@ -52,6 +55,21 @@ public class SqlConnection implements AutoCloseable {
         consumer.accept(sb);
         return query(sb.sql(), sb.args());
     }
+
+    public void query(String sql, Function<ResultSet, Boolean> handler, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+            if (args.length > 0) {
+                Helper.fillStatement(stat, args);
+            }
+            java.sql.ResultSet rs = stat.executeQuery();
+            while (rs.next()) {
+                if (!handler.apply(rs)) {
+                    break;
+                }
+            }
+        }
+    }
+
 
     public Optional<Long> incInsert(String sql, Object... args) throws SQLException {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql), Statement.RETURN_GENERATED_KEYS)) {
@@ -143,20 +161,45 @@ public class SqlConnection implements AutoCloseable {
         return statement.executeUpdate();
     }
 
-    public void batchUpdate(Consumer<SqlBuilder> consumer, ArgsProvider provider) throws SQLException {
-        SqlBuilder builder = new SqlBuilder();
-        consumer.accept(builder);
-        String sql = builder.sql();
+    public <T extends Object> void batchUpdate(String sql, Iterable<T> it, BiConsumer<List<Object>, T> consumer) throws SQLException {
         PreparedStatement statement = conn.prepareStatement(sql);
         int i = 0;
-        while (provider.hasNext()) {
-            Helper.fillStatement(statement, provider.nextArgs());
+        Iterator<T> iterator = it.iterator();
+        List<Object> args = new ArrayList<>();
+        while (iterator.hasNext()) {
+            consumer.accept(args, iterator.next());
+            Helper.fillStatement(statement, args.toArray());
             statement.addBatch();
-            if (i++ == provider.batchSize()) {
+            args.clear();
+            if (i++ == 1000) {
                 statement.executeBatch();
             }
         }
-        statement.executeUpdate();
+        if (i > 0) {
+            statement.executeUpdate();
+        }
+    }
+
+    public <T> void batchUpdate2(String sql, Iterable<T> it, BiConsumer<SetArgs, T> consumer) throws SQLException {
+        PreparedStatement statement = conn.prepareStatement(sql);
+        int i = 0;
+        Iterator<T> iterator = it.iterator();
+        while (iterator.hasNext()) {
+            consumer.accept(args -> {
+                try {
+                    Helper.fillStatement(statement, args);
+                } catch (SQLException e) {
+                    throw new UncheckedSQLException(e);
+                }
+            }, iterator.next());
+            statement.addBatch();
+            if (i++ == 1000) {
+                statement.executeBatch();
+            }
+        }
+        if (i > 0) {
+            statement.executeUpdate();
+        }
     }
 
     public <T> void update(T bean, String table) throws Exception {

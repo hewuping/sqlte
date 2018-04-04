@@ -1,6 +1,5 @@
 package hwp.sqlte.gg;
 
-import hwp.sqlte.NameParameter;
 import hwp.sqlte.Sql;
 
 import java.util.ArrayList;

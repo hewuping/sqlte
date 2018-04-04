@@ -6,10 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Zero
@@ -40,6 +37,23 @@ public interface Sql {
 
     ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
     Resource<DataSource> DATA_SOURCE_RESOURCE = new Resource<>();
+
+    Map<String, DataSource> DATA_SOURCE_MAP = new HashMap<>();
+
+    static void setDatasource(String s, DataSource ds) {
+        if (s == null || "default".equalsIgnoreCase(s)) {
+            DATA_SOURCE_RESOURCE.set(ds);
+        }
+        if (s == null) {
+            DATA_SOURCE_MAP.put("default", ds);
+        } else {
+            DATA_SOURCE_MAP.put(s, ds);
+        }
+    }
+
+    static SqlConnection newConnection() throws SQLException {
+        return SqlConnection.warp(DATA_SOURCE_RESOURCE.get().getConnection());
+    }
 
     static <T> T runOnTx(SqlFunction<SqlConnection, T> function) throws Exception {
         try (SqlConnection connection = connection(null)) {
@@ -99,13 +113,6 @@ public interface Sql {
         return connection;
     }
 
-    static PreparedStatement prep(SqlConnection conn, String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(sql)) {
-            Helper.fillStatement(stat, args);
-            return stat;
-        }
-    }
-
 
     public static void main(String[] args) throws Exception {
         Object[] obj = new Object[]{1, "A"};
@@ -121,5 +128,6 @@ public interface Sql {
             return "";
         });
     }
+
 
 }

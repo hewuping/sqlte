@@ -10,17 +10,20 @@ import hwp.sqlte.RowMapper;
  */
 public class User {
 
+    public String id="1";
     public String username;
+    public String email;
     public String password;
-    public String password_salt;
+    public String password_salt="sfwerx";
 
     public User() {
     }
 
-    public User(String username, String password, String password_salt) {
+
+    public User(String username, String email, String password) {
         this.username = username;
+        this.email = email;
         this.password = password;
-        this.password_salt = password_salt;
     }
 
     public static final RowMapper<User> MAPPER = new RowMapper<User>() {
