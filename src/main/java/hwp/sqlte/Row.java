@@ -5,10 +5,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Zero
- * Created on 2017/3/20.
+ *         Created on 2017/3/20.
  */
 public class Row extends HashMap<String, Object> {
 
@@ -25,6 +26,11 @@ public class Row extends HashMap<String, Object> {
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name) {
         return (T) super.get(name);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> getOptValue(String name) {
+        return Optional.ofNullable((T) super.get(name));
     }
 
     public <T> T map(RowMapper<T> mapper) throws SQLException {

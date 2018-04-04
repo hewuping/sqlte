@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -70,6 +71,21 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
+    public Optional<Long> incInsert00(String sql, String idColumn, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
+            if (args.length > 0) {
+                Helper.fillStatement(stat, args);
+            }
+            int i = stat.executeUpdate();
+            if (i > 0) {
+                ResultSet rs = stat.getGeneratedKeys();
+                if (rs != null && rs.next()) {
+                    return Optional.of(rs.getLong(idColumn));
+                }
+            }
+            return Optional.empty();
+        }
+    }
 
     public Optional<Long> incInsert(String sql, Object... args) throws SQLException {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql), Statement.RETURN_GENERATED_KEYS)) {
@@ -161,44 +177,54 @@ public class SqlConnection implements AutoCloseable {
         return statement.executeUpdate();
     }
 
-    public <T extends Object> void batchUpdate(String sql, Iterable<T> it, BiConsumer<List<Object>, T> consumer) throws SQLException {
-        PreparedStatement statement = conn.prepareStatement(sql);
-        int i = 0;
-        Iterator<T> iterator = it.iterator();
-        List<Object> args = new ArrayList<>();
-        while (iterator.hasNext()) {
-            consumer.accept(args, iterator.next());
-            Helper.fillStatement(statement, args.toArray());
-            statement.addBatch();
-            args.clear();
-            if (i++ == 1000) {
-                statement.executeBatch();
-            }
-        }
-        if (i > 0) {
-            statement.executeUpdate();
-        }
+    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SQLException {
+        this.batchUpdate(sql, 1000, it, consumer);
     }
 
-    public <T> void batchUpdate2(String sql, Iterable<T> it, BiConsumer<SetArgs, T> consumer) throws SQLException {
-        PreparedStatement statement = conn.prepareStatement(sql);
-        int i = 0;
-        Iterator<T> iterator = it.iterator();
-        while (iterator.hasNext()) {
-            consumer.accept(args -> {
+    public <T> void batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            UnsafeCount count = new UnsafeCount();
+            BatchExecutor executor = args -> {
                 try {
                     Helper.fillStatement(statement, args);
+                    statement.addBatch();
+                    if (count.add(1) >= maxBatchSize) {
+                        statement.executeBatch();
+                    }
                 } catch (SQLException e) {
                     throw new UncheckedSQLException(e);
                 }
-            }, iterator.next());
-            statement.addBatch();
-            if (i++ == 1000) {
-                statement.executeBatch();
+            };
+            it.forEach(t -> consumer.accept(executor, t));
+            if (count.get() > 0) {
+                statement.executeUpdate();
             }
         }
-        if (i > 0) {
-            statement.executeUpdate();
+    }
+
+    //分批导入大量数据
+    public void batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SQLException {
+        this.batchUpdate(sql, 1000, consumer);
+    }
+
+    public void batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            UnsafeCount count = new UnsafeCount();
+            BatchExecutor executor = args -> {
+                try {
+                    Helper.fillStatement(statement, args);
+                    statement.addBatch();
+                    if (count.add(1) >= maxBatchSize) {
+                        statement.executeBatch();
+                    }
+                } catch (SQLException e) {
+                    throw new UncheckedSQLException(e);
+                }
+            };
+            consumer.accept(executor);
+            if (count.get() > 0) {
+                statement.executeUpdate();
+            }
         }
     }
 

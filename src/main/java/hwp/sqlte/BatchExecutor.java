@@ -6,6 +6,6 @@ package hwp.sqlte;
  */
 public interface BatchExecutor {
 
-    void setArgs(Object... args);
+    void exec(Object... args);
 
 }

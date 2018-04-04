@@ -7,7 +7,7 @@ import java.sql.SQLException;
  *         Created on 2018/3/27.
  */
 public class UncheckedException extends RuntimeException {
-    public UncheckedException(SQLException cause) {
+    public UncheckedException(Throwable cause) {
         super(cause);
     }
 }

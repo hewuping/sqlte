@@ -56,7 +56,7 @@ public class SqlConnectionTest {
         Sql.runOnTx(conn -> {
             conn.insert(new User("Frank", "123456", "xswenli"), "auth_user2");
             SqlResultSet rows = conn.query("select * from auth_user2 where username =? limit 10", "Frank");
-            List<User> users = rows.flatMap(row -> row.convert(new User()));
+            List<User> users = rows.map(row -> row.convert(new User()));
 //            List<User> users = rows.flatMap(User::new);
             System.out.println(users.size());
             return "";
@@ -69,7 +69,7 @@ public class SqlConnectionTest {
         Sql.runOnTx(conn -> {
             conn.update(new User("Frank", "123456", "xswenli"), "auth_user2");
             SqlResultSet rows = conn.query("select * from auth_user2 where username =? limit 10", "Frank");
-            List<User> users = rows.flatMap(User::new);
+            List<User> users = rows.map(User::new);
             System.out.println(users.size());
             return "";
         });

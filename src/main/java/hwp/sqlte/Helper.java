@@ -35,14 +35,10 @@ class Helper {
     public static void fillStatement(PreparedStatement statement, Object[] args) throws SQLException {
         for (int i = 0; i < args.length; i++) {
             Object value = args[i];
-            if (value != null) {
-                if (value instanceof String) {
-                    statement.setString(i + 1, (String) value);
-                } else {
-                    statement.setObject(i + 1, value);
-                }
-            } else {
+            if (value == null) {
                 statement.setNull(i + 1, Types.NULL);
+            } else {
+                statement.setObject(i + 1, value);
             }
         }
     }

@@ -1,5 +1,6 @@
 package hwp.sqlte.example;
 
+import hwp.sqlte.BatchExecutor;
 import hwp.sqlte.Row;
 import hwp.sqlte.Sql;
 import hwp.sqlte.SqlConnection;
@@ -8,6 +9,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * @author Zero
@@ -33,24 +35,31 @@ public class Example1 {
 
     public Map<String, Object> queryExample2(String username) throws Exception {
         Row row = Sql.newConnection().query("select * from user where username=?", username).firstRow();
+        String name = row.getValue("username");
+        int age = row.getValue("age");
+        Optional<Integer> age2 = row.getOptValue("age");
+
         return row;
     }
 
     public List<User> queryExample3(String username) throws Exception {
-        return Sql.newConnection().query("select * from user where username=?", username).flatMap(User.MAPPER);
+        return Sql.newConnection().query("select * from user where username=?", username).map(User.MAPPER);
     }
 
     public void queryExample4(String username) throws Exception {
+        //simple
         Sql.newConnection().query("select * from user where username=?", username).forEach(row -> {
             System.out.println(row.get("email"));
         });
 
-        Sql.newConnection().query("select * from user where username=?", username).flatMap(User.MAPPER).forEach(user -> {
+        //use mapper
+        Sql.newConnection().query("select * from user where username=?", username).map(User.MAPPER).forEach(user -> {
             System.out.println(user.email);
         });
     }
 
     public void queryExample5(String username) throws Exception {
+        //Query big data
         Sql.newConnection().query("select * from user where username=?", rs -> {
             try {
                 String name = rs.getString("username");
@@ -67,7 +76,7 @@ public class Example1 {
         Optional<User> user = conn.query(sql -> {
             sql.sql("select * from user");
             sql.where(where -> {
-                where.add(username != null, "username =?", username);//if username!=null
+                where.add(username != null, "username =?", username);//if username has value, use
                 where.add(email != null, "email =?", email);
                 where.add("password =?", password);
             });
@@ -109,15 +118,17 @@ public class Example1 {
 
     public void batchUpdateExample(List<User> users) throws Exception {
         SqlConnection conn = Sql.newConnection();
-        conn.batchUpdate("update user set username=?, password=? where id=?", users, (args, user) -> {
-            args.add(user.username);
-            args.add(user.password);
-            args.add(user.id);
+        conn.batchUpdate("update user set username=?, password=? where id=?", 1000, users, (executor, user) -> {
+            executor.exec(user.username, user.password);
         });
-        //OR
-        conn.batchUpdate2("update user set username=?, password=? where id=?", users, (args, user) -> {
-            args.setArgs(user.username, user.password);
+
+        conn.batchUpdate("update user set username=?, password=? where id=?", 1000, executor -> {
+            users.forEach(user -> {
+                executor.exec(user.username, user.password);
+            });
         });
+
+
     }
 
 }

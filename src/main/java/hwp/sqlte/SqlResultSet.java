@@ -13,6 +13,10 @@ import java.util.stream.StreamSupport;
  */
 public class SqlResultSet implements Iterable<Row> {
 
+    //cache
+    private String sql;
+    private Object[] args;
+
     private List<String> columns;
     private List<Row> rows;
 
@@ -49,13 +53,13 @@ public class SqlResultSet implements Iterable<Row> {
         return null;
     }
 
-    public <T> List<T> flatMap(RowMapper<T> mapper) {
+    public <T> List<T> map(RowMapper<T> mapper) {
         List<T> list = new ArrayList<>(this.rows.size());
         this.rows.forEach(row -> list.add(mapper.map(row)));
         return list;
     }
 
-    public <T> List<T> flatMap(Supplier<T> supplier) {
+    public <T> List<T> map(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
         this.rows.forEach(row -> list.add(row.convert(supplier.get())));
         return list;
@@ -91,4 +95,9 @@ public class SqlResultSet implements Iterable<Row> {
         }
         return Optional.of(row.map(mapper));
     }
+
+    public void putCache(Cache cache) {
+
+    }
+
 }

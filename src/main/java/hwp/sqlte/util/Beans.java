@@ -1,5 +1,7 @@
 package hwp.sqlte.util;
 
+import hwp.sqlte.example.User;
+
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -13,9 +15,19 @@ import java.lang.reflect.Method;
  */
 public class Beans {
 
+    private String name;
+    private String desc;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public static void copyProperties(Object source, Object target) throws Exception {
         BeanInfo beanInfo = Introspector.getBeanInfo(source.getClass());
-        System.out.println(beanInfo);
         for (PropertyDescriptor descriptor : beanInfo.getPropertyDescriptors()) {
             Method writeMethod = descriptor.getWriteMethod();
             if (writeMethod != null) {
@@ -27,6 +39,10 @@ public class Beans {
             System.out.println(descriptor.getReadMethod());
             System.out.println(descriptor.getWriteMethod());
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        copyProperties(new Beans(), new Beans());
     }
 
 }
