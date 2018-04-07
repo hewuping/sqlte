@@ -1,19 +1,16 @@
 package hwp.sqlte.example;
 
-import hwp.sqlte.BatchExecutor;
 import hwp.sqlte.Row;
 import hwp.sqlte.Sql;
 import hwp.sqlte.SqlConnection;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 /**
  * @author Zero
- *         Created on 2017/3/27.
+ * Created on 2017/3/27.
  */
 public class Example1 {
 
@@ -92,8 +89,8 @@ public class Example1 {
 
     public void insertExample2(String username, String email, String password) throws Exception {
         SqlConnection conn = Sql.newConnection();
-        Optional<Long> idOpt = conn.incInsert("insert into user(username, email, password) value(?, ?, ?)", username, email, password);
-        System.out.println("user_id: " + idOpt.get());
+        Long id = conn.insertAndReturn("insert into user(username, email, password) value(?, ?, ?)", username, email, password);
+        System.out.println("user_id: " + id);
     }
 
     public void insertExample3(String username, String email, String password) throws Exception {

@@ -4,10 +4,12 @@ package hwp.sqlte;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
 import hwp.sqlte.example.User;
+import org.h2.jdbcx.JdbcConnectionPool;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -16,14 +18,21 @@ import java.util.function.Supplier;
  *         Created by Zero on 2017/6/17 0017.
  */
 public class SqlConnectionTest {
+
     @Before
     public void setUp() throws Exception {
-        MysqlDataSource ds = new MysqlDataSource();
-        ds.setURL("jdbc:mysql://localhost:3306/test?serverTimezone=UTC&characterEncoding=utf-8");
-        ds.setUser("root");
-        ds.getConnection().close();
+       DataSource ds= JdbcConnectionPool.create("jdbc:h2:~/test2", "sa", "");
+//        MysqlDataSource ds = new MysqlDataSource();
+//        ds.setURL("jdbc:mysql://localhost:3306/test?serverTimezone=UTC&characterEncoding=utf-8");
+//        ds.setUser("root");
+//        ds.getConnection().close();
         Sql.DATA_SOURCE_RESOURCE.set(ds);
-        Sql.setDatasource("default", ds);
+//        Sql.setDatasource("default", ds);
+    }
+
+    @Test
+    public void testDd() throws SQLException {
+        Sql.newConnection().close();
     }
 
     @Test

@@ -13,7 +13,7 @@ import java.util.Properties;
 
 /**
  * @author Zero
- *         Created on 2017/3/22.
+ * Created on 2017/3/22.
  */
 public interface Sql {
     Logger log = LoggerFactory.getLogger(Sql.class);
@@ -40,6 +40,14 @@ public interface Sql {
 
     ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
     Resource<DataSource> DATA_SOURCE_RESOURCE = new Resource<>();
+
+    static SqlConnection newConnection() {
+        try {
+            return SqlConnection.warp(DATA_SOURCE_RESOURCE.get().getConnection());
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
 
     static <T> T runOnTx(SqlFunction<SqlConnection, T> function) throws Exception {
         try (SqlConnection connection = connection(null)) {
@@ -99,27 +107,5 @@ public interface Sql {
         return connection;
     }
 
-    static PreparedStatement prep(SqlConnection conn, String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(sql)) {
-            Helper.fillStatement(stat, args);
-            return stat;
-        }
-    }
-
-
-    public static void main(String[] args) throws Exception {
-        Object[] obj = new Object[]{1, "A"};
-        System.out.println(obj);
-        exec(conn -> {
-//            prep(conn,"",)
-            SqlResultSet rs = conn.query("select * from user");
-            SqlResultSet rs3 = conn.query("#user.all");
-            List list;
-            rs.stream().map(StringMapper.MAPPER);
-
-            System.out.println(conn);
-            return "";
-        });
-    }
 
 }

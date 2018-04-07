@@ -10,7 +10,7 @@ import java.util.*;
 
 /**
  * @author Zero
- *         Created on 2017/3/20.
+ * Created on 2017/3/20.
  */
 class Helper {
 
@@ -50,6 +50,16 @@ class Helper {
             map.put(field.getName(), field.get(obj));
         }
         return map;
+    }
+
+
+    public static boolean hasPublicField(Class clazz, String name) {
+        for (Field field : clazz.getFields()) {
+            if (field.getName().equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

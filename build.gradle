@@ -20,5 +20,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
 //    testCompile 'mysql:mysql-connector-java:5.1.6'
     testCompile 'mysql:mysql-connector-java:6.0.6'
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
 }
 

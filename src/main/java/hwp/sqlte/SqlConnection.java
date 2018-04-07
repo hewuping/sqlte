@@ -15,7 +15,7 @@ import java.util.function.Function;
 
 /**
  * @author Zero
- *         Created by Zero on 2017/6/4 0004.
+ * Created by Zero on 2017/6/4 0004.
  */
 public class SqlConnection implements AutoCloseable {
 
@@ -71,7 +71,34 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public Optional<Long> incInsert00(String sql, String idColumn, Object... args) throws SQLException {
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    public int insert(String sql, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+            if (args.length > 0) {
+                Helper.fillStatement(stat, args);
+            }
+            return stat.executeUpdate();
+        }
+    }
+
+    public SqlResultSet insertAndReturn(String sql, Object... args) throws SQLException {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), Statement.RETURN_GENERATED_KEYS)) {
+            if (args.length > 0) {
+                Helper.fillStatement(stat, args);
+            }
+            stat.executeUpdate();
+            ResultSet rs = stat.getGeneratedKeys();
+            if (rs != null) {
+                return Helper.convert(rs);
+            }
+            return SqlResultSet.EMPTY;
+        }
+    }
+
+
+    public Long insertAndReturn(String sql, String idColumn, Object... args) throws SQLException {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
@@ -80,52 +107,26 @@ public class SqlConnection implements AutoCloseable {
             if (i > 0) {
                 ResultSet rs = stat.getGeneratedKeys();
                 if (rs != null && rs.next()) {
-                    return Optional.of(rs.getLong(idColumn));
+                    return rs.getLong(idColumn);
                 }
             }
-            return Optional.empty();
-        }
-    }
-
-    public Optional<Long> incInsert(String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), Statement.RETURN_GENERATED_KEYS)) {
-            if (args.length > 0) {
-                Helper.fillStatement(stat, args);
-            }
-            int i = stat.executeUpdate();
-            if (i > 0) {
-                SqlResultSet rs = Helper.convert(stat.getGeneratedKeys());
-                return rs.first(LongMapper.MAPPER);
-            }
-            return Optional.empty();
-        }
-    }
-
-    public boolean insert(String sql, Object... args) throws SQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
-            if (args.length > 0) {
-                Helper.fillStatement(stat, args);
-            }
-            return stat.executeUpdate() > 0;
+            return null;
         }
     }
 
 
-    public boolean insert(Object bean, String table) throws Exception {
+    public void insert(Object bean) throws Exception {
+        insert(bean, bean.getClass().getSimpleName().toLowerCase());
+    }
+
+    public void insert(Object bean, String table) throws Exception {
         Field[] fields = bean.getClass().getFields();//只映射public字段，public字段必须有
         Field[] fs = new Field[fields.length];
         int count = 0;
-        Field idField = null;
-        Id id = null;
         for (int i = 0; i < fields.length; i++) {
             Field field = fields[i];
             if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
                 fs[count++] = field;
-                //ID
-                id = field.getAnnotation(Id.class);
-                if (id != null) {
-                    idField = field;
-                }
             }
         }
         if (count == 0) {
@@ -135,34 +136,52 @@ public class SqlConnection implements AutoCloseable {
         Object[] values = new Object[count];
         for (int i = 0; i < count; i++) {
             Field field = fs[i];
-            if (id != null && field == idField) {
-                String idColumn = id.column().isEmpty() ? idField.getName() : id.column();
-                columns[i] = idColumn;
-            } else {
-                columns[i] = field.getName();
-            }
+            columns[i] = field.getName();
             values[i] = field.get(bean);
         }
-
-
-        if (idField != null && id != null && id.auto()) {
-            Optional<Long> aLong = incInsert(Insert.make(table, columns), values);
-            if (aLong.isPresent()) {
-                idField.set(bean, aLong.get());
-                return true;
+        try (PreparedStatement stat = conn.prepareStatement(Insert.make(table, columns), Statement.RETURN_GENERATED_KEYS)) {
+            Helper.fillStatement(stat, values);
+            int c = stat.executeUpdate();
+            if (c == 0) {
+                return;
             }
-            return false;
-        } else {
-            return insert(Insert.make(table, columns), values);
+            ResultSet keys = stat.getGeneratedKeys();
+            if (keys != null) {
+                ResultSetMetaData metaData = keys.getMetaData();
+                int cols = metaData.getColumnCount();
+                for (int i = 1; i <= cols; i++) {
+                    String name = metaData.getColumnLabel(i);
+                    if (Helper.hasPublicField(bean.getClass(), name)) {
+                        Field field = bean.getClass().getField(name);
+                        if (!Modifier.isFinal(field.getModifiers())) {
+                            field.set(bean, keys.getObject(i));
+                        }
+                    }
+                }
+            }
         }
     }
 
-    public boolean insert(Object bean) throws Exception {
-        return insert(bean, nameConverter.tableName(bean.getClass().getSimpleName()));
+    public void insert(String table, Map<String, Object> row) throws SQLException {
+        String sql = Insert.make(table, row.keySet().toArray(new String[row.size()]));
+//      insert(sql, row.values().toArray());
+        try (PreparedStatement stat = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            Helper.fillStatement(stat, row.values().toArray());
+            stat.executeUpdate();
+            ResultSet keys = stat.getGeneratedKeys();
+            if (keys != null) {
+                ResultSetMetaData metaData = keys.getMetaData();
+                int cols = metaData.getColumnCount();
+                for (int i = 1; i <= cols; i++) {
+                    String name = metaData.getColumnLabel(i);
+                    row.put(name, keys.getObject(i));
+                }
+            }
+        }
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /////////////////////////////
     public int update(String sql, Object... args) throws SQLException {
         PreparedStatement statement = conn.prepareStatement(sql);
         Helper.fillStatement(statement, args);
