@@ -4,6 +4,7 @@ import hwp.sqlte.Row;
 import hwp.sqlte.Sql;
 import hwp.sqlte.SqlConnection;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +36,6 @@ public class Example1 {
         String name = row.getValue("username");
         int age = row.getValue("age");
         Optional<Integer> age2 = row.getOptValue("age");
-
         return row;
     }
 
@@ -73,9 +73,9 @@ public class Example1 {
         Optional<User> user = conn.query(sql -> {
             sql.sql("select * from user");
             sql.where(where -> {
-                where.add(username != null, "username =?", username);//if username has value, use
-                where.add(email != null, "email =?", email);
-                where.add("password =?", password);
+                where.and(username != null, "username =?", username);//if username has value, use
+                where.and(email != null, "email =?", email);
+                where.and("password =?", password);
             });
         }).first(User.MAPPER);
         return user.orElse(null);
@@ -96,8 +96,8 @@ public class Example1 {
     public void insertExample3(String username, String email, String password) throws Exception {
         SqlConnection conn = Sql.newConnection();
         User user = new User("May", "may@gmail.com", "123456");
-        conn.insert(user);//table name: user
-        conn.insert(user, "user");
+        conn.insertBean(user);//table name: user
+        conn.insertBean(user, "user");
     }
 
 
@@ -108,7 +108,7 @@ public class Example1 {
         conn.update(builder -> {
             builder.sql("update user set username=?").args("Cindy");
             builder.where(where -> {
-                where.add("user_id=?", 123);
+                where.and("user_id=?", 123);
             });
         });
     }
@@ -126,6 +126,10 @@ public class Example1 {
         });
 
 
+    }
+
+    public static void main(String[] args) {
+        System.out.println(BigInteger.ONE);
     }
 
 }

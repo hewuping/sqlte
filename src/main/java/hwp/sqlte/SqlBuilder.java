@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 /**
  * @author Zero
- * Created on 2017/3/21.
+ *         Created on 2017/3/21.
  */
 public class SqlBuilder implements Sql {
     private List<Object> args = new ArrayList<>();
@@ -61,7 +61,7 @@ public class SqlBuilder implements Sql {
     }
 
 
-    public class Where {
+/*    public class Where {
         private StringBuilder builder = new StringBuilder();
 
         public Where add(String sql, Object... args) {
@@ -72,6 +72,67 @@ public class SqlBuilder implements Sql {
             if (filter) {
                 if (builder.length() == 0) {
                     builder.append(" WHERE");
+                }
+                builder.append(" ");
+                if (sql.contains("(?)") && args.length > 1) {
+                    //统计问号个数
+//                long count = sql.chars().filter(c -> c == '?').count();
+                    StringBuilder b = new StringBuilder();
+                    for (int i = 0; i < args.length; i++) {
+                        if (b.length() > 0) {
+                            b.append(",");
+                        }
+                        b.append("?");
+                    }
+                    b.insert(0, "(");
+                    b.append(")");
+                    sql = sql.replace("(?)", b);
+                }
+                builder.append(sql);
+                Collections.addAll(SqlBuilder.this.args, args);
+            }
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return builder.toString();
+        }
+    }*/
+
+    public class Where {
+        private StringBuilder builder = new StringBuilder();
+
+        public Where and(String sql){
+            builder.append(sql);
+            return this;
+        }
+
+        public Where and(String sql, Object... args) {
+            return and(true, sql, args);
+        }
+
+        public Where or(String sql, Object... args) {
+            return or(true, sql, args);
+        }
+
+        public Where and(boolean filter, String sql, Object... args) {
+            return add("AND", filter, sql, args);
+        }
+
+        public Where or(boolean filter, String sql, Object... args) {
+            return add("OR", filter, sql, args);
+        }
+
+        public Where add(String operator, boolean filter, String sql, Object... args) {
+            if (filter) {
+                if (builder.length() == 0) {
+                    builder.append(" WHERE");
+                }
+                if (builder.length() > 8) {
+                    builder.append(" ");
+                    builder.append(operator);
+                    builder.append(" ");
                 }
                 builder.append(" ");
                 if (sql.contains("(?)") && args.length > 1) {
@@ -121,10 +182,10 @@ public class SqlBuilder implements Sql {
         sql.add("select * from users");
         sql.where(w -> {
             if ("zero".startsWith("z")) {
-                w.add("username=?", "zero");
+                w.and("username=?", "zero");
             }
-            w.add("and password=?", "123456");
-            w.add("and age in ?", new Object[]{1, 2});
+            w.and("password=?", "123456");
+            w.and("age in ?", new Object[]{1, 2});
         });
 
 //        sql.where(w -> {

@@ -15,7 +15,7 @@ import java.util.function.Function;
 
 /**
  * @author Zero
- * Created by Zero on 2017/6/4 0004.
+ *         Created by Zero on 2017/6/4 0004.
  */
 public class SqlConnection implements AutoCloseable {
 
@@ -97,7 +97,6 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-
     public Long insertAndReturn(String sql, String idColumn, Object... args) throws SQLException {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
             if (args.length > 0) {
@@ -114,17 +113,19 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-
-    public void insert(Object bean) throws Exception {
-        insert(bean, bean.getClass().getSimpleName().toLowerCase());
+    public void insertBean(Object bean) throws Exception {
+        this.insertBean(bean, bean.getClass().getSimpleName().toLowerCase());
     }
 
-    public void insert(Object bean, String table) throws Exception {
+    public void insertBean(Object bean, String table) throws Exception {
+        this.insertBean(bean, table, false);
+    }
+
+    public void insertBean(Object bean, String table, boolean isReturn) throws Exception {
         Field[] fields = bean.getClass().getFields();//只映射public字段，public字段必须有
         Field[] fs = new Field[fields.length];
         int count = 0;
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
+        for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
                 fs[count++] = field;
             }
@@ -132,48 +133,84 @@ public class SqlConnection implements AutoCloseable {
         if (count == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        String[] columns = new String[count];
-        Object[] values = new Object[count];
+        List<String> columns = new ArrayList<>(count);
+        List<Object> values = new ArrayList<>(count);
+        List<String> nullColumns = new ArrayList<>(4);
         for (int i = 0; i < count; i++) {
             Field field = fs[i];
-            columns[i] = field.getName();
-            values[i] = field.get(bean);
+            Object v = field.get(bean);
+            if (v == null) {
+                nullColumns.add(field.getName());
+            } else {
+                columns.add(field.getName());
+                values.add(field.get(bean));
+            }
         }
-        try (PreparedStatement stat = conn.prepareStatement(Insert.make(table, columns), Statement.RETURN_GENERATED_KEYS)) {
-            Helper.fillStatement(stat, values);
+        if (columns.isEmpty()) {
+            throw new IllegalArgumentException("The bean must contain public fields and value is not null");
+        }
+        String sql = Insert.make(table, columns.toArray(new String[columns.size()]));
+        //Statement.RETURN_GENERATED_KEYS
+        try (PreparedStatement stat = nullColumns.isEmpty() ? conn.prepareStatement(sql)
+                : conn.prepareStatement(sql, nullColumns.toArray(new String[nullColumns.size()]))) {// new String[]{"id"}
+            Helper.fillStatement(stat, values.toArray(new Object[values.size()]));
             int c = stat.executeUpdate();
             if (c == 0) {
                 return;
             }
+            if (!isReturn || nullColumns.isEmpty()) {
+                return;
+            }
             ResultSet keys = stat.getGeneratedKeys();
-            if (keys != null) {
+            if (keys != null && keys.next()) {
+//                    Field field = bean.getClass().getField(idName);/
+                // /Modifier.isFinal(field.getModifiers())
+                //MySQL: BigInteger
                 ResultSetMetaData metaData = keys.getMetaData();
                 int cols = metaData.getColumnCount();
                 for (int i = 1; i <= cols; i++) {
                     String name = metaData.getColumnLabel(i);
+                    System.out.println(name + " --> " + keys.getObject(name));
+                    if ("GENERATED_KEY".equals(name)) {//Only MySQL
+                        String idColumn = nullColumns.get(0);
+                        Field f = bean.getClass().getField(idColumn);
+                        f.set(bean, keys.getInt(i));
+                        //if nullColumns.size()>1: select xxx from table where id=?
+                        break;
+                    }
                     if (Helper.hasPublicField(bean.getClass(), name)) {
-                        Field field = bean.getClass().getField(name);
-                        if (!Modifier.isFinal(field.getModifiers())) {
-                            field.set(bean, keys.getObject(i));
-                        }
+                        Field f = bean.getClass().getField(name);
+//                      f.set(bean, keys.getObject(i, f.getType()));
+                        f.set(bean, keys.getObject(i));
                     }
                 }
             }
         }
     }
 
-    public void insert(String table, Map<String, Object> row) throws SQLException {
+    public void insertMap(String table, Map<String, Object> row) throws SQLException {
+        insertMap(table, row, (String[]) null);
+    }
+
+    public void insertMap(String table, Map<String, Object> row, String... returnColumns) throws SQLException {
         String sql = Insert.make(table, row.keySet().toArray(new String[row.size()]));
 //      insert(sql, row.values().toArray());
-        try (PreparedStatement stat = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stat = (returnColumns == null
+                ? conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+                : conn.prepareStatement(sql, returnColumns))) {//Statement.RETURN_GENERATED_KEYS
             Helper.fillStatement(stat, row.values().toArray());
-            stat.executeUpdate();
+            int uc = stat.executeUpdate();
+            if (uc == 0) {
+                return;
+            }
             ResultSet keys = stat.getGeneratedKeys();
-            if (keys != null) {
+            if (keys != null && keys.next()) {
                 ResultSetMetaData metaData = keys.getMetaData();
                 int cols = metaData.getColumnCount();
                 for (int i = 1; i <= cols; i++) {
                     String name = metaData.getColumnLabel(i);
+                    //mysql会返回GENERATED_KEY, 没有完全实现JDBC规范
+                    //pgsql如果设置了列名, 则返回指定列, RETURN_GENERATED_KEYS会返回所有列
                     row.put(name, keys.getObject(i));
                 }
             }
