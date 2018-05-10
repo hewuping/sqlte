@@ -12,10 +12,16 @@ public class LongMapper implements RowMapper<Long> {
 
     public static final LongMapper MAPPER = new LongMapper();
 
-    private LongMapper() { }
+    private LongMapper() {
+    }
 
     @Override
     public Long map(Row row) {
-        return (Long) row.values().iterator().next();
+        Object v = row.values().iterator().next();
+        if (v instanceof Long) {
+            return (Long) v;
+        }
+        Number number = (Number) v;
+        return number.longValue();
     }
 }

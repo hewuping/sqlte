@@ -37,7 +37,7 @@ public class SqlResultSet implements Iterable<Row> {
         return rows;
     }
 
-    public Row firstRow() {
+    public Row first() {
         if (this.rows != null && this.rows.size() > 0) {
             return this.rows.get(0);
         }
@@ -45,12 +45,11 @@ public class SqlResultSet implements Iterable<Row> {
     }
 
     public <T> T first(Supplier<T> supplier) {
-        Row row = firstRow();
+        Row row = first();
         if (row == null) {
             return null;
         }
-        row.convert(supplier.get());
-        return null;
+        return row.convert(supplier.get());
     }
 
     public <T> List<T> map(RowMapper<T> mapper) {
@@ -89,7 +88,7 @@ public class SqlResultSet implements Iterable<Row> {
     }
 
     public <T> Optional<T> first(RowMapper<T> mapper) throws SQLException {
-        Row row = firstRow();
+        Row row = first();
         if (row == null) {
             return Optional.empty();
         }

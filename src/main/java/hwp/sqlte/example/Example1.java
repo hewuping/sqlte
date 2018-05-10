@@ -5,6 +5,7 @@ import hwp.sqlte.Sql;
 import hwp.sqlte.SqlConnection;
 
 import java.math.BigInteger;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +33,7 @@ public class Example1 {
     }
 
     public Map<String, Object> queryExample2(String username) throws Exception {
-        Row row = Sql.newConnection().query("select * from user where username=?", username).firstRow();
+        Row row = Sql.newConnection().query("select * from user where username=?", username).first();
         String name = row.getValue("username");
         int age = row.getValue("age");
         Optional<Integer> age2 = row.getOptValue("age");
@@ -61,9 +62,8 @@ public class Example1 {
             try {
                 String name = rs.getString("username");
                 System.out.println(name);
-                return true;
-            } catch (Exception e) {
-                return false;
+            } catch (SQLException e) {
+
             }
         }, username);
     }
@@ -124,8 +124,6 @@ public class Example1 {
                 executor.exec(user.username, user.password);
             });
         });
-
-
     }
 
     public static void main(String[] args) {

@@ -10,9 +10,11 @@ import java.util.*;
 
 /**
  * @author Zero
- * Created on 2017/3/20.
+ *         Created on 2017/3/20.
  */
 class Helper {
+    protected static ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
+
 
     public static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();

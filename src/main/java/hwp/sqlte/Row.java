@@ -2,10 +2,11 @@ package hwp.sqlte;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -37,6 +38,11 @@ public class Row extends HashMap<String, Object> {
         return mapper.map(this);
     }
 
+
+    public <T> T map(Supplier<T> supplier) throws SQLException {
+        return convert(supplier.get());
+    }
+
     public Row set(String name, Object val) {
         put(name, val);
         return this;
@@ -61,9 +67,18 @@ public class Row extends HashMap<String, Object> {
         return t;
     }
 
-    public static void main(String[] args) {
-        Row row = new Row();
-        int v = row.getValue("ss", -1);
+    public static Row from(ResultSet rs) {
+        try {
+            Row row = new Row();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int cols = metaData.getColumnCount();
+            for (int i = 1; i <= cols; i++) {
+                row.put(metaData.getColumnLabel(i), rs.getObject(i));
+            }
+            return row;
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
 

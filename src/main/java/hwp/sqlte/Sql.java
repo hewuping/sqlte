@@ -1,19 +1,15 @@
 package hwp.sqlte;
 
-import hwp.sqlte.mapper.StringMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
+import java.util.function.Function;
 
 /**
  * @author Zero
- * Created on 2017/3/22.
+ *         Created on 2017/3/22.
  */
 public interface Sql {
     Logger log = LoggerFactory.getLogger(Sql.class);
@@ -36,75 +32,51 @@ public interface Sql {
         return sql().concat("@").concat(Arrays.toString(args()));
     }
 
-    Properties SQLS = new Properties();
 
-    ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
-    Resource<DataSource> DATA_SOURCE_RESOURCE = new Resource<>();
+    static Sql create(String sql, Object... args) {
+        return new SimpleSql(sql, args);
+    }
+
+    static Config config() {
+        return Config.config;
+    }
 
     static SqlConnection newConnection() {
         try {
-            return SqlConnection.warp(DATA_SOURCE_RESOURCE.get().getConnection());
+            return SqlConnection.use(config().getDataSource().getConnection());
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
     }
 
-    static <T> T runOnTx(SqlFunction<SqlConnection, T> function) throws Exception {
-        try (SqlConnection connection = connection(null)) {
-            connection.setAutoCommit(false);
-            try {
-                T rs = function.apply(connection);
-                connection.commit();
-                return rs;
-            } catch (Exception e) {
-                connection.rollback();
-                throw e;
-            }
+    static SqlConnection newConnection(String dsName) {
+        try {
+            return SqlConnection.use(config().getDataSource(dsName).getConnection());
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
         }
     }
 
-    static <T> T exec(SqlFunction<SqlConnection, T> function) throws Exception {
-        return exec(null, function);
-    }
-
-    static <T> T exec(SqlConnection connection, SqlFunction<SqlConnection, T> function) throws Exception {
-        connection = connection(connection);
-        if (connection.getAutoCommit()) {
-            try {
-                return function.apply(connection);
-            } finally {
-                connection.close();
-            }
-        } else {
-            try {
-                return function.apply(connection);
-            } catch (SQLException e) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    //ignore
-                    //TODO 回滚失败
-                }
-                try {
-                    connection.close();//如果发生了异常则关闭连接
-                } catch (SQLException e1) {
-                    //ignore
-                }
-                throw e;
-            }
+    /*  static <T> T runOnTx(SqlFunction<Tx, T> function) throws Exception {
+          Tx tx = Tx.createOrGet();
+          try {
+              tx.begin();
+              return function.apply(tx);
+          } finally {
+              tx.end();
+          }
+      }
+  */
+    static <T> T useTx(Function<SqlConnection, T> function) throws Exception {
+        SqlConnection connection = newConnection();
+        try {
+            return function.apply(connection);
+        } catch (Exception e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.close();
         }
-    }
-
-    static SqlConnection connection(SqlConnection connection) throws SQLException {
-        if (connection == null) {
-            connection = THREAD_LOCAL.get();
-            if (connection == null) {
-                Objects.requireNonNull(DATA_SOURCE_RESOURCE.get(), "Datasource is not defined");
-                connection = SqlConnection.warp(DATA_SOURCE_RESOURCE.get().getConnection());
-                THREAD_LOCAL.set(connection);
-            }
-        }
-        return connection;
     }
 
 

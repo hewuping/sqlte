@@ -12,10 +12,16 @@ public class IntMapper implements RowMapper<Integer> {
 
     public static final IntMapper MAPPER = new IntMapper();
 
-    private IntMapper() { }
+    private IntMapper() {
+    }
 
     @Override
     public Integer map(Row row) {
-        return (Integer) row.values().iterator().next();
+        Object v = row.values().iterator().next();
+        if (v instanceof Integer) {
+            return (Integer) v;
+        }
+        Number number = (Number) v;
+        return number.intValue();
     }
 }

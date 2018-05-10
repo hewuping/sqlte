@@ -1,28 +1,59 @@
 package hwp.sqlte;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * @author Zero
  *         Created on 2017/3/21.
  */
-public class SqlBuilder implements Sql {
+public class SqlBuilder implements Builder, Sql {
     private List<Object> args = new ArrayList<>();
     private StringBuilder sql = new StringBuilder();
-
-    private String errmsg;
 
     public SqlBuilder() {
 
     }
 
+    private static Pattern pattern = Pattern.compile("\\?(\\d+)");
+
     @Override
     public String sql() {
+        Matcher matcher = pattern.matcher(sql);
+        while (matcher.find()) {
+            int num = Integer.parseInt(matcher.group(1));
+            if (num > 0) {
+                int start = matcher.start(0);
+                boolean wrap = false;
+                if (sql.charAt(start - 1) == '(') {
+                    wrap = true;
+                }
+                StringBuilder rep = new StringBuilder();
+                if (!wrap) {
+                    rep.append('(');
+                }
+                for (int i = 0; i < num; i++) {
+                    if (i > 0) {
+                        rep.append(',');
+                    }
+                    rep.append('?');
+                }
+                if (!wrap) {
+                    rep.append(')');
+                }
+                sql.replace(matcher.start(0), matcher.end(0), rep.toString());
+                matcher.reset(sql);
+            } else {
+                //error
+                throw new UncheckedException("SQL syntax error: " + sql);
+            }
+        }
         return sql.toString();
     }
 
@@ -40,135 +71,66 @@ public class SqlBuilder implements Sql {
         if (this.args.size() > 0) {
             this.args.clear();
         }
-        Collections.addAll(this.args, args);
+        addArgs(args);
         return this;
     }
 
+    private void addArgs(Object... args) {
+        for (Object arg : args) {
+            if (arg.getClass().isArray()) {
+                for (int i = 0, len = Array.getLength(arg); i < len; i++) {
+                    this.args.add(Array.get(arg, i));
+                }
+            }
+            if (arg instanceof Collection) {
+                this.args.addAll((Collection) arg);
+            } else {
+                this.args.add(arg);
+            }
+        }
+    }
+
+
+    public SqlBuilder where(Where where) {
+        this.sql.append(where);
+        this.args.addAll(where.args());
+        return this;
+    }
 
     public SqlBuilder where(Consumer<Where> where) {
         Where w = new Where();
         where.accept(w);
-        this.sql.append(w);
+        return this.where(w);
+    }
+
+    public SqlBuilder limit(int first, int size) {
+        this.sql.append(" LIMIT ").append(first).append(",").append(size);
         return this;
     }
 
-    public SqlBuilder order(Where where) {
+    public SqlBuilder limit(int size) {
+        this.sql.append(" LIMIT ").append(size);
         return this;
     }
 
-    public SqlBuilder limit(int offset, int size) {
+    public SqlBuilder orderBy(Order order) {
+        sql.append(order);
         return this;
     }
 
-
-/*    public class Where {
-        private StringBuilder builder = new StringBuilder();
-
-        public Where add(String sql, Object... args) {
-            return add(true, sql, args);
-        }
-
-        public Where add(boolean filter, String sql, Object... args) {
-            if (filter) {
-                if (builder.length() == 0) {
-                    builder.append(" WHERE");
-                }
-                builder.append(" ");
-                if (sql.contains("(?)") && args.length > 1) {
-                    //统计问号个数
-//                long count = sql.chars().filter(c -> c == '?').count();
-                    StringBuilder b = new StringBuilder();
-                    for (int i = 0; i < args.length; i++) {
-                        if (b.length() > 0) {
-                            b.append(",");
-                        }
-                        b.append("?");
-                    }
-                    b.insert(0, "(");
-                    b.append(")");
-                    sql = sql.replace("(?)", b);
-                }
-                builder.append(sql);
-                Collections.addAll(SqlBuilder.this.args, args);
-            }
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return builder.toString();
-        }
-    }*/
-
-    public class Where {
-        private StringBuilder builder = new StringBuilder();
-
-        public Where and(String sql){
-            builder.append(sql);
-            return this;
-        }
-
-        public Where and(String sql, Object... args) {
-            return and(true, sql, args);
-        }
-
-        public Where or(String sql, Object... args) {
-            return or(true, sql, args);
-        }
-
-        public Where and(boolean filter, String sql, Object... args) {
-            return add("AND", filter, sql, args);
-        }
-
-        public Where or(boolean filter, String sql, Object... args) {
-            return add("OR", filter, sql, args);
-        }
-
-        public Where add(String operator, boolean filter, String sql, Object... args) {
-            if (filter) {
-                if (builder.length() == 0) {
-                    builder.append(" WHERE");
-                }
-                if (builder.length() > 8) {
-                    builder.append(" ");
-                    builder.append(operator);
-                    builder.append(" ");
-                }
-                builder.append(" ");
-                if (sql.contains("(?)") && args.length > 1) {
-                    //统计问号个数
-//                long count = sql.chars().filter(c -> c == '?').count();
-                    StringBuilder b = new StringBuilder();
-                    for (int i = 0; i < args.length; i++) {
-                        if (b.length() > 0) {
-                            b.append(",");
-                        }
-                        b.append("?");
-                    }
-                    b.insert(0, "(");
-                    b.append(")");
-                    sql = sql.replace("(?)", b);
-                }
-                builder.append(sql);
-                Collections.addAll(SqlBuilder.this.args, args);
-            }
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return builder.toString();
-        }
+    public SqlBuilder orderBy(Consumer<Order> consumer) {
+        Order order = new Order();
+        consumer.accept(order);
+        return orderBy(order);
     }
 
-    static Pattern pattern = Pattern.compile(":(\\w+)");
 
-    public static String normalizeSql(String sql) {
-        if (sql.contains(":")) {
-            return pattern.matcher(sql).replaceAll("?");
-        }
-        return sql;
+    public SqlBuilder add(String sql, Object... args) {
+        this.sql.append(sql);
+        this.addArgs(args);
+        return this;
     }
+
 
     @Override
     public String toString() {
@@ -179,25 +141,41 @@ public class SqlBuilder implements Sql {
 
     public static void main(String[] args) {
         SqlBuilder sql = new SqlBuilder();
-        sql.add("select * from users");
+        sql.add("SELECT * FROM users");
         sql.where(w -> {
             if ("zero".startsWith("z")) {
                 w.and("username=?", "zero");
             }
             w.and("password=?", "123456");
-            w.and("age in ?", new Object[]{1, 2});
+            w.and("age in ?2", 1, 2);
+            w.and(String.format("age in ?%d", 2), 1, 2);
         });
+        sql.orderBy(order -> {
+            order.by("username");
+            order.desc("age");//
+        });
+        sql.limit(1, 20);
 
-//        sql.where(w -> {
-//            w.add("username = ?", "zero");
-//            w.add("and age in (?)", 1, 2, 3);
-//        });
         System.out.println(sql);
+//
+//
+//        Where where = new Where();
+//        where.and("password = ?", "123456");
+//        String selectSql = new SqlBuilder().add("SELECT * FROM user").where(where).sql();
+//        String selectCount = new SqlBuilder().add("SELECT count(*) FROM user").where(where).sql();
+//        System.out.println(selectSql);
+//        System.out.println(selectCount);
+
+//        SqlBuilder sql = new SqlBuilder();
+//        sql.add("name=? and age in ?", "zero", new int[]{12, 33});
+//        System.out.println(sql.sql());
+//        System.out.println(Arrays.toString(sql.args()));
     }
 
-    public void add(String sql, Object... args) {
-        this.sql.append(sql);
-        Collections.addAll(this.args, args);
+
+    @Override
+    public Sql build() {
+        return new SimpleSql(sql(), args());
     }
 
 }

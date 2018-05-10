@@ -39,11 +39,9 @@ public class SqlConnectionTest {
         pgds.setURL("jdbc:postgresql://10.1.1.203:5432/testdb");
         pgds.setUser("zero");
         pgds.setPassword("123456");
-        Sql.DATA_SOURCE_RESOURCE.set(ds);
-//        Sql.DATA_SOURCE_RESOURCE.set(pgds);
+        Sql.config().setDataSource(ds);
+//          Sql.config().setDataSource(pgds);
 
-
-//        Sql.setDatasource("default", ds);
     }
 
     @Test
@@ -65,13 +63,15 @@ public class SqlConnectionTest {
 
     @Test
     public void query2() throws Exception {
-        Row row = Sql.newConnection().query("select * from users where username=?", "Frank").firstRow();
-        String name = row.getValue("username");
-        int age = row.getValue("age");
-        Optional<String> xxx = row.getOptValue("xxx");
-        Assert.assertEquals(name, "Frank");
-        Assert.assertEquals(age, 18);
-        Assert.assertFalse(xxx.isPresent());
+        try (SqlConnection conn = Sql.newConnection()) {
+            Row row = conn.query("select * from users where username=?", "Frank").first();
+            String name = row.getValue("username");
+            int age = row.getValue("age");
+            Optional<String> xxx = row.getOptValue("xxx");
+            Assert.assertEquals(name, "Frank");
+            Assert.assertEquals(age, 18);
+            Assert.assertFalse(xxx.isPresent());
+        }
     }
 
 
@@ -86,32 +86,43 @@ public class SqlConnectionTest {
 
     @Test
     public void query4() throws Exception {
-        String username = "Frank";
-        //simple
-        Sql.newConnection().query("select * from users where username=?", username).forEach(row -> {
-            Assert.assertEquals("frank@ccjk.com", row.get("email"));
-            Assert.assertNull(row.get("unk"));
-        });
+        try (SqlConnection conn = Sql.newConnection()) {
+            String username = "Frank";
+            //simple
+            conn.query("select * from users where username=?", username).forEach(row -> {
+                Assert.assertEquals("frank@ccjk.com", row.get("email"));
+                Assert.assertNull(row.get("unk"));
+            });
 
-        //use mapper
-        Sql.newConnection().query("select * from users where username=?", username).map(User.MAPPER).forEach(user -> {
-            Assert.assertEquals("frank@ccjk.com", user.email);
-        });
+            //use mapper
+            conn.query("select * from users where username=?", username).map(User.MAPPER).forEach(user -> {
+                Assert.assertEquals("frank@ccjk.com", user.email);
+            });
+
+            //row handler (big data handler)
+            conn.query(new SimpleSql("select * from users where username=?", username), row -> {
+                Assert.assertEquals("frank@ccjk.com", row.getString("email"));
+                return true;
+            });
+
+
+        }
     }
 
     @Test
     public void queryResultSet() throws Exception {
-        //Query big data
-        Sql.newConnection().query("select * from user where username=?", rs -> {
-            try {
-                Assert.assertTrue(ResultSet.class.isInstance(rs));
-                String name = rs.getString("username");
-                Assert.assertEquals("Frank", name);
-                return true;
-            } catch (Exception e) {
-                return false;
-            }
-        }, "Frank");
+        try (SqlConnection conn = Sql.newConnection()) {
+            //Query big data
+            conn.query("select * from user where username=?", rs -> {
+                try {
+                    Assert.assertTrue(ResultSet.class.isInstance(rs));
+                    String name = rs.getString("username");
+                    Assert.assertEquals("Frank", name);
+                } catch (SQLException e) {
+
+                }
+            }, "Frank");
+        }
     }
 
     @Test
@@ -136,48 +147,77 @@ public class SqlConnectionTest {
 
     @Test
     public void insert() throws Exception {
-        Sql.runOnTx(conn -> {
+        try (SqlConnection conn = Sql.newConnection()) {
 //            conn.insert("insert into auth_user(username,password,password_salt) values(?,?,?)", "zero", "123456", "xxx");
             conn.insert(Insert.make("auth_user2", "username,password,password_salt"), "may", "123456", "xxx");
-            return "";
-        });
+        }
     }
 
     @Test
     public void insertBean() throws Exception {
-        SqlConnection conn = Sql.newConnection();
-        User user = new User("May", "123456", "xswenli");
-        conn.insertBean(user, "users", true);
-        System.out.println(user);
+        try (SqlConnection conn = Sql.newConnection()) {
+            User user = new User("May", "123456", "xswenli");
+//        conn.insertBean(user, "users", true);
+            System.out.println(user);
 //        SqlResultSet rows = conn.query("select * from users where username =? limit 10", "May");
 //        List<User> users = rows.map(row -> row.convert(new User()));
 //        System.out.println(users);
+        }
     }
 
     @Test
     public void insertMap() throws Exception {
-        SqlConnection conn = Sql.newConnection();
-        Map<String, Object> map = new HashMap<>();
-        map.put("username", "Zero");
-        map.put("password", "123456");
-        map.put("email", "zero@ccjk.com");
+        try (SqlConnection conn = Sql.newConnection()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("username", "Zero");
+            map.put("password", "123456");
+            map.put("email", "zero@ccjk.com");
 //        conn.insertMap("users", new HashMap<>(map));
-        conn.insertMap("users", map, "id");
-        //{GENERATED_KEY=6, password=123456, email=zero@ccjk.com, username=Zero}
-        System.out.println(map);
+            conn.insertMap("users", map, "id");
+            //{GENERATED_KEY=6, password=123456, email=zero@ccjk.com, username=Zero}
+            System.out.println(map);
+        }
     }
 
+    @Test
+    public void batchInsert() throws SQLException {
+        try (SqlConnection conn = Sql.newConnection()) {
+            conn.batchUpdate("INSERT INTO users (`email`, `username`)  VALUES (?, ?)", executor -> {
+                executor.exec("bb@example.com", "bb");
+                executor.exec("aa@example.com", "aa");
+            });
+        }
+    }
 
     @Test
     public void update() throws Exception {
-        Sql.runOnTx(conn -> {
+        try (SqlConnection conn = Sql.newConnection()) {
             conn.update(new User("Frank", "123456", "xswenli"), "auth_user2");
             SqlResultSet rows = conn.query("select * from auth_user2 where username =? limit 10", "Frank");
             List<User> users = rows.map(User::new);
             System.out.println(users.size());
-            return "";
-        });
+        }
     }
 
+    @Test
+    public void update2() throws Exception {
+        try (SqlConnection conn = Sql.newConnection()) {
+            //
+            Row data = new Row().set("id", "123").set("username", "Zero").set("email", "bb@example.com");
+            conn.update(data, "users", where -> {
+                where.and("id=?", data.get("id"));
+            });
+            //OR
+            conn.updateById(data, "users", "id");
+
+            //OR
+            conn.updateById(data, "users");
+        }
+    }
+
+
+    public void ss(){
+
+    }
 
 }

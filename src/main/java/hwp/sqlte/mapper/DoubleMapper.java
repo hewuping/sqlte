@@ -11,6 +11,11 @@ import hwp.sqlte.RowMapper;
 public class DoubleMapper implements RowMapper<Double> {
     @Override
     public Double map(Row row) {
-        return (Double) row.values().iterator().next();
+        Object v = row.values().iterator().next();
+        if (v instanceof Double) {
+            return (Double) v;
+        }
+        Number number = (Number) v;
+        return number.doubleValue();
     }
 }
