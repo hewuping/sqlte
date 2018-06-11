@@ -11,7 +11,7 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
     // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:slf4j-api:1.7.25'
 
     // Declare the dependency for your favourite test framework you want to use in your tests.
     // TestNG is also supported by the Gradle Test task. Just change the
@@ -19,12 +19,14 @@ dependencies {
     // 'test.useTestNG()' to your build script.
     testCompile 'junit:junit:4.12'
 //    testCompile 'mysql:mysql-connector-java:5.1.6'
-    testCompile 'mysql:mysql-connector-java:6.0.6'
-//    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
+//    testCompile 'mysql:mysql-connector-java:6.0.6'
+    testCompile group: 'mysql', name: 'mysql-connector-java', version: '8.0.11'
+
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
     testCompile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.21.0.1'
     testCompile group: 'org.postgresql', name: 'postgresql', version: '42.2.2'
 
-
+    testCompile group: 'com.zaxxer', name: 'HikariCP', version: '3.0.0'
 }
 
 

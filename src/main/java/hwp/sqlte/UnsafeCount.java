@@ -4,7 +4,7 @@ package hwp.sqlte;
  * @author Zero
  *         Created on 2018/4/4.
  */
-class UnsafeCount {
+public class UnsafeCount {
     int count;
 
     public int add(int v) {
@@ -28,5 +28,16 @@ class UnsafeCount {
         this.count = value;
     }
 
+    public void reset(){
+        this.count = 0;
+    }
 
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("{");
+        sb.append("count=").append(count);
+        sb.append('}');
+        return sb.toString();
+    }
 }

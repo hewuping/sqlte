@@ -16,7 +16,7 @@ public class User {
     public String email;
     public String password;
     public String password_salt="sfwerx";
-    public Date creation_time;
+//    public Date creation_time;
     public Date updated_time;
 
     public User() {
@@ -37,7 +37,7 @@ public class User {
         sb.append(", email='").append(email).append('\'');
         sb.append(", password='").append(password).append('\'');
         sb.append(", password_salt='").append(password_salt).append('\'');
-        sb.append(", creation_time=").append(creation_time);
+//        sb.append(", creation_time=").append(creation_time);
         sb.append(", updated_time=").append(updated_time);
         sb.append('}');
         return sb.toString();

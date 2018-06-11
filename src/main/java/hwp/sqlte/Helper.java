@@ -6,7 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Zero
@@ -43,6 +46,32 @@ class Helper {
                 statement.setObject(i + 1, value);
             }
         }
+    }
+
+    public static String makeInsertSql(String table, String columns) {
+//        table.chars().filter(c -> c == ',').count();
+        return makeInsertSql(table, columns.split(","));
+    }
+
+    public static String makeInsertSql(String table, String... columns) {
+        StringBuilder builder = new StringBuilder("INSERT INTO ").append(table);
+        builder.append('(');
+        int len = columns.length;
+        for (int i = 0; i < len; i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append(columns[i].trim());
+        }
+        builder.append(") VALUES (");
+        for (int i = 0; i < len; i++) {
+            if (i > 0) {
+                builder.append(',');
+            }
+            builder.append('?');
+        }
+        builder.append(')');
+        return builder.toString();
     }
 
     public static Map<String, Object> beanToArgs(Object obj) throws IllegalAccessException {

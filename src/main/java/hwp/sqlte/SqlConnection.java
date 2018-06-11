@@ -44,8 +44,9 @@ public class SqlConnection implements AutoCloseable {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
-            java.sql.ResultSet rs = stat.executeQuery();
-            return Helper.convert(rs);
+            try (java.sql.ResultSet rs = stat.executeQuery()) {
+                return Helper.convert(rs);
+            }
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
@@ -76,9 +77,10 @@ public class SqlConnection implements AutoCloseable {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
-            java.sql.ResultSet rs = stat.executeQuery();
-            while (rs.next()) {
-                rowHandler.accept(rs);
+            try (java.sql.ResultSet rs = stat.executeQuery()) {
+                while (rs.next()) {
+                    rowHandler.accept(rs);
+                }
             }
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -95,9 +97,10 @@ public class SqlConnection implements AutoCloseable {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
-            java.sql.ResultSet rs = stat.executeQuery();
-            while (rs.next() && rowHandler.handle(Row.from(rs))) {
+            try (java.sql.ResultSet rs = stat.executeQuery()) {
+                while (rs.next() && rowHandler.handle(Row.from(rs))) {
 
+                }
             }
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -138,7 +141,7 @@ public class SqlConnection implements AutoCloseable {
 
     }
 
-    public Long insertAndReturn(String sql, String idColumn, Object... args) throws UncheckedSQLException {
+    public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
@@ -180,15 +183,11 @@ public class SqlConnection implements AutoCloseable {
         }
         List<String> columns = new ArrayList<>(count);
         List<Object> values = new ArrayList<>(count);
-        List<String> nullColumns = new ArrayList<>(4);
         try {
             for (int i = 0; i < count; i++) {
                 Field field = fs[i];
                 Object v = field.get(bean);
-                if (v == null) {
-//                    if(field.getName())
-                    nullColumns.add(field.getName());
-                } else {
+                if (v != null) {
                     columns.add(field.getName());
                     values.add(field.get(bean));
                 }
@@ -199,7 +198,7 @@ public class SqlConnection implements AutoCloseable {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");
         }
-        String sql = Insert.make(table, columns.toArray(new String[columns.size()]));
+        String sql = Helper.makeInsertSql(table, columns.toArray(new String[columns.size()]));
         //Statement.RETURN_GENERATED_KEYS
         try (PreparedStatement stat = returnColumns == null || returnColumns.length == 0 ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns)) {// new String[]{"id"}
@@ -211,8 +210,7 @@ public class SqlConnection implements AutoCloseable {
             if (returnColumns == null || returnColumns.length == 0) {
                 return;
             }
-            try {
-                ResultSet keys = stat.getGeneratedKeys();
+            try (ResultSet keys = stat.getGeneratedKeys()) {
                 if (keys != null && keys.next()) {
                     //Field field = bean.getClass().getField(idName);/
                     //Modifier.isFinal(field.getModifiers())
@@ -228,7 +226,11 @@ public class SqlConnection implements AutoCloseable {
                         if (driverName.contains("sqlite") || driverName.contains("mysql")) {
                             String idColumn = returnColumns[0];
                             Field f = bean.getClass().getField(idColumn);
-                            f.set(bean, keys.getInt(i));
+                            if (f.getType() == Long.TYPE || f.getType() == Long.class) {
+                                f.set(bean, keys.getLong(i));
+                            } else {
+                                f.set(bean, keys.getInt(i));
+                            }
                             //if nullColumns.size()>1: select xxx from table where id=?
                             break;
                         }
@@ -239,7 +241,7 @@ public class SqlConnection implements AutoCloseable {
                     }
                 }
             } catch (NoSuchFieldException | IllegalAccessException e) {
-
+                throw new UncheckedException(e);
             }
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -247,7 +249,7 @@ public class SqlConnection implements AutoCloseable {
     }
 
 
-    public <T> void insertBeans(List<T> beans, String table) throws Exception {
+    public void insertBeans(List<? extends Object> beans, String table) throws Exception {
         if (beans.isEmpty()) {
             return;
         }
@@ -275,7 +277,7 @@ public class SqlConnection implements AutoCloseable {
             columns[i] = field.getName();
         }
 
-        String sql = Insert.make(table, columns);
+        String sql = Helper.makeInsertSql(table, columns);
         batchUpdate(sql, 100, executor -> {
             beans.forEach(obj -> {
                 try {
@@ -295,13 +297,13 @@ public class SqlConnection implements AutoCloseable {
     }
 
 
-    public void insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {
-        insertMap(table, row, (String[]) null);
+    public int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {
+        return insertMap(table, row, (String[]) null);
     }
 
-    public void insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
+    public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
         try {
-            String sql = Insert.make(table, row.keySet().toArray(new String[row.size()]));
+            String sql = Helper.makeInsertSql(table, row.keySet().toArray(new String[row.size()]));
 //      insert(sql, row.values().toArray());
             try (PreparedStatement stat = (returnColumns == null
                     ? conn.prepareStatement(sql)
@@ -309,19 +311,21 @@ public class SqlConnection implements AutoCloseable {
                 Helper.fillStatement(stat, row.values().toArray());
                 int uc = stat.executeUpdate();
                 if (uc == 0) {
-                    return;
+                    return 0;
                 }
-                ResultSet keys = stat.getGeneratedKeys();
-                if (keys != null && keys.next()) {
-                    ResultSetMetaData metaData = keys.getMetaData();
-                    int cols = metaData.getColumnCount();
-                    for (int i = 1; i <= cols; i++) {
-                        String name = metaData.getColumnLabel(i);
-                        //mysql会返回GENERATED_KEY, 没有完全实现JDBC规范
-                        //pgsql如果设置了列名, 则返回指定列, RETURN_GENERATED_KEYS会返回所有列
-                        row.put(name, keys.getObject(i));
+                try (ResultSet keys = stat.getGeneratedKeys()) {
+                    if (keys != null && keys.next()) {
+                        ResultSetMetaData metaData = keys.getMetaData();
+                        int cols = metaData.getColumnCount();
+                        for (int i = 1; i <= cols; i++) {
+                            String name = metaData.getColumnLabel(i);
+                            //mysql会返回GENERATED_KEY, 没有完全实现JDBC规范
+                            //pgsql如果设置了列名, 则返回指定列, RETURN_GENERATED_KEYS会返回所有列
+                            row.put(name, keys.getObject(i));
+                        }
                     }
                 }
+                return uc;
             }
         } catch (SQLException e) {
             throw new UncheckedException(e);
@@ -354,94 +358,124 @@ public class SqlConnection implements AutoCloseable {
         this.batchUpdate(sql, 1000, it, consumer);
     }
 
-    public <T> void batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        try (PreparedStatement statement = conn.prepareStatement(sql)) {
-            UnsafeCount count = new UnsafeCount();
-            BatchExecutor executor = args -> {
-                try {
-                    Helper.fillStatement(statement, args);
-                    statement.addBatch();
-                    statement.clearParameters();
-                    if (count.add(1) >= maxBatchSize) {
-                        statement.executeBatch();
-                    }
-                } catch (SQLException e) {
-                    throw new UncheckedSQLException(e);
-                }
-            };
+    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
+        return batchUpdate(sql, maxBatchSize, executor -> {
             it.forEach(t -> consumer.accept(executor, t));
-            if (count.get() > 0) {
-                statement.executeBatch();
-            }
+        });
+    }
+
+    //分批导入大量数据
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+        return this.batchUpdate(sql, 1000, consumer);
+    }
+
+    public BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+            return batchUpdate(statement, maxBatchSize, consumer, null);
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }
     }
 
-    //分批导入大量数据
-    public void batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        this.batchUpdate(sql, 1000, consumer);
-    }
-
-    public int[] batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+        try {
+            boolean autoCommit = conn.getAutoCommit();
+            if (autoCommit) {
+                conn.setAutoCommit(false);
+            }
+            Savepoint savepoint = conn.setSavepoint("batchUpdate");
+            BatchUpdateResult result = new BatchUpdateResult();
             UnsafeCount count = new UnsafeCount();
             BatchExecutor executor = args -> {
                 try {
                     Helper.fillStatement(statement, args);
                     statement.addBatch();
-                    statement.clearParameters();
                     if (count.add(1) >= maxBatchSize) {
-                        statement.executeBatch();
+                        int[] rs0 = statement.executeBatch();
+                        updateBatchUpdateResult(result, rs0);
+                        if (psConsumer != null) {
+                            psConsumer.accept(statement, rs0);
+                        }
+                        count.reset();
                     }
+                    statement.clearParameters();
                 } catch (SQLException e) {
                     throw new UncheckedSQLException(e);
                 }
             };
             consumer.accept(executor);
             if (count.get() > 0) {
-                return statement.executeBatch();
+                int[] rs0 = statement.executeBatch();
+                updateBatchUpdateResult(result, rs0);
+                if (psConsumer != null) {
+                    psConsumer.accept(statement, rs0);
+                }
             }
-            return new int[0];
+            if (autoCommit) {
+                try {
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback(savepoint);
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            }
+            return result;
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }
+
     }
 
-    public <T> void update(T bean, String table) throws Exception {
-        //只映射public字段，public字段必须有
+    private void updateBatchUpdateResult(BatchUpdateResult result, int[] rs) {
+        for (int r : rs) {
+            if (r > 0) {
+                result.affectedRows += r;
+            } else if (r == Statement.SUCCESS_NO_INFO) {
+                result.successNoInfoCount++;
+            } else if (r == Statement.EXECUTE_FAILED) {
+                result.failedCount++;
+            }
+        }
+    }
+
+    public <T> void updateBean(String table, T bean, String key, boolean ignoreNulls) throws Exception {
         StringBuilder builder = new StringBuilder();
-        builder.append("UPDATE ").append(table).append(" SET \n");
+        builder.append("UPDATE ").append(table).append(" SET ");
         Field[] fields = bean.getClass().getFields();
         List<Object> args = new ArrayList<>();
-        String idColumn = null;
         Object idValue = null;
         for (int i = 0; i < fields.length; i++) {
             Field field = fields[i];
             if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                builder.append(field.getName()).append("=?\n");
-                args.add(field.get(bean));
-                Id id = field.getAnnotation(Id.class);
-                if (id != null) {
-                    idColumn = id.column().isEmpty() ? field.getName() : id.column();
-                    idValue = field.get(bean);
+                Object value = field.get(bean);
+                if (ignoreNulls && value == null) {
+                    continue;
                 }
+                if (field.getName().equalsIgnoreCase(key)) {
+                    idValue = field.get(bean);
+                    continue;
+                }
+                if (args.size() > 0) {
+                    builder.append(',');
+                }
+                builder.append(field.getName()).append("=? ");
+                args.add(field.get(bean));
             }
         }
-        if (fields.length == 0) {
-            throw new IllegalArgumentException("The bean must contain public fields");
+        if (args.isEmpty()) {
+            throw new IllegalArgumentException("Cannot found updateable fields");
         }
-        if (idColumn == null) {
-            //warn
-        } else {
-            builder.append("WHERE\n").append(idColumn).append("=?");
-            args.add(idValue);
+        if (idValue == null) {
+            throw new IllegalArgumentException("The '" + key + "' field value cannot be null");
         }
+        builder.append("WHERE ").append(key).append("=?");
+        args.add(idValue);
         update(builder.toString(), args.toArray());
     }
 
     public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
-        //只映射public字段，public字段必须有
         SqlBuilder builder = new SqlBuilder();
         builder.add("UPDATE ").add(table).add(" SET ");
         Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
@@ -606,5 +640,16 @@ public class SqlConnection implements AutoCloseable {
         return conn.prepareStatement(sql);
     }
 
+    public CallableStatement prepareCall(String sql) throws SQLException {
+        return conn.prepareCall(sql);
+    }
+
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
+        return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
+    }
+
+    public Connection connection() {
+        return this.conn;
+    }
 
 }

@@ -89,7 +89,7 @@ public class Example1 {
 
     public void insertExample2(String username, String email, String password) throws Exception {
         SqlConnection conn = Sql.newConnection();
-        Long id = conn.insertAndReturn("insert into user(username, email, password) value(?, ?, ?)", username, email, password);
+        Long id = conn.insertAndReturnKey("insert into user(username, email, password) value(?, ?, ?)", username, email, password);
         System.out.println("user_id: " + id);
     }
 

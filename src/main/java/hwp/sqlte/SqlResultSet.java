@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import hwp.sqlte.mapper.BeanMapper;
+
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Consumer;
@@ -49,7 +51,7 @@ public class SqlResultSet implements Iterable<Row> {
         if (row == null) {
             return null;
         }
-        return row.convert(supplier.get());
+        return row.map(new BeanMapper<>(supplier));
     }
 
     public <T> List<T> map(RowMapper<T> mapper) {
@@ -60,7 +62,7 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> List<T> map(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
-        this.rows.forEach(row -> list.add(row.convert(supplier.get())));
+        this.rows.forEach(row -> list.add(BeanMapper.convert(row, supplier)));
         return list;
     }
 

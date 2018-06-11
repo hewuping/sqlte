@@ -16,7 +16,8 @@ import java.lang.reflect.Method;
 public class Beans {
 
     private String name;
-    private String desc;
+    public String desc;
+    public boolean good;
 
     public String getName() {
         return name;
@@ -24,6 +25,19 @@ public class Beans {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+
+    public boolean isGood() {
+        return good;
+    }
+
+    public void setGood(boolean good) {
+        this.good = good;
+    }
+
+    public String getXXX(){
+        return "";
     }
 
     public static void copyProperties(Object source, Object target) throws Exception {

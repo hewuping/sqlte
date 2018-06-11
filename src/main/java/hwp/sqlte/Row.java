@@ -1,6 +1,7 @@
 package hwp.sqlte;
 
-import java.lang.reflect.Field;
+import hwp.sqlte.mapper.BeanMapper;
+
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -34,37 +35,18 @@ public class Row extends HashMap<String, Object> {
         return Optional.ofNullable((T) super.get(name));
     }
 
-    public <T> T map(RowMapper<T> mapper) throws SQLException {
+    public <T> T map(RowMapper<T> mapper) {
         return mapper.map(this);
     }
 
 
-    public <T> T map(Supplier<T> supplier) throws SQLException {
-        return convert(supplier.get());
+    public <T> T map(Supplier<T> supplier) {
+        return BeanMapper.convert(this, supplier);
     }
 
     public Row set(String name, Object val) {
         put(name, val);
         return this;
-    }
-
-//    public static <T> T map(Row row, T t) {//copy
-//        return row.map(t);
-//    }
-
-    public <T> T convert(T t) {//copy
-        //只映射public字段，public字段必须有
-        Field[] fields = t.getClass().getFields();
-        for (Field field : fields) {
-            //FieldNameConverter
-            Object value = get(field.getName());
-            try {
-                field.set(t, value);
-            } catch (Exception e) {
-                //ignore
-            }
-        }
-        return t;
     }
 
     public static Row from(ResultSet rs) {
