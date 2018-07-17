@@ -3,8 +3,10 @@ package hwp.sqlte;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -52,6 +54,22 @@ public interface Sql {
     static SqlConnection newConnection(String dsName) {
         try {
             return SqlConnection.use(config().getDataSource(dsName).getConnection());
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
+
+    static SqlConnection newConnection(DataSource dataSource) {
+        try {
+            return SqlConnection.use(dataSource.getConnection());
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
+
+    static void use(DataSource dataSource, Consumer<SqlConnection> consumer) {
+        try (SqlConnection conn = SqlConnection.use(dataSource.getConnection())) {
+            consumer.accept(conn);
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }

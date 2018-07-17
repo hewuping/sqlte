@@ -20,7 +20,6 @@ public class SqlConnection implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger("sqlte");
 
     private final Connection conn;
-
 //    private NameConverter nameConverter = NameConverter.DEFAULT;
 
     private SqlConnection(Connection conn) {
@@ -73,7 +72,7 @@ public class SqlConnection implements AutoCloseable {
     }
 
     public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+        try (PreparedStatement stat = createQueryStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
@@ -87,13 +86,14 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
+
     /**
      * @param sql
      * @param rowHandler Stop if it returns false
      * @throws UncheckedSQLException
      */
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(sql.sql())) {
+        try (PreparedStatement stat = createQueryStatement(sql.sql())) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
@@ -105,6 +105,13 @@ public class SqlConnection implements AutoCloseable {
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
+    }
+
+    private PreparedStatement createQueryStatement(String sql) throws SQLException {
+        PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        stat.setFetchSize(Integer.MIN_VALUE);
+        stat.setFetchDirection(ResultSet.FETCH_FORWARD);
+        return stat;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,11 +167,11 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public void insertBean(Object bean) throws Exception {
+    public void insertBean(Object bean) throws UncheckedSQLException {
         this.insertBean(bean, bean.getClass().getSimpleName().toLowerCase());
     }
 
-    public void insertBean(Object bean, String table) throws Exception {
+    public void insertBean(Object bean, String table) throws UncheckedSQLException {
         this.insertBean(bean, table, (String[]) null);
     }
 
@@ -249,7 +256,7 @@ public class SqlConnection implements AutoCloseable {
     }
 
 
-    public void insertBeans(List<? extends Object> beans, String table) throws Exception {
+    public void insertBeans(List<? extends Object> beans, String table) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return;
         }
@@ -440,39 +447,43 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public <T> void updateBean(String table, T bean, String key, boolean ignoreNulls) throws Exception {
-        StringBuilder builder = new StringBuilder();
-        builder.append("UPDATE ").append(table).append(" SET ");
-        Field[] fields = bean.getClass().getFields();
-        List<Object> args = new ArrayList<>();
-        Object idValue = null;
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
-            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                Object value = field.get(bean);
-                if (ignoreNulls && value == null) {
-                    continue;
+    public <T> void updateBean(String table, T bean, String key, boolean ignoreNulls) throws UncheckedSQLException {
+        try {
+            StringBuilder builder = new StringBuilder();
+            builder.append("UPDATE ").append(table).append(" SET ");
+            Field[] fields = bean.getClass().getFields();
+            List<Object> args = new ArrayList<>();
+            Object idValue = null;
+            for (int i = 0; i < fields.length; i++) {
+                Field field = fields[i];
+                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                    Object value = field.get(bean);
+                    if (ignoreNulls && value == null) {
+                        continue;
+                    }
+                    if (field.getName().equalsIgnoreCase(key)) {
+                        idValue = field.get(bean);
+                        continue;
+                    }
+                    if (args.size() > 0) {
+                        builder.append(',');
+                    }
+                    builder.append(field.getName()).append("=? ");
+                    args.add(field.get(bean));
                 }
-                if (field.getName().equalsIgnoreCase(key)) {
-                    idValue = field.get(bean);
-                    continue;
-                }
-                if (args.size() > 0) {
-                    builder.append(',');
-                }
-                builder.append(field.getName()).append("=? ");
-                args.add(field.get(bean));
             }
+            if (args.isEmpty()) {
+                throw new IllegalArgumentException("Cannot found updateable fields");
+            }
+            if (idValue == null) {
+                throw new IllegalArgumentException("The '" + key + "' field value cannot be null");
+            }
+            builder.append("WHERE ").append(key).append("=?");
+            args.add(idValue);
+            update(builder.toString(), args.toArray());
+        } catch (IllegalAccessException e) {
+            throw new UncheckedSQLException(e);
         }
-        if (args.isEmpty()) {
-            throw new IllegalArgumentException("Cannot found updateable fields");
-        }
-        if (idValue == null) {
-            throw new IllegalArgumentException("The '" + key + "' field value cannot be null");
-        }
-        builder.append("WHERE ").append(key).append("=?");
-        args.add(idValue);
-        update(builder.toString(), args.toArray());
     }
 
     public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
