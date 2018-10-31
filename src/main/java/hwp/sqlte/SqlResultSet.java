@@ -2,7 +2,6 @@ package hwp.sqlte;
 
 import hwp.sqlte.mapper.BeanMapper;
 
-import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -89,16 +88,16 @@ public class SqlResultSet implements Iterable<Row> {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    public <T> Optional<T> first(RowMapper<T> mapper) throws SQLException {
+    public <T> Optional<T> first(RowMapper<T> mapper) throws UncheckedSQLException {
         Row row = first();
         if (row == null) {
             return Optional.empty();
         }
         return Optional.of(row.map(mapper));
     }
-
+/*
     public void putCache(Cache cache) {
 
-    }
+    }*/
 
 }

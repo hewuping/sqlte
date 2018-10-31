@@ -19,6 +19,10 @@ public class Row extends HashMap<String, Object> {
         return (String) get(name);
     }
 
+    public Number getNumber(String name) {
+        return (Number) get(name);
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name, T defValue) {
         T v = (T) super.get(name);
@@ -55,7 +59,7 @@ public class Row extends HashMap<String, Object> {
             ResultSetMetaData metaData = rs.getMetaData();
             int cols = metaData.getColumnCount();
             for (int i = 1; i <= cols; i++) {
-                row.put(metaData.getColumnLabel(i), rs.getObject(i));
+                row.put(metaData.getColumnLabel(i).intern(), rs.getObject(i));
             }
             return row;
         } catch (SQLException e) {

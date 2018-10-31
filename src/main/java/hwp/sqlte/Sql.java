@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 /**
  * @author Zero
- *         Created on 2017/3/22.
+ * Created on 2017/3/22.
  */
 public interface Sql {
     Logger log = LoggerFactory.getLogger(Sql.class);
@@ -75,19 +75,16 @@ public interface Sql {
         }
     }
 
-    /*  static <T> T runOnTx(SqlFunction<Tx, T> function) throws Exception {
-          Tx tx = Tx.createOrGet();
-          try {
-              tx.begin();
-              return function.apply(tx);
-          } finally {
-              tx.end();
-          }
-      }
-  */
-    static <T> T useTx(Function<SqlConnection, T> function) throws Exception {
+    static void use(Consumer<SqlConnection> consumer) {
+        try (SqlConnection conn = newConnection()) {
+            consumer.accept(conn);
+        }
+    }
+
+    static <T> T transaction(Function<SqlConnection, T> function) throws Exception {
         SqlConnection connection = newConnection();
         try {
+            connection.setAutoCommit(false);
             return function.apply(connection);
         } catch (Exception e) {
             connection.rollback();

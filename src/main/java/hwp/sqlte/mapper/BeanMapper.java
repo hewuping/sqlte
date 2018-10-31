@@ -1,7 +1,7 @@
 package hwp.sqlte.mapper;
 
 
-import hwp.sqlte.Column;
+import hwp.sqlte.Helper;
 import hwp.sqlte.Row;
 import hwp.sqlte.RowMapper;
 import hwp.sqlte.UncheckedException;
@@ -34,11 +34,9 @@ public class BeanMapper<T extends Object> implements RowMapper<T> {
             if (fields != null) {
                 for (Field field : fields) {
                     if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                        Column column = field.getAnnotation(Column.class);
-                        if (column == null) {
-                            field.set(obj, from.getValue(field.getName()));
-                        } else {
-                            field.set(obj, from.getValue(column.column()));
+                        Object value = from.getValue(Helper.getColumnName(field));
+                        if (value != null) {
+                            field.set(obj, value);
                         }
                     }
                 }

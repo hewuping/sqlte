@@ -20,7 +20,6 @@ public class SqlConnection implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger("sqlte");
 
     private final Connection conn;
-//    private NameConverter nameConverter = NameConverter.DEFAULT;
 
     private SqlConnection(Connection conn) {
         this.conn = conn;
@@ -42,6 +41,9 @@ public class SqlConnection implements AutoCloseable {
         try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 return Helper.convert(rs);
@@ -76,6 +78,9 @@ public class SqlConnection implements AutoCloseable {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
+            }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next()) {
                     rowHandler.accept(rs);
@@ -96,6 +101,9 @@ public class SqlConnection implements AutoCloseable {
         try (PreparedStatement stat = createQueryStatement(sql.sql())) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("query: {}\t args: {}", sql, Arrays.toString(sql.args()));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next() && rowHandler.handle(Row.from(rs))) {
@@ -125,6 +133,9 @@ public class SqlConnection implements AutoCloseable {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+            }
             return stat.executeUpdate();
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -136,6 +147,9 @@ public class SqlConnection implements AutoCloseable {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(sql.args()));
+            }
             stat.executeUpdate();
             try (ResultSet rs = stat.getGeneratedKeys()) {
                 if (rs != null && rs.next()) {
@@ -145,7 +159,6 @@ public class SqlConnection implements AutoCloseable {
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
-
     }
 
     public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
@@ -153,11 +166,18 @@ public class SqlConnection implements AutoCloseable {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
+            if (logger.isDebugEnabled()) {
+                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+            }
             int i = stat.executeUpdate();
             if (i > 0) {
                 try (ResultSet rs = stat.getGeneratedKeys()) {
                     if (rs != null && rs.next()) {
-                        return rs.getLong(idColumn);
+                        try {
+                            return rs.getLong(idColumn);
+                        } catch (SQLException e) {
+                            return rs.getLong(1);
+                        }
                     }
                 }
             }
@@ -181,7 +201,7 @@ public class SqlConnection implements AutoCloseable {
         Field[] fs = new Field[fields.length];
         int count = 0;
         for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+            if (isPublicField(field)) {
                 fs[count++] = field;
             }
         }
@@ -195,7 +215,7 @@ public class SqlConnection implements AutoCloseable {
                 Field field = fs[i];
                 Object v = field.get(bean);
                 if (v != null) {
-                    columns.add(field.getName());
+                    columns.add(Helper.getColumnName(field));
                     values.add(field.get(bean));
                 }
             }
@@ -210,6 +230,9 @@ public class SqlConnection implements AutoCloseable {
         try (PreparedStatement stat = returnColumns == null || returnColumns.length == 0 ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns)) {// new String[]{"id"}
             Helper.fillStatement(stat, values.toArray(new Object[values.size()]));
+            if (logger.isDebugEnabled()) {
+                logger.debug("insert: {}\t args: {}", sql, values);
+            }
             int c = stat.executeUpdate();
             if (c == 0) {
                 return;
@@ -232,22 +255,24 @@ public class SqlConnection implements AutoCloseable {
                         String driverName = conn.getMetaData().getDriverName().toLowerCase();
                         if (driverName.contains("sqlite") || driverName.contains("mysql")) {
                             String idColumn = returnColumns[0];
-                            Field f = bean.getClass().getField(idColumn);
-                            if (f.getType() == Long.TYPE || f.getType() == Long.class) {
-                                f.set(bean, keys.getLong(i));
-                            } else {
-                                f.set(bean, keys.getInt(i));
+                            Field f = Helper.getField(bean.getClass(), idColumn);
+                            if (f != null) {
+                                if (f.getType() == Long.TYPE || f.getType() == Long.class) {
+                                    f.set(bean, keys.getLong(i));
+                                } else {
+                                    f.set(bean, keys.getInt(i));
+                                }
                             }
-                            //if nullColumns.size()>1: select xxx from table where id=?
                             break;
                         }
-//                        if (Helper.hasPublicField(bean.getClass(), name)) {
-                        Field f = bean.getClass().getField(name);
+                        Field f = Helper.getField(bean.getClass(), name);
+                        if (f != null) {
 //                          f.set(bean, keys.getObject(i, f.getType()));
-                        f.set(bean, keys.getObject(i));
+                            f.set(bean, keys.getObject(i));
+                        }
                     }
                 }
-            } catch (NoSuchFieldException | IllegalAccessException e) {
+            } catch (IllegalAccessException e) {
                 throw new UncheckedException(e);
             }
         } catch (SQLException e) {
@@ -266,31 +291,32 @@ public class SqlConnection implements AutoCloseable {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-
-        Field[] fields = first.getClass().getFields();//只映射public字段，public字段必须有
-        Field[] fs = new Field[fields.length];
-        int count = 0;
-        for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                fs[count++] = field;
+        //
+        List<Field> fields = new ArrayList<>();
+        for (Field field : first.getClass().getFields()) {
+            if (isPublicField(field)) {
+                fields.add(field);
             }
         }
-        if (count == 0) {
+        if (fields.size() == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        String[] columns = new String[count];
-        for (int i = 0; i < count; i++) {
-            Field field = fs[i];
-            columns[i] = field.getName();
+        String[] columns = new String[fields.size()];
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            columns[i] = Helper.getColumnName(field);
         }
 
         String sql = Helper.makeInsertSql(table, columns);
+        if (logger.isDebugEnabled()) {
+            logger.debug("insert: {}", sql);
+        }
         batchUpdate(sql, 100, executor -> {
             beans.forEach(obj -> {
                 try {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
-                        args[i] = fs[i].get(obj);
+                        args[i] = fields.get(i).get(obj);
                     }
                     executor.exec(args);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -315,6 +341,9 @@ public class SqlConnection implements AutoCloseable {
             try (PreparedStatement stat = (returnColumns == null
                     ? conn.prepareStatement(sql)
                     : conn.prepareStatement(sql, returnColumns))) {//Statement.RETURN_GENERATED_KEYS
+                if (logger.isDebugEnabled()) {
+                    logger.debug("insert: {}\t args: {}", sql, row.values());
+                }
                 Helper.fillStatement(stat, row.values().toArray());
                 int uc = stat.executeUpdate();
                 if (uc == 0) {
@@ -343,6 +372,9 @@ public class SqlConnection implements AutoCloseable {
 
     public int update(String sql, Object... args) throws UncheckedSQLException {
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("update: {}\t args: {}", sql, Arrays.toString(args));
+            }
             Helper.fillStatement(statement, args);
             return statement.executeUpdate();
         } catch (SQLException e) {
@@ -447,44 +479,35 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public <T> void updateBean(String table, T bean, String key, boolean ignoreNulls) throws UncheckedSQLException {
+    public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         try {
-            StringBuilder builder = new StringBuilder();
-            builder.append("UPDATE ").append(table).append(" SET ");
+            SqlBuilder builder = new SqlBuilder();
+            builder.add("UPDATE ").add(table).add(" SET ");
             Field[] fields = bean.getClass().getFields();
-            List<Object> args = new ArrayList<>();
-            Object idValue = null;
+            int updateCount = 0;
             for (int i = 0; i < fields.length; i++) {
                 Field field = fields[i];
-                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                if (isPublicField(field)) {
                     Object value = field.get(bean);
-                    if (ignoreNulls && value == null) {
-                        continue;
+                    if (value != null) {
+                        if (updateCount > 0) {
+                            builder.add(",");
+                        }
+                        builder.sql(Helper.getColumnName(field)).add("=? ", value);
+                        updateCount++;
                     }
-                    if (field.getName().equalsIgnoreCase(key)) {
-                        idValue = field.get(bean);
-                        continue;
-                    }
-                    if (args.size() > 0) {
-                        builder.append(',');
-                    }
-                    builder.append(field.getName()).append("=? ");
-                    args.add(field.get(bean));
                 }
             }
-            if (args.isEmpty()) {
-                throw new IllegalArgumentException("Cannot found updateable fields");
+            builder.where(where);
+            if (logger.isDebugEnabled()) {
+                logger.debug("update: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
             }
-            if (idValue == null) {
-                throw new IllegalArgumentException("The '" + key + "' field value cannot be null");
-            }
-            builder.append("WHERE ").append(key).append("=?");
-            args.add(idValue);
-            update(builder.toString(), args.toArray());
+            return update(builder.sql(), builder.args());
         } catch (IllegalAccessException e) {
             throw new UncheckedSQLException(e);
         }
     }
+
 
     public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
@@ -499,6 +522,9 @@ public class SqlConnection implements AutoCloseable {
         }
         builder.where(where);
         try (PreparedStatement statement = conn.prepareStatement(builder.sql())) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("update: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
+            }
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
@@ -538,17 +564,6 @@ public class SqlConnection implements AutoCloseable {
         });
     }
 
-    /////////////////////////////
-
-
-    private String toSql(String sql) {
-        if (sql.startsWith("#")) {
-            return Config.SQLS.getProperty(sql);
-        }
-        return sql;
-    }
-
-    /////////
 
     ///////////////////////////////////////////////////////////////////////////
     // 委托方法
@@ -577,6 +592,9 @@ public class SqlConnection implements AutoCloseable {
     public void close() throws UncheckedSQLException {
         try {
             conn.close();
+            if (logger.isDebugEnabled()) {
+                logger.debug("SqlConnection closed");
+            }
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
@@ -661,6 +679,19 @@ public class SqlConnection implements AutoCloseable {
 
     public Connection connection() {
         return this.conn;
+    }
+
+//
+
+    private boolean isPublicField(Field field) {
+        return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
+    }
+
+    private String toSql(String sql) {
+        if (sql.startsWith("#")) {
+            return Config.SQLS.getProperty(sql);
+        }
+        return sql;
     }
 
 }

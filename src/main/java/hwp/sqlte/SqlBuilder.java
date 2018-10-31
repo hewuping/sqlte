@@ -62,7 +62,7 @@ public class SqlBuilder implements Builder, Sql {
         return this.args.toArray();
     }
 
-    public SqlBuilder sql(String sql) {
+    public SqlBuilder sql(CharSequence sql) {
         this.sql.append(sql);
         return this;
     }
@@ -77,6 +77,10 @@ public class SqlBuilder implements Builder, Sql {
 
     private void addArgs(Object... args) {
         for (Object arg : args) {
+            if (arg == null) {
+                this.args.add(null);
+                continue;
+            }
             if (arg.getClass().isArray()) {
                 for (int i = 0, len = Array.getLength(arg); i < len; i++) {
                     this.args.add(Array.get(arg, i));
@@ -125,6 +129,11 @@ public class SqlBuilder implements Builder, Sql {
     }
 
 
+    public SqlBuilder add(String sql) {
+        this.sql.append(sql);
+        return this;
+    }
+
     public SqlBuilder add(String sql, Object... args) {
         this.sql.append(sql);
         this.addArgs(args);
@@ -139,38 +148,7 @@ public class SqlBuilder implements Builder, Sql {
         return builder.toString();
     }
 
-    public static void main(String[] args) {
-        SqlBuilder sql = new SqlBuilder();
-        sql.add("SELECT * FROM users");
-        sql.where(w -> {
-            if ("zero".startsWith("z")) {
-                w.and("username=?", "zero");
-            }
-            w.and("password=?", "123456");
-            w.and("age in ?2", 1, 2);
-            w.and(String.format("age in ?%d", 2), 1, 2);
-        });
-        sql.orderBy(order -> {
-            order.by("username");
-            order.desc("age");//
-        });
-        sql.limit(1, 20);
 
-        System.out.println(sql);
-//
-//
-//        Where where = new Where();
-//        where.and("password = ?", "123456");
-//        String selectSql = new SqlBuilder().add("SELECT * FROM user").where(where).sql();
-//        String selectCount = new SqlBuilder().add("SELECT count(*) FROM user").where(where).sql();
-//        System.out.println(selectSql);
-//        System.out.println(selectCount);
-
-//        SqlBuilder sql = new SqlBuilder();
-//        sql.add("name=? and age in ?", "zero", new int[]{12, 33});
-//        System.out.println(sql.sql());
-//        System.out.println(Arrays.toString(sql.args()));
-    }
 
 
     @Override

@@ -2,6 +2,7 @@ package hwp.sqlte;
 
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -13,9 +14,9 @@ import java.util.Map;
 
 /**
  * @author Zero
- *         Created on 2017/3/20.
+ * Created on 2017/3/20.
  */
-class Helper {
+public class Helper {
     protected static ThreadLocal<SqlConnection> THREAD_LOCAL = new ThreadLocal<>();
 
 
@@ -91,6 +92,51 @@ class Helper {
             }
         }
         return false;
+    }
+
+    private static Map<Field, String> fieldColumnMap = new HashMap<>();
+
+    public static String getColumnName(Field field) {
+        String columnName = fieldColumnMap.get(field);
+        if (columnName != null) return columnName;
+        Column column = field.getAnnotation(Column.class);
+        if (column == null) {
+            String fieldName = field.getName();
+            StringBuilder builder = new StringBuilder(fieldName.length());
+            for (int i = 0, len = fieldName.length(); i < len; i++) {
+                if (Character.isUpperCase(fieldName.charAt(i))) {
+                    builder.append('_').append(fieldName.charAt(i));
+                } else {
+                    builder.append(fieldName.charAt(i));
+                }
+            }
+            columnName = builder.toString();
+        } else {
+            columnName = column.name();
+        }
+        fieldColumnMap.put(field, columnName);
+        return columnName;
+    }
+
+    private static Map<Class, Map<String, Field>> columnFieldMap = new HashMap<>();
+
+    public static Field getField(Class<?> clazz, String columnName) {
+        Map<String, Field> map = columnFieldMap.get(clazz);
+        if (map == null) {
+            map = new HashMap<>();
+            for (Field field : clazz.getFields()) {
+                if (isPublicField(field)) {
+                    map.put(field.getName(), field);
+                    map.put(Helper.getColumnName(field), field);
+                }
+            }
+            columnFieldMap.put(clazz, map);
+        }
+        return map.get(columnName);
+    }
+
+    private static boolean isPublicField(Field field) {
+        return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
     }
 
 }

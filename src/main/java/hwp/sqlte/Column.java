@@ -16,6 +16,6 @@ import static java.lang.annotation.ElementType.FIELD;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
 
-    String column();
+    String name();
 
 }
