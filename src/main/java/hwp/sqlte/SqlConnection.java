@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 
 /**
  * @author Zero
- *         Created by Zero on 2017/6/4 0004.
+ * Created by Zero on 2017/6/4 0004.
  */
 public class SqlConnection implements AutoCloseable {
 
@@ -115,11 +115,15 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    private PreparedStatement createQueryStatement(String sql) throws SQLException {
-        PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-        stat.setFetchSize(Integer.MIN_VALUE);
-        stat.setFetchDirection(ResultSet.FETCH_FORWARD);
-        return stat;
+    private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
+        try {
+            PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            stat.setFetchSize(Integer.MIN_VALUE);
+            stat.setFetchDirection(ResultSet.FETCH_FORWARD);
+            return stat;
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -569,16 +573,28 @@ public class SqlConnection implements AutoCloseable {
     // 委托方法
     ///////////////////////////////////////////////////////////////////////////
 
-    public void setAutoCommit(boolean autoCommit) throws SQLException {
-        conn.setAutoCommit(autoCommit);
+    public void setAutoCommit(boolean autoCommit) throws UncheckedSQLException {
+        try {
+            conn.setAutoCommit(autoCommit);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public boolean getAutoCommit() throws SQLException {
-        return conn.getAutoCommit();
+    public boolean getAutoCommit() throws UncheckedSQLException {
+        try {
+            return conn.getAutoCommit();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public void commit() throws SQLException {
-        conn.commit();
+    public void commit() throws UncheckedSQLException {
+        try {
+            conn.commit();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     public void rollback() throws UncheckedSQLException {
@@ -600,81 +616,153 @@ public class SqlConnection implements AutoCloseable {
         }
     }
 
-    public boolean isClosed() throws SQLException {
-        return conn.isClosed();
+    public boolean isClosed() throws UncheckedSQLException {
+        try {
+            return conn.isClosed();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
 
-    public void setReadOnly(boolean readOnly) throws SQLException {
-        conn.setReadOnly(readOnly);
+    public void setReadOnly(boolean readOnly) throws UncheckedSQLException {
+        try {
+            conn.setReadOnly(readOnly);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public boolean isReadOnly() throws SQLException {
-        return conn.isReadOnly();
+    public boolean isReadOnly() throws UncheckedSQLException {
+        try {
+            return conn.isReadOnly();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public void setTransactionIsolation(int level) throws SQLException {
-        conn.setTransactionIsolation(level);
+    public void setTransactionIsolation(int level) throws UncheckedSQLException {
+        try {
+            conn.setTransactionIsolation(level);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public int getTransactionIsolation() throws SQLException {
-        return conn.getTransactionIsolation();
+    public int getTransactionIsolation() throws UncheckedSQLException {
+        try {
+            return conn.getTransactionIsolation();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public SqlConnection beginTransaction() throws SQLException {
-        conn.setAutoCommit(false);
-        return this;
+    public SqlConnection beginTransaction() throws UncheckedSQLException {
+        try {
+            conn.setAutoCommit(false);
+            return this;
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public SqlConnection beginTransaction(int level) throws SQLException {
-        conn.setTransactionIsolation(level);
-        conn.setAutoCommit(false);
-        return this;
+    public SqlConnection beginTransaction(int level) throws UncheckedSQLException {
+        try {
+            conn.setTransactionIsolation(level);
+            conn.setAutoCommit(false);
+            return this;
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public Savepoint setSavepoint() throws SQLException {
-        return conn.setSavepoint();
+    public Savepoint setSavepoint() throws UncheckedSQLException {
+        try {
+            return conn.setSavepoint();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public Savepoint setSavepoint(String name) throws SQLException {
-        return conn.setSavepoint(name);
+    public Savepoint setSavepoint(String name) throws UncheckedSQLException {
+        try {
+            return conn.setSavepoint(name);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public void rollback(Savepoint savepoint) throws SQLException {
-        conn.rollback(savepoint);
+    public void rollback(Savepoint savepoint) throws UncheckedSQLException {
+        try {
+            conn.rollback(savepoint);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        conn.releaseSavepoint(savepoint);
+    public void releaseSavepoint(Savepoint savepoint) throws UncheckedSQLException {
+        try {
+            conn.releaseSavepoint(savepoint);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        return conn.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws UncheckedSQLException {
+        try {
+            return conn.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
 
-    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
-        return conn.prepareStatement(sql, autoGeneratedKeys);
+    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws UncheckedSQLException {
+        try {
+            return conn.prepareStatement(sql, autoGeneratedKeys);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-        return conn.prepareStatement(sql, columnNames);
+    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws UncheckedSQLException {
+        try {
+            return conn.prepareStatement(sql, columnNames);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public boolean isValid(int timeout) throws SQLException {
-        return conn.isValid(timeout);
+    public boolean isValid(int timeout) throws UncheckedSQLException {
+        try {
+            return conn.isValid(timeout);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public PreparedStatement prepareStatement(String sql) throws SQLException {
-        return conn.prepareStatement(sql);
+    public PreparedStatement prepareStatement(String sql) throws UncheckedSQLException {
+        try {
+            return conn.prepareStatement(sql);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public CallableStatement prepareCall(String sql) throws SQLException {
-        return conn.prepareCall(sql);
+    public CallableStatement prepareCall(String sql) throws UncheckedSQLException {
+        try {
+            return conn.prepareCall(sql);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws UncheckedSQLException {
+        try {
+            return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     public Connection connection() {
