@@ -88,7 +88,7 @@ public class SqlConnectionTest {
 
     @Test
     public void query1() throws Exception {
-        Optional<User> user = conn.query("select * from user where username=?", "Zero").first(User.MAPPER);
+        Optional<User> user = conn.query("select * from users where username=?", "Zero").first(User.MAPPER);
         user.ifPresent(user1 -> conn.query("select * from orders where user_id=?", user1.id));
     }
 
@@ -143,7 +143,7 @@ public class SqlConnectionTest {
 
     @Test
     public void queryResultSet() throws Exception {
-        conn.query("select * from user where username=?", rs -> {
+        conn.query("select * from users where username=?", rs -> {
             try {
                 String name = rs.getString("username");
                 Assert.assertEquals("Frank", name);
