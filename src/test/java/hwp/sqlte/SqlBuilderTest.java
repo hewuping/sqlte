@@ -5,7 +5,7 @@ import org.junit.Test;
 
 /**
  * @author Zero
- *         Created on 2018/10/9.
+ * Created on 2018/10/9.
  */
 public class SqlBuilderTest {
 

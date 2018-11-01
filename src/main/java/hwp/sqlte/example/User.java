@@ -7,7 +7,7 @@ import java.util.Date;
 
 /**
  * @author Zero
- *         Created on 2017/3/27.
+ * Created on 2017/3/27.
  */
 public class User {
 
@@ -15,9 +15,20 @@ public class User {
     public String username;
     public String email;
     public String password;
-    public String password_salt="sfwerx";
-//    public Date creation_time;
+    public String password_salt = "sfwerx";
+    //    public Date creation_time;
     public Date updated_time;
+
+    private String other;
+
+    public String getOther() {
+        return other;
+    }
+
+    public User setOther(String other) {
+        this.other = other;
+        return this;
+    }
 
     public User() {
     }
@@ -43,15 +54,12 @@ public class User {
         return sb.toString();
     }
 
-    public static final RowMapper<User> MAPPER = new RowMapper<User>() {
-        @Override
-        public User map(Row row) {
-            User user = new User();
-            user.username = row.getString("username");
-            user.password = row.getString("password");
-            user.email = row.getString("email");
-            return user;
-        }
+    public static final RowMapper<User> MAPPER = row -> {
+        User user = new User();
+        user.username = row.getString("username");
+        user.password = row.getString("password");
+        user.email = row.getString("email");
+        return user;
     };
 
 }

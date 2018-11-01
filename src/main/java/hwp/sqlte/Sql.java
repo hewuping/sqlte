@@ -45,7 +45,7 @@ public interface Sql {
 
     static SqlConnection newConnection() {
         try {
-            return SqlConnection.use(config().getDataSource().getConnection());
+            return SqlConnectionImpl.use(config().getDataSource().getConnection());
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
@@ -53,7 +53,7 @@ public interface Sql {
 
     static SqlConnection newConnection(String dsName) {
         try {
-            return SqlConnection.use(config().getDataSource(dsName).getConnection());
+            return SqlConnectionImpl.use(config().getDataSource(dsName).getConnection());
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
@@ -61,14 +61,14 @@ public interface Sql {
 
     static SqlConnection newConnection(DataSource dataSource) {
         try {
-            return SqlConnection.use(dataSource.getConnection());
+            return SqlConnectionImpl.use(dataSource.getConnection());
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
     }
 
     static void use(DataSource dataSource, Consumer<SqlConnection> consumer) {
-        try (SqlConnection conn = SqlConnection.use(dataSource.getConnection())) {
+        try (SqlConnection conn = SqlConnectionImpl.use(dataSource.getConnection())) {
             consumer.accept(conn);
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);

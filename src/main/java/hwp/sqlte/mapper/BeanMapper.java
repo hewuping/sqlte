@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 /**
  * @author Zero
- *         Created on 2017/3/21.
+ * Created on 2017/3/21.
  */
 public class BeanMapper<T extends Object> implements RowMapper<T> {
 

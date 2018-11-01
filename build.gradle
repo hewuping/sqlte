@@ -20,6 +20,10 @@ dependencies {
     // TestNG is also supported by the Gradle Test task. Just change the
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
+
+    //logger
+    testCompile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.1'
+    testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.1'
     testCompile 'junit:junit:4.12'
 //    testCompile 'mysql:mysql-connector-java:5.1.6'
 //    testCompile 'mysql:mysql-connector-java:6.0.6'

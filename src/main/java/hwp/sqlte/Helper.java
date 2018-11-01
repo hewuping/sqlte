@@ -25,13 +25,13 @@ public class Helper {
         ResultSetMetaData metaData = rs.getMetaData();
         int cols = metaData.getColumnCount();
         for (int i = 1; i <= cols; i++) {
-            columnNames.add(metaData.getColumnLabel(i));
+            columnNames.add(metaData.getColumnLabel(i).intern());
         }
         List<Row> results = new ArrayList<>();
         while (rs.next()) {
             Row row = new Row();
             for (int i = 1; i <= cols; i++) {
-                row.put(columnNames.get(i - 1), rs.getObject(i));
+                row.put(columnNames.get(i - 1).intern(), rs.getObject(i));
             }
             results.add(row);
         }
@@ -74,6 +74,23 @@ public class Helper {
         builder.append(')');
         return builder.toString();
     }
+
+    public static String makeUpdateSql(String table, String... columns) {
+        StringBuilder builder = new StringBuilder("UPDATE ").append(table);
+        builder.append(" SET");
+        for (int i = 0, len = columns.length; i < len; i++) {
+            String column = columns[i];
+            if (i > 0) {
+                builder.append(", ");
+            } else {
+                builder.append(' ');
+            }
+            builder.append(column);
+            builder.append("=?");
+        }
+        return builder.toString();
+    }
+
 
     public static Map<String, Object> beanToArgs(Object obj) throws IllegalAccessException {
         Map<String, Object> map = new HashMap<>();
