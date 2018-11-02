@@ -895,7 +895,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     private String toSql(String sql) {
         if (sql.startsWith("#")) {
-            return Config.SQLS.getProperty(sql);
+            return Config.getConfig().getSqlProvider().getSql(sql.substring(1));
         }
         return sql;
     }

@@ -3,20 +3,25 @@ package hwp.sqlte;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Objects;
 
 /**
  * @author Zero
- *         Created on 2018/4/13.
+ * Created on 2018/4/13.
  */
 final public class Config {
     protected static Config config = new Config();
-    protected static Properties SQLS = new Properties();
+    private SqlProvider sqlProvider = SqlProvider.Default();
 
-    protected static Map<String, DataSource> dataSourceMap = new HashMap<>();
+
+    private Map<String, DataSource> dataSourceMap = new HashMap<>();
 
     private Config() {
 
+    }
+
+    public static Config getConfig() {
+        return config;
     }
 
     private DataSource def;
@@ -39,5 +44,13 @@ final public class Config {
         return dataSourceMap.get(name);
     }
 
+    public SqlProvider getSqlProvider() {
+        return sqlProvider;
+    }
 
+    public Config setSqlProvider(SqlProvider sqlProvider) {
+        Objects.requireNonNull(sqlProvider, "sqlProvider can not be null");
+        this.sqlProvider = sqlProvider;
+        return this;
+    }
 }
