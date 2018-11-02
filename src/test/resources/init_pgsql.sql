@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS "public"."users";
+
+CREATE SEQUENCE users_id_seq;
+CREATE TABLE "public"."users" (
+"id" int4 DEFAULT nextval('users_id_seq'::regclass) NOT NULL,
+"username" varchar(50),
+"email" varchar(255) DEFAULT '@xxx.com'::character varying,
+"password" varchar(64),
+"updated_time" timestamp(6) DEFAULT now(),
+"password_salt" varchar(255),
+"creation_time" date,
+CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+ALTER SEQUENCE users_id_seq OWNED BY "public"."users"."id";

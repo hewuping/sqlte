@@ -150,7 +150,10 @@ class SqlConnectionImpl implements SqlConnection {
     private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
         try {
             PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-            stat.setFetchSize(Integer.MIN_VALUE);
+            if (isMySQL()) {
+                //jdbc规范: rows >= 0. MySQL有个例外, 可以是Integer.MIN_VALUE
+                stat.setFetchSize(Integer.MIN_VALUE);//防止查询大数据时MySQL OOM
+            }
             stat.setFetchDirection(ResultSet.FETCH_FORWARD);
             return stat;
         } catch (SQLException e) {
@@ -405,8 +408,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             if (returnColumns != null && returnColumns.length > 0) {
                 try (ResultSet keys = stat.getGeneratedKeys()) {
-                    String driverName = conn.getMetaData().getDriverName().toLowerCase();
-                    boolean isMysql = driverName.contains("mysql");
+                    boolean isMysql = isMySQL();
                     if (keys != null && keys.next()) {
                         ResultSetMetaData metaData = keys.getMetaData();
                         int cols = metaData.getColumnCount();
@@ -414,11 +416,11 @@ class SqlConnectionImpl implements SqlConnection {
                             String name = metaData.getColumnLabel(i);
                             //mysql会返回GENERATED_KEY, 没有实现JDBC规范
                             if ("GENERATED_KEY".equals(name) && isMysql) {
-                                row.put(returnColumns[0], keys.getObject(i));
+                                row.put(returnColumns[0].toLowerCase(), keys.getObject(i));
                                 break;
                             }
                             //pgsql如果设置了列名, 则返回指定列, RETURN_GENERATED_KEYS会返回所有列
-                            row.put(name, keys.getObject(i));
+                            row.put(name.toLowerCase(), keys.getObject(i));
                         }
                     }
                 }
@@ -898,6 +900,11 @@ class SqlConnectionImpl implements SqlConnection {
             return Config.getConfig().getSqlProvider().getSql(sql.substring(1));
         }
         return sql;
+    }
+
+    private boolean isMySQL() throws SQLException {
+        String driverName = conn.getMetaData().getDriverName().toLowerCase();
+        return driverName.contains("mysql");
     }
 
 }

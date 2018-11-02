@@ -22,6 +22,8 @@ public class SqlConnectionTest {
 
     private SqlConnection conn;
 
+    private static String dbname = "h2";//h2, mysql, pgsql
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         PGSimpleDataSource pgds = new PGSimpleDataSource();
@@ -30,8 +32,36 @@ public class SqlConnectionTest {
         pgds.setPassword("123456");
 //        Sql.config().setDataSource(mysqlDS);
 //          Sql.config().setDataSource(pgds);
-        Sql.config().setDataSource(hikariDataSource());
-        init();
+
+        HikariConfig config = new HikariConfig();
+        config.setAutoCommit(true);
+        config.setMaximumPoolSize(2);
+        config.setConnectionInitSql("select 1");
+        config.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
+//        config.addDataSourceProperty("rewriteBatchedStatements",true);
+//        config.addDataSourceProperty("useAffectedRows","true");
+
+        //h2
+        config.setJdbcUrl("jdbc:h2:mem:h2-memory");
+        //mysql
+        if ("mysql".equals(dbname)) {
+            config.setJdbcUrl("jdbc:mysql://localhost:3306/test?serverTimezone=UTC&characterEncoding=utf-8&rewriteBatchedStatements=true&useAffectedRows=true");
+            config.setUsername("root");
+        }
+        //pgsql
+        if ("pgsql".equals(dbname)) {
+            config.setJdbcUrl("jdbc:postgresql://10.1.1.203:5432/testdb");
+            config.setUsername("zero");
+            config.setPassword("123456");
+        }
+
+        Sql.config().setDataSource(new HikariDataSource(config));
+
+        Sql.use(conn -> {
+            URL resource = SqlConnectionTest.class.getResource("/init_" + dbname + ".sql");
+            ScriptRunner runner = new ScriptRunner(true, true);
+            runner.runScript(conn.connection(), resource);
+        });
     }
 
     @Before
@@ -46,27 +76,6 @@ public class SqlConnectionTest {
         if (conn != null) {
             conn.close();
         }
-    }
-
-    private static HikariDataSource hikariDataSource() {
-        HikariConfig config = new HikariConfig();
-        config.setAutoCommit(true);
-        config.setJdbcUrl("jdbc:mysql://localhost:3306/test?serverTimezone=UTC&characterEncoding=utf-8&rewriteBatchedStatements=true&useAffectedRows=true");
-        config.setUsername("root");
-        config.setMaximumPoolSize(2);
-        config.setConnectionInitSql("select 1");
-        config.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
-//        config.addDataSourceProperty("rewriteBatchedStatements",true);
-//        config.addDataSourceProperty("useAffectedRows","true");
-        return new HikariDataSource(config);
-    }
-
-    private static void init() {
-        Sql.use(conn -> {
-            URL resource = SqlConnectionTest.class.getResource("/init_mysql.sql");
-            ScriptRunner runner = new ScriptRunner(true, true);
-            runner.runScript(conn.connection(), resource);
-        });
     }
 
     @Test
@@ -135,7 +144,7 @@ public class SqlConnectionTest {
         });
 
         //RowHandler (big data RowHandler)
-        conn.query(new SimpleSql("select * from users where username=?", username), row -> {
+        conn.query(Sql.create("select * from users where username=?", username), row -> {
             Assert.assertEquals("frank@ccjk.com", row.getString("email"));
             return true;
         });
@@ -214,7 +223,7 @@ public class SqlConnectionTest {
 
     @Test
     public void batchInsert1() throws SQLException {
-        conn.batchUpdate("INSERT INTO users (`email`, `username`)  VALUES (?, ?)", executor -> {
+        conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
             executor.exec("bb@example.com", "bb");
             executor.exec("aa@example.com", "aa");
         });
@@ -235,7 +244,7 @@ public class SqlConnectionTest {
         for (int i = 0; i < size; i++) {
             users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
         }
-        BatchUpdateResult result = conn.batchUpdate("INSERT IGNORE INTO users (`email`, `username`)  VALUES (?, ?)", 1000, users, (executor, user) -> {
+        BatchUpdateResult result = conn.batchUpdate("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)", 1000, users, (executor, user) -> {
             executor.exec(user.email, user.username);
         });
         if (result.hasSuccessNoInfo()) {
@@ -248,27 +257,42 @@ public class SqlConnectionTest {
     @Test
     public void batchInsert4() throws Exception {
         List<User> users = new ArrayList<>();
-        int size = 20000;
+        int size = 200;
         for (int i = 0; i < size; i++) {
             users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
         }
         UnsafeCount count = new UnsafeCount();
-        PreparedStatement ps = conn.prepareStatement("INSERT IGNORE INTO users (`email`, `username`)  VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS);
-        conn.batchUpdate(ps, 1000, executor -> {
+        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
+                Statement.RETURN_GENERATED_KEYS);
+//        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
+//                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY ,  ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        BatchUpdateResult result = conn.batchUpdate(ps, 10, executor -> {
             users.forEach(user -> executor.exec(user.email, user.username));
         }, (statement, rs) -> {
-            try {
-                ResultSet keys = statement.getGeneratedKeys();//MySQL只有自增ID才会返回
+            try (ResultSet keys = statement.getGeneratedKeys()) {//MySQL只有自增ID才会返回
                 if (keys != null) {
-                    if (keys.last()) {
-                        count.add(keys.getRow());//TODO
+                    //bug: h2: Feature not supported
+//                     ResultSet.TYPE_SCROLL_xxx
+//                    if (keys.last()) {
+//                        count.add(keys.getRow());
+//                    }
+                    while (keys.next()) {//Statement.RETURN_GENERATED_KEYS 才会返回, 但是很耗性能
+                        if ("mysql".equals(dbname)) {
+                            keys.getString("GENERATED_KEY");
+                        } else {
+                            keys.getString("id");
+                        }
+                        count.add(1);
                     }
                 }
             } catch (SQLException e) {
                 throw new UncheckedException(e);
             }
         });
+        ps.close();
+//        conn.commit();
         System.out.println(count);
+        System.out.println(result);
     }
 
     @Test
@@ -278,7 +302,7 @@ public class SqlConnectionTest {
         for (int i = 0; i < size; i++) {
             users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
         }
-        BatchUpdateResult result = conn.batchUpdate("INSERT INTO users (`email`, `username`)  VALUES (?, ?)", executor -> {
+        BatchUpdateResult result = conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
             users.forEach(user -> executor.exec(user.email, user.username));
         });
         if (result.hasSuccessNoInfo()) {
@@ -335,18 +359,18 @@ public class SqlConnectionTest {
 
     @Test
     public void update2() throws Exception {
-        Row data = new Row().set("id", "123456").set("username", "Zero").set("email", "bb@example.com");
+        Row data = new Row().set("username", "Zero").set("email", "bb@example.com");
         conn.insertMap("users", data, "id");
         int update = conn.update(data.set("username", "zero1"), "users", where -> {
             where.and("id=?", data.get("id"));
         });
-        Assert.assertEquals(update, 1);
+        Assert.assertEquals(1, update);
         //OR
         update = conn.updateByPks(data.set("username", "zero2"), "users", "id");
-        Assert.assertEquals(update, 1);
+        Assert.assertEquals(1, update);
         //OR
         update = conn.updateByPks(data.set("username", "zero3"), "users");// pk default: id
-        Assert.assertEquals(update, 1);
+        Assert.assertEquals(1, update);
     }
 
     //    @Test

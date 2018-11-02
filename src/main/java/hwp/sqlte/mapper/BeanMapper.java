@@ -34,7 +34,7 @@ public class BeanMapper<T extends Object> implements RowMapper<T> {
             if (fields != null) {
                 for (Field field : fields) {
                     if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                        Object value = from.getValue(Helper.getColumnName(field));
+                        Object value = from.getValue(Helper.getColumnName(field).toLowerCase());
                         if (value != null) {
                             field.set(obj, value);
                         }
