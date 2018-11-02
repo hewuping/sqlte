@@ -25,13 +25,13 @@ public class Helper {
         ResultSetMetaData metaData = rs.getMetaData();
         int cols = metaData.getColumnCount();
         for (int i = 1; i <= cols; i++) {
-            columnNames.add(metaData.getColumnLabel(i).intern());
+            columnNames.add(metaData.getColumnLabel(i).toLowerCase().intern());
         }
         List<Row> results = new ArrayList<>();
         while (rs.next()) {
             Row row = new Row();
             for (int i = 1; i <= cols; i++) {
-                row.put(columnNames.get(i - 1).intern(), rs.getObject(i));
+                row.put(columnNames.get(i - 1), rs.getObject(i));
             }
             results.add(row);
         }
@@ -121,10 +121,11 @@ public class Helper {
             String fieldName = field.getName();
             StringBuilder builder = new StringBuilder(fieldName.length());
             for (int i = 0, len = fieldName.length(); i < len; i++) {
-                if (Character.isUpperCase(fieldName.charAt(i))) {
-                    builder.append('_').append(fieldName.charAt(i));
+                char c = fieldName.charAt(i);
+                if (Character.isUpperCase(c)) {
+                    builder.append('_').append(Character.toLowerCase(c));
                 } else {
-                    builder.append(fieldName.charAt(i));
+                    builder.append(c);
                 }
             }
             columnName = builder.toString();
@@ -143,8 +144,10 @@ public class Helper {
             map = new HashMap<>();
             for (Field field : clazz.getFields()) {
                 if (isPublicField(field)) {
+                    String column = Helper.getColumnName(field);
                     map.put(field.getName(), field);
-                    map.put(Helper.getColumnName(field), field);
+//                    map.put(column, field);
+                    map.put(column.toLowerCase(), field);
                 }
             }
             columnFieldMap.put(clazz, map);
