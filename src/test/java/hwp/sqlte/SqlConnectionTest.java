@@ -222,6 +222,15 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void insertMap3() throws Exception {
+        conn.insertMap("users", map -> {
+            map.put("username", "Zero");
+            map.put("password", "123456");
+            map.put("email", "zero@ccjk.com");
+        });
+    }
+
+    @Test
     public void batchInsert1() throws SQLException {
         conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
             executor.exec("bb@example.com", "bb");

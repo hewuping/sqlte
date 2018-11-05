@@ -392,6 +392,13 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    public int insertMap(String table, Consumer<Map<String, Object>> map) throws UncheckedSQLException {
+        Map<String, Object> _map = new HashMap<>();
+        map.accept(_map);
+        return this.insertMap(table, _map);
+    }
+
+    @Override
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
         String sql = Helper.makeInsertSql(table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());

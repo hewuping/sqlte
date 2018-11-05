@@ -58,6 +58,8 @@ public interface SqlConnection extends AutoCloseable {
 
     int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException;
 
+    int insertMap(String table, Consumer<Map<String, Object>> map) throws UncheckedSQLException;
+
     int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException;
 
     int update(String sql, Object... args) throws UncheckedSQLException;
