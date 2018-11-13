@@ -53,13 +53,13 @@ public class SqlResultSet implements Iterable<Row> {
         return row.map(new BeanMapper<>(supplier));
     }
 
-    public <T> List<T> map(RowMapper<T> mapper) {
+    public <T> List<T> list(RowMapper<T> mapper) {
         List<T> list = new ArrayList<>(this.rows.size());
         this.rows.forEach(row -> list.add(mapper.map(row)));
         return list;
     }
 
-    public <T> List<T> map(Supplier<T> supplier) {
+    public <T> List<T> list(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
         this.rows.forEach(row -> list.add(BeanMapper.convert(row, supplier)));
         return list;

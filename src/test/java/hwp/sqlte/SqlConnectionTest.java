@@ -119,9 +119,9 @@ public class SqlConnectionTest {
         String sql = "select * from users where username=?";
 
         //select list
-        List<User> users1 = conn.query(sql, "May").map(User.MAPPER);
+        List<User> users1 = conn.query(sql, "May").list(User.MAPPER);
         Assert.assertTrue(users1.size() > 0);
-        List<User> users2 = conn.query(sql, "May").map(User::new);
+        List<User> users2 = conn.query(sql, "May").list(User::new);
         Assert.assertTrue(users2.size() > 0);
 
         //select one
@@ -139,7 +139,7 @@ public class SqlConnectionTest {
         });
 
         //use mapper
-        conn.query("select * from users where username=?", username).map(User.MAPPER).forEach(user -> {
+        conn.query("select * from users where username=?", username).list(User.MAPPER).forEach(user -> {
             Assert.assertEquals("frank@ccjk.com", user.email);
         });
 
@@ -362,7 +362,7 @@ public class SqlConnectionTest {
             where.and("username=?", "Frank");
         });
         SqlResultSet rows = conn.query("select * from users where username =? limit 10", "Frank");
-        List<User> users = rows.map(User::new);
+        List<User> users = rows.list(User::new);
         System.out.println(users.size());
     }
 

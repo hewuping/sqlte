@@ -41,7 +41,7 @@ public class Example1 {
     }
 
     public List<User> queryExample3(String username) throws Exception {
-        return Sql.newConnection().query("select * from user where username=?", username).map(User.MAPPER);
+        return Sql.newConnection().query("select * from user where username=?", username).list(User.MAPPER);
     }
 
     public void queryExample4(String username) throws Exception {
@@ -51,7 +51,7 @@ public class Example1 {
         });
 
         //use mapper
-        Sql.newConnection().query("select * from user where username=?", username).map(User.MAPPER).forEach(user -> {
+        Sql.newConnection().query("select * from user where username=?", username).list(User.MAPPER).forEach(user -> {
             System.out.println(user.email);
         });
     }
