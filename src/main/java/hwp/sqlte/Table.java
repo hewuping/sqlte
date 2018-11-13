@@ -6,16 +6,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.TYPE;
 
 /**
  * @author Zero
- * Created by Zero on 2017/8/13 0013.
+ *         Created on 2018/4/4.
  */
 @Documented
-@Target({FIELD})
+@Target({TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Id {
+public @interface Table {
 
-    boolean generate() default false;
+    String name();
 
 }

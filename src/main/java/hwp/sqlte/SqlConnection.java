@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -24,6 +25,10 @@ public interface SqlConnection extends AutoCloseable {
     SqlResultSet query(Sql sql) throws UncheckedSQLException;
 
     SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
+
+    <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException;
+
+    <T> T refresh(T bean) throws UncheckedSQLException;
 
     void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
 
@@ -65,6 +70,8 @@ public interface SqlConnection extends AutoCloseable {
     int update(String sql, Object... args) throws UncheckedSQLException;
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
+
+    int updateBean(Object bean, String columns) throws UncheckedSQLException;
 
     <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 

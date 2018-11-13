@@ -1,13 +1,13 @@
 package hwp.sqlte.mapper;
 
 
-import hwp.sqlte.Helper;
+import hwp.sqlte.ClassInfo;
 import hwp.sqlte.Row;
 import hwp.sqlte.RowMapper;
 import hwp.sqlte.UncheckedException;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -30,15 +30,11 @@ public class BeanMapper<T extends Object> implements RowMapper<T> {
     public static <T> T convert(Row from, Supplier<T> supplier) {
         try {
             T obj = supplier.get();
-            Field[] fields = obj.getClass().getFields();
-            if (fields != null) {
-                for (Field field : fields) {
-                    if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-                        Object value = from.getValue(Helper.getColumnName(field).toLowerCase());
-                        if (value != null) {
-                            field.set(obj, value);
-                        }
-                    }
+            ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
+            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
+                Object value = from.getValue(entry.getKey());
+                if (value != null) {
+                    entry.getValue().set(obj, value);
                 }
             }
             return obj;

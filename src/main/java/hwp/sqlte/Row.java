@@ -2,16 +2,18 @@ package hwp.sqlte;
 
 import hwp.sqlte.mapper.BeanMapper;
 
+import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
  * @author Zero
- *         Created on 2017/3/20.
+ * Created on 2017/3/20.
  */
 public class Row extends HashMap<String, Object> {
 
@@ -67,5 +69,19 @@ public class Row extends HashMap<String, Object> {
         }
     }
 
+    public <T> T copyTo(T bean) {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
+                Object value = getValue(entry.getKey());
+                if (value != null) {
+                    entry.getValue().set(bean, value);
+                }
+            }
+        } catch (IllegalAccessException e) {
+            return bean;
+        }
+        return bean;
+    }
 
 }

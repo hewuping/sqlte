@@ -13,6 +13,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import java.net.URL;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Zero
@@ -87,6 +88,29 @@ public class SqlConnectionTest {
         Assert.assertEquals(_user.username, user.username);
         Assert.assertEquals(_user.email, user.email);
         Assert.assertEquals(_user.password, user.password);
+    }
+
+    @Test
+    public void get() throws Exception {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.password_salt = "***";
+        user.id = 123456;
+        conn.insertBean(user, "users");
+        User2 _user = conn.get(User2::new, 123456);
+        Assert.assertNotNull(_user);
+    }
+
+    @Test
+    public void refresh() throws Exception {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.password_salt = "***";
+        user.id = 123456;
+        conn.insertBean(user, "users");
+
+        User2 tmp = new User2();
+        tmp.id = user.id;
+        conn.refresh(tmp);
+        Assert.assertNotNull(tmp.password);
     }
 
     @Test
@@ -380,6 +404,19 @@ public class SqlConnectionTest {
         //OR
         update = conn.updateByPks(data.set("username", "zero3"), "users");// pk default: id
         Assert.assertEquals(1, update);
+    }
+
+    @Test
+    public void updateBean() {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.password_salt = "***";
+        user.id = 123456;
+        conn.insertBean(user, "users");
+        String newPassword = ThreadLocalRandom.current().nextInt() + "@";
+        user.password = newPassword;
+        conn.updateBean(user, "password");
+        User2 user2 = conn.query("select * from users where password=?", newPassword).first(User2::new);
+        Assert.assertNotNull(user2);
     }
 
     //    @Test

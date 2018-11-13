@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -90,6 +91,35 @@ class SqlConnectionImpl implements SqlConnection {
         consumer.accept(sb);
         return query(sb.sql(), sb.args());
     }
+
+    @Override
+    public <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+        T bean = supplier.get();
+        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        String pkColumn = info.getSinglePKColumn();
+        Row first = query("select * from " + info.getTableName() + " where " + pkColumn + "=?", id).first();
+        if (first == null) {
+            return null;
+        }
+        return first.copyTo(bean);
+    }
+
+    @Override
+    public <T> T refresh(T bean) throws UncheckedSQLException {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            String pkColumn = info.getSinglePKColumn();
+            Object id = info.getField(pkColumn).get(bean);
+            Row first = query("select * from " + info.getTableName() + " where " + pkColumn + "=?", id).first();
+            if (first == null) {
+                return null;
+            }
+            return first.copyTo(bean);
+        } catch (IllegalAccessException e) {
+            return bean;
+        }
+    }
+
 
     @Override
     public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
@@ -237,7 +267,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insertBean(Object bean) throws UncheckedSQLException {
-        this.insertBean(bean, bean.getClass().getSimpleName().toLowerCase());
+        this.insertBean(bean, null);
     }
 
     @Override
@@ -248,25 +278,22 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insertBean(Object bean, String table, String... returnColumns) throws UncheckedSQLException {
-        Field[] fields = bean.getClass().getFields();//只映射public字段，public字段必须有
-        Field[] fs = new Field[fields.length];
-        int count = 0;
-        for (Field field : fields) {
-            if (isPublicField(field)) {
-                fs[count++] = field;
-            }
+        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        if (table == null) {
+            table = info.getTableName();
         }
-        if (count == 0) {
+        Map<String, Field> columnFieldMap = info.getColumnFieldMap();
+        if (columnFieldMap.size() == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        List<String> columns = new ArrayList<>(count);
-        List<Object> values = new ArrayList<>(count);
+        List<String> columns = new ArrayList<>(columnFieldMap.size());
+        List<Object> values = new ArrayList<>(columnFieldMap.size());
         try {
-            for (int i = 0; i < count; i++) {
-                Field field = fs[i];
+            for (Map.Entry<String, Field> entry : columnFieldMap.entrySet()) {
+                Field field = entry.getValue();
                 Object v = field.get(bean);
                 if (v != null) {
-                    columns.add(Helper.getColumnName(field));
+                    columns.add(entry.getKey());
                     values.add(field.get(bean));
                 }
             }
@@ -276,9 +303,11 @@ class SqlConnectionImpl implements SqlConnection {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");
         }
-        if (table == null) {
-            table = bean.getClass().getSimpleName().toLowerCase();
+
+        if (returnColumns == null || returnColumns.length == 0) {
+            returnColumns = info.getPkColumns();
         }
+
         String sql = Helper.makeInsertSql(table, columns.toArray(new String[0]));
         //Statement.RETURN_GENERATED_KEYS
         try (PreparedStatement stat = returnColumns == null || returnColumns.length == 0 ? conn.prepareStatement(sql)
@@ -309,7 +338,7 @@ class SqlConnectionImpl implements SqlConnection {
                         String driverName = conn.getMetaData().getDriverName().toLowerCase();
                         if (driverName.contains("sqlite") || driverName.contains("mysql")) {
                             String idColumn = returnColumns[0];
-                            Field f = Helper.getField(bean.getClass(), idColumn);
+                            Field f = info.getField(idColumn);
                             if (f != null) {
                                 if (f.getType() == Long.TYPE || f.getType() == Long.class) {
                                     f.set(bean, keys.getLong(i));
@@ -319,7 +348,7 @@ class SqlConnectionImpl implements SqlConnection {
                             }
                             break;
                         }
-                        Field f = Helper.getField(bean.getClass(), name);
+                        Field f = info.getField(name);
                         if (f != null) {
 //                          f.set(bean, keys.getObject(i, f.getType()));
                             f.set(bean, keys.getObject(i));
@@ -346,25 +375,20 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-        if (table == null) {
-            table = first.getClass().getSimpleName().toLowerCase();
-        }
         //
-        List<Field> fields = new ArrayList<>();
-        for (Field field : first.getClass().getFields()) {
-            if (isPublicField(field)) {
-                fields.add(field);
-            }
-        }
-        if (fields.size() == 0) {
+        ClassInfo info = ClassInfo.getClassInfo(first.getClass());
+        String[] columns = info.getColumns();
+        if (columns.length == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        String[] columns = new String[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            columns[i] = Helper.getColumnName(field);
+        Field[] fields = new Field[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            fields[i] = info.getField(columns[i]);
         }
 
+        if (table == null) {
+            table = info.getTableName();
+        }
         String sql = Helper.makeInsertSql(table, columns);
         batchUpdate(sql, 100, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
@@ -372,7 +396,7 @@ class SqlConnectionImpl implements SqlConnection {
                 try {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
-                        args[i] = fields.get(i).get(obj);
+                        args[i] = fields[i].get(obj);
                     }
                     executor.exec(args);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -465,6 +489,51 @@ class SqlConnectionImpl implements SqlConnection {
             return statement.executeUpdate();
         } catch (SQLException e) {
             throw new UncheckedException(e);
+        }
+    }
+
+    @Override
+    public int updateBean(Object bean, String columns) throws UncheckedSQLException {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            String[] pkColumns = info.getPkColumns();
+            if (pkColumns.length == 0) {
+                throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
+            }
+
+            String[] _columns;
+            if (columns == null) {
+                _columns = info.getColumns(true);
+            } else {
+                _columns = columns.split(",");
+            }
+
+            if (_columns.length == 0) {
+                throw new IllegalArgumentException("No fields to modify: " + columns);
+            }
+
+            String sql = Helper.makeUpdateSql(info.getTableName(), _columns);
+            Object[] args = new Object[_columns.length];
+            for (int i = 0; i < _columns.length; i++) {
+                String column = _columns[i];
+                Field field = info.getField(column);
+                if (field == null) {
+                    throw new IllegalArgumentException("No field mapping: " + column);
+                }
+                args[i] = field.get(bean);
+            }
+            SqlBuilder builder = new SqlBuilder();
+            builder.add(sql, args);
+
+            Where where = new Where();
+            for (String k : pkColumns) {
+                where.and(k + "=?", info.getField(k).get(bean));
+            }
+            builder.where(where);
+            return update(builder.sql(), builder.args());
+        } catch (IllegalAccessException e) {
+            //Never happen
+            return 0;
         }
     }
 
@@ -582,21 +651,22 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            if (table == null) {
+                table = info.getTableName();
+            }
             SqlBuilder builder = new SqlBuilder();
             builder.add("UPDATE ").add(table).add(" SET ");
-            Field[] fields = bean.getClass().getFields();
-            int updateCount = 0;
-            for (int i = 0; i < fields.length; i++) {
-                Field field = fields[i];
-                if (isPublicField(field)) {
-                    Object value = field.get(bean);
-                    if (value != null) {
-                        if (updateCount > 0) {
-                            builder.add(",");
-                        }
-                        builder.sql(Helper.getColumnName(field)).add("=? ", value);
-                        updateCount++;
+
+            int updateColumnCount = 0;
+            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
+                Object value = entry.getValue().get(bean);
+                if (value != null) {
+                    if (updateColumnCount > 0) {
+                        builder.add(",");
                     }
+                    builder.sql(entry.getKey()).add("=? ", value);
+                    updateColumnCount++;
                 }
             }
             builder.where(where);

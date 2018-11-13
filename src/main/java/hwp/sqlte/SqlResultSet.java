@@ -2,6 +2,7 @@ package hwp.sqlte;
 
 import hwp.sqlte.mapper.BeanMapper;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -10,7 +11,7 @@ import java.util.stream.StreamSupport;
 
 /**
  * @author Zero
- *         Created on 2017/3/20.
+ * Created on 2017/3/20.
  */
 public class SqlResultSet implements Iterable<Row> {
 
@@ -52,6 +53,7 @@ public class SqlResultSet implements Iterable<Row> {
         }
         return row.map(new BeanMapper<>(supplier));
     }
+
 
     public <T> List<T> list(RowMapper<T> mapper) {
         List<T> list = new ArrayList<>(this.rows.size());
