@@ -6,7 +6,6 @@ package hwp.sqlte;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import hwp.sqlte.example.User;
 import org.junit.*;
 
 import java.net.URL;
@@ -59,7 +58,7 @@ public class SqlConnectionTest {
 
     @Before
     public void before() {
-        conn = Sql.newConnection();
+        conn = Sql.open();
         conn.setAutoCommit(false);
         conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
     }
@@ -171,18 +170,18 @@ public class SqlConnectionTest {
         String username = "Frank";
         //simple
         conn.query("select * from users where username=?", username).forEach(row -> {
-            Assert.assertEquals("frank@ccjk.com", row.get("email"));
+            Assert.assertEquals("frank@xxx.com", row.get("email"));
             Assert.assertNull(row.get("unk"));
         });
 
         //use mapper
         conn.query("select * from users where username=?", username).list(User.MAPPER).forEach(user -> {
-            Assert.assertEquals("frank@ccjk.com", user.email);
+            Assert.assertEquals("frank@xxx.com", user.email);
         });
 
         //RowHandler (big data RowHandler)
         conn.query(Sql.create("select * from users where username=?", username), row -> {
-            Assert.assertEquals("frank@ccjk.com", row.getString("email"));
+            Assert.assertEquals("frank@xxx.com", row.getString("email"));
             return true;
         });
     }
@@ -231,7 +230,7 @@ public class SqlConnectionTest {
         Map<String, Object> map = new HashMap<>();
         map.put("username", "Zero");
         map.put("password", "123456");
-        map.put("email", "zero@ccjk.com");
+        map.put("email", "zero@xxx.com");
         conn.insertMap("users", map);
     }
 
@@ -240,9 +239,9 @@ public class SqlConnectionTest {
         Map<String, Object> map = new HashMap<>();
         map.put("username", "Zero");
         map.put("password", "123456");
-        map.put("email", "zero@ccjk.com");
+        map.put("email", "zero@xxx.com");
         conn.insertMap("users", map, "id");
-        //{id=6, password=123456, email=zero@ccjk.com, username=Zero}
+        //{id=6, password=123456, email=zero@xxx.com, username=Zero}
         System.out.println(map);
         Assert.assertNotNull(map.get("id"));
     }
@@ -252,7 +251,7 @@ public class SqlConnectionTest {
         conn.insertMap("users", map -> {
             map.put("username", "Zero");
             map.put("password", "123456");
-            map.put("email", "zero@ccjk.com");
+            map.put("email", "zero@xxx.com");
         });
     }
 
@@ -277,7 +276,7 @@ public class SqlConnectionTest {
         List<User> users = new ArrayList<>();
         int size = 20000;
         for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
+            users.add(new User("zero" + i, "zero@xxx.com", "123456"));
         }
         BatchUpdateResult result = conn.batchUpdate("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)", 1000, users, (executor, user) -> {
             executor.exec(user.email, user.username);
@@ -294,7 +293,7 @@ public class SqlConnectionTest {
         List<User> users = new ArrayList<>();
         int size = 200;
         for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
+            users.add(new User("zero" + i, "zero@xxx.com", "123456"));
         }
         UnsafeCount count = new UnsafeCount();
         PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
@@ -335,7 +334,7 @@ public class SqlConnectionTest {
         List<User> users = new ArrayList<>();
         int size = 20;
         for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
+            users.add(new User("zero" + i, "zero@xxx.com", "123456"));
         }
         BatchUpdateResult result = conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
             users.forEach(user -> executor.exec(user.email, user.username));
@@ -352,7 +351,7 @@ public class SqlConnectionTest {
         List<User> users = new ArrayList<>();
         int size = 20;
         for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
+            users.add(new User("zero" + i, "zero@xxx.com", "123456"));
         }
         BatchUpdateResult result = conn.batchInsert("users", "email, username", executor -> {
             users.forEach(user -> executor.exec(user.email, user.username));
@@ -364,20 +363,23 @@ public class SqlConnectionTest {
         }
     }
 
-    //    @Test
-    public void batchUpdate_insert_pgsql() {
-        List<User> users = new ArrayList<>();
-        int size = 20000;
-        for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@ccjk.com", "123456"));
-        }
-        BatchUpdateResult result = conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?) ON CONFLICT (username) DO NOTHING", 1000, users, (executor, user) -> {
-            executor.exec(user.email, user.username);
-        });
-        if (result.hasSuccessNoInfo()) {
-            Assert.assertEquals(result.successNoInfoCount, size);
-        } else {
-            Assert.assertEquals(result.affectedRows, size);
+    @Test
+    public void testBatchUpdate_insert_pgsql() {
+        if (dbname.equals("pgsql")) {
+            List<User> users = new ArrayList<>();
+            int size = 200;
+            for (int i = 0; i < size; i++) {
+                users.add(new User("zero" + i, "zero@xxx.com", "123456"));
+            }
+            String sql = "INSERT INTO users (email, username)  VALUES (?, ?) ON CONFLICT (username) DO NOTHING";
+            BatchUpdateResult result = conn.batchUpdate(sql, 10, users, (executor, user) -> {
+                executor.exec(user.email, user.username);
+            });
+            if (result.hasSuccessNoInfo()) {
+                Assert.assertEquals(result.successNoInfoCount, size);
+            } else {
+                Assert.assertEquals(result.affectedRows, size);
+            }
         }
     }
 
@@ -408,30 +410,16 @@ public class SqlConnectionTest {
         Assert.assertEquals(1, update);
     }
 
-
-    //    @Test
-    public void ss() throws SQLException {
-        try (SqlConnection conn = Sql.newConnection()) {
-            conn.setAutoCommit(false);
-            conn.setReadOnly(false);
-            PreparedStatement statement = conn.prepareStatement("insert ignore into users2 (username,email) value(?,?)");
-            for (int i = 0; i < 2; i++) {
-                statement.setString(1, "zero" + i);
-                statement.setString(2, "zero@ccjk.com");
-                statement.addBatch();
-            }
-
-            int[] i = statement.executeBatch();
-//            statement.clearBatch();
-            System.out.println(Arrays.toString(i));
-            statement.addBatch("DELETE FROM usersw2 WHERE email='zero@ccjk.com'");
-            statement.addBatch("DELETE FROM users2 WHERE email='zero@ccjk.com'");
-            i = statement.executeBatch();
-            System.out.println(Arrays.toString(i));
-            conn.commit();
-        } catch (BatchUpdateException e) {
-            System.out.println(Arrays.toString(e.getUpdateCounts()));
-        }
+    ///////////////////////////////////////////Use Sql Provider////////////////////////////////////////////////////
+    @Test
+    public void testExecuteExternalSql() {
+        Optional<String> first = conn.query("#all").first(RowMapper.STRING);
+        first.ifPresent(System.out::println);
     }
 
+    @Test
+    public void testExecuteExternalSql2() {
+        User first = conn.query("#user.login","zero","123456").first(User::new);
+        Assert.assertNull(first);
+    }
 }

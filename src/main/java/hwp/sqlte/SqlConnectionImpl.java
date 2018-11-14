@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  */
 class SqlConnectionImpl implements SqlConnection {
 
-    private static final Logger logger = LoggerFactory.getLogger("sql");
+    private static final Logger logger = LoggerFactory.getLogger(SqlConnectionImpl.class);
 
     private final static Map<Connection, SqlConnection> cache = new WeakHashMap<>();
 
@@ -56,7 +56,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException {
-        try (PreparedStatement stat = connection().prepareStatement(sql)) {
+        try (PreparedStatement stat = connection().prepareStatement(toSql(sql))) {
             consumer.accept(stat);
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -64,13 +64,29 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    public SqlResultSet query(String sql) throws UncheckedSQLException {
+        try (Statement stat = conn.createStatement()) {
+            sql = toSql(sql);
+            if (logger.isDebugEnabled()) {
+                logger.debug("sql: {}", sql);
+            }
+            try (java.sql.ResultSet rs = stat.executeQuery(sql)) {
+                return Helper.convert(rs);
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
+
+    @Override
     public SqlResultSet query(String sql, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 return Helper.convert(rs);
@@ -141,12 +157,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
+        sql = toSql(sql);
         try (PreparedStatement stat = createQueryStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next()) {
@@ -166,12 +183,13 @@ class SqlConnectionImpl implements SqlConnection {
      */
     @Override
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
-        try (PreparedStatement stat = createQueryStatement(sql.sql())) {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = createQueryStatement(_sql)) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(sql.args()));
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next() && rowHandler.handle(Row.from(rs))) {
@@ -185,7 +203,8 @@ class SqlConnectionImpl implements SqlConnection {
 
     private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
         try {
-            PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            sql = toSql(sql);
+            PreparedStatement stat = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             if (isMySQL()) {
                 //jdbc规范: rows >= 0. MySQL有个例外, 可以是Integer.MIN_VALUE
                 stat.setFetchSize(Integer.MIN_VALUE);//防止查询大数据时MySQL OOM
@@ -206,12 +225,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public int insert(String sql, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             return stat.executeUpdate();
         } catch (SQLException e) {
@@ -226,12 +246,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql.sql()), Statement.RETURN_GENERATED_KEYS)) {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = conn.prepareStatement(_sql, Statement.RETURN_GENERATED_KEYS)) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(sql.args()));
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
             }
             stat.executeUpdate();
             try (ResultSet rs = stat.getGeneratedKeys()) {
@@ -246,12 +267,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql, new String[]{idColumn})) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             int i = stat.executeUpdate();
             if (i > 0) {
@@ -320,7 +342,7 @@ class SqlConnectionImpl implements SqlConnection {
                 : conn.prepareStatement(sql, returnColumns)) {// new String[]{"id"}
             Helper.fillStatement(stat, values.toArray(new Object[0]));
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, values);
+                logger.debug("sql: {}\t args: {}", sql, values);
             }
             int c = stat.executeUpdate();
             if (c == 0) {
@@ -472,6 +494,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public int update(String sql, Object... args) throws UncheckedSQLException {
+        sql = toSql(sql);
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
@@ -487,10 +510,11 @@ class SqlConnectionImpl implements SqlConnection {
     public int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
+        String sql = toSql(builder.sql());
         if (logger.isDebugEnabled()) {
-            logger.debug("sql: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
+            logger.debug("sql: {}\t args: {}", sql, Arrays.toString(builder.args()));
         }
-        try (PreparedStatement statement = conn.prepareStatement(builder.sql())) {
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
@@ -550,9 +574,9 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<
+    public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<
             T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        return batchUpdate(sql, maxBatchSize, executor -> it.forEach(t -> consumer.accept(executor, t)));
+        return batchUpdate(sql, batchSize, executor -> it.forEach(t -> consumer.accept(executor, t)));
     }
 
     //分批导入大量数据
@@ -577,20 +601,21 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws
             UncheckedSQLException {
+        sql = toSql(sql);
         if (logger.isDebugEnabled()) {
             logger.debug("sql: {}", sql);
         }
         try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-            return batchUpdate(statement, maxBatchSize, consumer, null);
+            return batchUpdate(statement, batchSize, consumer, null);
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<
             BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         try {
             boolean autoCommit = conn.getAutoCommit();
@@ -604,7 +629,7 @@ class SqlConnectionImpl implements SqlConnection {
                 try {
                     Helper.fillStatement(statement, args);
                     statement.addBatch();
-                    if (count.add(1) >= maxBatchSize) {
+                    if (count.add(1) >= batchSize) {
                         int[] rs0 = statement.executeBatch();
                         updateBatchUpdateResult(result, rs0);
                         if (psConsumer != null) {
@@ -669,9 +694,9 @@ class SqlConnectionImpl implements SqlConnection {
                 Object value = entry.getValue().get(bean);
                 if (value != null) {
                     if (updateColumnCount > 0) {
-                        builder.add(",");
+                        builder.add(", ");
                     }
-                    builder.sql(entry.getKey()).add("=? ", value);
+                    builder.sql(entry.getKey()).add("=?", value);
                     updateColumnCount++;
                 }
             }
@@ -979,7 +1004,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     private String toSql(String sql) {
-        if (sql.startsWith("#")) {
+        if (sql.charAt(0) == '#') {
             return Config.getConfig().getSqlProvider().getSql(sql.substring(1));
         }
         return sql;

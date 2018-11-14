@@ -1,15 +1,12 @@
 package hwp.sqlte;
 
 
-import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Zero
@@ -57,14 +54,14 @@ class Helper {
         int len = columns.length;
         for (int i = 0; i < len; i++) {
             if (i > 0) {
-                builder.append(',');
+                builder.append(", ");
             }
             builder.append(columns[i].trim());
         }
         builder.append(") VALUES (");
         for (int i = 0; i < len; i++) {
             if (i > 0) {
-                builder.append(',');
+                builder.append(", ");
             }
             builder.append('?');
         }
@@ -86,16 +83,6 @@ class Helper {
             builder.append("=?");
         }
         return builder.toString();
-    }
-
-
-    static Map<String, Object> beanToArgs(Object obj) throws IllegalAccessException {
-        Map<String, Object> map = new HashMap<>();
-        Field[] fields = obj.getClass().getFields();
-        for (Field field : fields) {
-            map.put(field.getName(), field.get(obj));
-        }
-        return map;
     }
 
 }

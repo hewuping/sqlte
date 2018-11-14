@@ -13,6 +13,13 @@ import java.util.function.Supplier;
  */
 public interface RowMapper<T> extends Function<Row, T> {
 
+    StringMapper STRING = StringMapper.MAPPER;
+    IntMapper INTEGER = IntMapper.MAPPER;
+    LongMapper LONG = LongMapper.MAPPER;
+    DoubleMapper DOUBLE = DoubleMapper.MAPPER;
+    NumberMapper NUMBER = NumberMapper.MAPPER;
+
+
     T map(Row row);
 
     default T apply(Row row) {
@@ -52,6 +59,8 @@ public interface RowMapper<T> extends Function<Row, T> {
     }
 
     class DoubleMapper implements RowMapper<Double> {
+        static final DoubleMapper MAPPER = new DoubleMapper();
+
         @Override
         public Double map(Row row) {
             Object v = row.values().iterator().next();
@@ -64,8 +73,7 @@ public interface RowMapper<T> extends Function<Row, T> {
     }
 
     class IntMapper implements RowMapper<Integer> {
-
-        public static final IntMapper MAPPER = new IntMapper();
+        static final IntMapper MAPPER = new IntMapper();
 
         private IntMapper() {
         }
@@ -83,7 +91,7 @@ public interface RowMapper<T> extends Function<Row, T> {
 
     class LongMapper implements RowMapper<Long> {
 
-        public static final LongMapper MAPPER = new LongMapper();
+        static final LongMapper MAPPER = new LongMapper();
 
         private LongMapper() {
         }
@@ -100,6 +108,8 @@ public interface RowMapper<T> extends Function<Row, T> {
     }
 
     class NumberMapper implements RowMapper<Number> {
+        static NumberMapper MAPPER = new NumberMapper();
+
         @Override
         public Number map(Row row) {
             return (Number) row.values().iterator().next();
@@ -108,7 +118,7 @@ public interface RowMapper<T> extends Function<Row, T> {
 
     class StringMapper implements RowMapper<String> {
 
-        public static final StringMapper MAPPER = new StringMapper();
+        static final StringMapper MAPPER = new StringMapper();
 
         private StringMapper() {
         }

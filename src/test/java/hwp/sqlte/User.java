@@ -1,6 +1,4 @@
-package hwp.sqlte.example;
-
-import hwp.sqlte.RowMapper;
+package hwp.sqlte;
 
 import java.util.Date;
 

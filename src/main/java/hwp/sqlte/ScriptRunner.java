@@ -12,8 +12,6 @@ class ScriptRunner {
     private Logger logger = LoggerFactory.getLogger("sql");
     private static final String DEFAULT_DELIMITER = ";";
 
-    private Connection connection;
-
     private boolean stopOnError;
     private boolean autoCommit;
 
@@ -50,8 +48,7 @@ class ScriptRunner {
      *
      * @param conn   - the connection to use for the script
      * @param reader - the source of the script
-     * @throws SQLException if any SQL errors occur
-     * @throws IOException  if there is an error reading from the Reader
+     * @throws UncheckedSQLException if any SQL errors occur
      */
     public void runScript(Connection conn, Reader reader) throws UncheckedSQLException {
         StringBuffer command = null;

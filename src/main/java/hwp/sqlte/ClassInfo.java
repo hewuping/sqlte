@@ -17,16 +17,29 @@ class ClassInfo {
     private Map<String, Field> columnFieldMap = new HashMap<>();
     private Map<String, Field> ids = new HashMap<>(4);
     private String tableName;
+    private String schema;
+    private String fullTableName;
     private String[] columns;
     private String[] excludePkColumns;
     private String[] idColumns;
+    private Class<?> clazz;
 
-    public static ClassInfo getClassInfo(Class<?> clazz) {
+    static ClassInfo getClassInfo(Class<?> clazz) {
         ClassInfo info = map.get(clazz);
         if (info != null) {
             return info;
         }
-        info = new ClassInfo();
+        info = new ClassInfo(clazz);
+        map.put(clazz, info);
+        return info;
+    }
+
+    private ClassInfo(Class<?> clazz) {
+        this.clazz = clazz;
+        init();
+    }
+
+    private void init() {
         Field[] fields = clazz.getFields();
         for (Field field : fields) {
             if (isPublicField(field)) {
@@ -47,68 +60,72 @@ class ClassInfo {
                 } else {
                     columnName = column.name();
                 }
-                info.columnFieldMap.put(columnName, field);
-                info.fieldColumnMap.put(field, columnName);
+                this.columnFieldMap.put(columnName, field);
+                this.fieldColumnMap.put(field, columnName);
                 Id id = field.getAnnotation(Id.class);
                 if (id != null) {
-                    info.ids.put(columnName, field);
+                    this.ids.put(columnName, field);
                 }
             }
         }
         Table table = clazz.getAnnotation(Table.class);
-        info.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
-        info.idColumns = info.ids.keySet().toArray(new String[0]);
-        info.columns = info.columnFieldMap.keySet().toArray(new String[0]);
-        int s = info.columns.length - info.ids.size();
-        info.excludePkColumns = new String[s];
+        this.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
+        this.idColumns = this.ids.keySet().toArray(new String[0]);
+        this.columns = this.columnFieldMap.keySet().toArray(new String[0]);
+        int s = this.columns.length - this.ids.size();
+        this.excludePkColumns = new String[s];
         if (s > 0) {
             int ss = 0;
-            for (String column : info.columns) {
-                if (!info.ids.containsKey(column)) {
-                    info.excludePkColumns[ss++] = column;
+            for (String column : this.columns) {
+                if (!this.ids.containsKey(column)) {
+                    this.excludePkColumns[ss++] = column;
                 }
             }
         }
-        map.put(clazz, info);
-        return info;
+        if (table != null && !table.schema().isEmpty()) {
+            this.schema = table.schema();
+            this.fullTableName = this.schema + "." + this.tableName;
+        } else {
+            this.fullTableName = this.tableName;
+        }
     }
 
-    public String getSinglePKColumn() {
+    String getSinglePKColumn() {
         if (ids.size() != 1) {
             throw new UncheckedException("Non-single primary key exception, the number of PK: " + ids.size());
         }
         return ids.keySet().iterator().next();
     }
 
-    public boolean hasIds() {
+    boolean hasIds() {
         return !ids.isEmpty();
     }
 
-    public String[] getPkColumns() {
+    String[] getPkColumns() {
         return idColumns;
     }
 
-    public Map<String, Field> getColumnFieldMap() {
+    Map<String, Field> getColumnFieldMap() {
         return columnFieldMap;
     }
 
-    public Field getField(String column) {
+    Field getField(String column) {
         return columnFieldMap.get(column);
     }
 
-    public String getColumn(Field field) {
+    String getColumn(Field field) {
         return fieldColumnMap.get(field);
     }
 
-    public Field[] getFields() {
+    Field[] getFields() {
         return columnFieldMap.values().toArray(new Field[0]);
     }
 
-    public String[] getColumns() {
+    String[] getColumns() {
         return columns;
     }
 
-    public String[] getColumns(boolean excludePks) {
+    String[] getColumns(boolean excludePks) {
         if (excludePks) {
             return excludePkColumns;
         } else {
@@ -116,11 +133,11 @@ class ClassInfo {
         }
     }
 
-    public String getTableName() {
-        return tableName;
+    String getTableName() {
+        return fullTableName;
     }
 
-    private static boolean isPublicField(Field field) {
+    private boolean isPublicField(Field field) {
         return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
     }
 
