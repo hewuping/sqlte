@@ -9,7 +9,7 @@ import java.util.Map;
  * @author Zero
  * Created on 2018/11/13.
  */
-public class ClassInfo {
+class ClassInfo {
 
     private static Map<Class<?>, ClassInfo> map = new HashMap<>();
 

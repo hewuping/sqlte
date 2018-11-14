@@ -9,7 +9,7 @@ import static java.lang.annotation.ElementType.FIELD;
 
 /**
  * @author Zero
- *         Created on 2018/4/4.
+ * Created on 2018/4/4.
  */
 @Documented
 @Target({FIELD})

@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 
 /**
  * @author Zero
- *         Created on 2017/3/21.
+ * Created on 2017/3/21.
  */
 public class TemplateSqlBuilder implements Builder {
     private static Pattern pattern = Pattern.compile("(:|\\$)([A-z_\\d\\.]+)");

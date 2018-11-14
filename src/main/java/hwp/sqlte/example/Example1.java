@@ -14,7 +14,7 @@ import java.util.Optional;
  * @author Zero
  * Created on 2017/3/27.
  */
-public class Example1 {
+class Example1 {
 
     public User queryExample(String username) throws Exception {
         SqlConnection conn = Sql.newConnection();

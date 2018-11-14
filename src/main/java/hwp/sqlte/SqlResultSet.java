@@ -1,8 +1,5 @@
 package hwp.sqlte;
 
-import hwp.sqlte.mapper.BeanMapper;
-
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -51,7 +48,7 @@ public class SqlResultSet implements Iterable<Row> {
         if (row == null) {
             return null;
         }
-        return row.map(new BeanMapper<>(supplier));
+        return row.map(new RowMapper.BeanMapper<>(supplier));
     }
 
 
@@ -63,7 +60,7 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> List<T> list(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
-        this.rows.forEach(row -> list.add(BeanMapper.convert(row, supplier)));
+        this.rows.forEach(row -> list.add(RowMapper.BeanMapper.convert(row, supplier)));
         return list;
     }
 

@@ -2,7 +2,7 @@ package hwp.sqlte;
 
 /**
  * @author Zero
- *         Created on 2018/4/30.
+ * Created on 2018/4/30.
  */
 public class SimpleSql implements Sql {
 

@@ -108,9 +108,15 @@ class SqlConnectionImpl implements SqlConnection {
     public <T> T refresh(T bean) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-            String pkColumn = info.getSinglePKColumn();
-            Object id = info.getField(pkColumn).get(bean);
-            Row first = query("select * from " + info.getTableName() + " where " + pkColumn + "=?", id).first();
+            String[] pkColumns = info.getPkColumns();
+            SqlBuilder builder = new SqlBuilder();
+            Where where = new Where();
+            for (String k : pkColumns) {
+                where.and(k + "=?", info.getField(k).get(bean));
+            }
+
+            builder.sql("select * from ").add(info.getTableName()).where(where);
+            Row first = query(builder.sql(), builder.args()).first();
             if (first == null) {
                 return null;
             }

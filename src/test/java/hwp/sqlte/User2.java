@@ -14,9 +14,9 @@ public class User2 {
     public String username;
     public String email;
     public String password;
-    public String password_salt = "sfwerx";
+    public String passwordSalt = "sfwerx";
     //    public Date creation_time;
-    public Date updated_time;
+    public Date updatedTime;
 
     private String other;
 
@@ -46,19 +46,12 @@ public class User2 {
         sb.append(", username='").append(username).append('\'');
         sb.append(", email='").append(email).append('\'');
         sb.append(", password='").append(password).append('\'');
-        sb.append(", password_salt='").append(password_salt).append('\'');
+        sb.append(", password_salt='").append(passwordSalt).append('\'');
 //        sb.append(", creation_time=").append(creation_time);
-        sb.append(", updated_time=").append(updated_time);
+        sb.append(", updated_time=").append(updatedTime);
         sb.append('}');
         return sb.toString();
     }
 
-    public static final RowMapper<User2> MAPPER = row -> {
-        User2 user = new User2();
-        user.username = row.getString("username");
-        user.password = row.getString("password");
-        user.email = row.getString("email");
-        return user;
-    };
 
 }

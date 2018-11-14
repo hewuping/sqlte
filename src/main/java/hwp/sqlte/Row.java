@@ -1,6 +1,5 @@
 package hwp.sqlte;
 
-import hwp.sqlte.mapper.BeanMapper;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
@@ -47,7 +46,7 @@ public class Row extends HashMap<String, Object> {
 
 
     public <T> T map(Supplier<T> supplier) {
-        return BeanMapper.convert(this, supplier);
+        return RowMapper.BeanMapper.convert(this, supplier);
     }
 
     public Row set(String name, Object val) {
