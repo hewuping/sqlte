@@ -11,6 +11,7 @@ import org.junit.*;
 import java.net.URL;
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -330,6 +331,35 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testBatchInsert_Beans() {
+        List<User> users = new ArrayList<>();
+        int size = 20;
+        for (int i = 0; i < size; i++) {
+            User user = new User("zero" + i, "zero@xxx.com", "123456");
+            user.updated_time = new Date();
+            users.add(user);
+        }
+        conn.batchInsert(users, "users");
+    }
+
+    @Test
+    public void testBatchInsert_Beans2() {
+        int size = 2000;
+        BatchUpdateResult result = conn.batchInsert(producer -> {
+            for (int i = 0; i < size; i++) {
+                User user = new User("zero" + i, "zero@xxx.com", "123456");
+                user.updated_time = new Date();
+                producer.produce(user);
+            }
+        }, "users");
+        if (result.hasSuccessNoInfo()) {
+            Assert.assertTrue(result.successNoInfoCount > 0);
+        } else {
+            Assert.assertEquals(size, result.affectedRows);
+        }
+    }
+
+    @Test
     public void testBatchUpdate_insert5() {
         List<User> users = new ArrayList<>();
         int size = 20;
@@ -419,7 +449,7 @@ public class SqlConnectionTest {
 
     @Test
     public void testExecuteExternalSql2() {
-        User first = conn.query("#user.login","zero","123456").first(User::new);
+        User first = conn.query("#user.login", "zero", "123456").first(User::new);
         Assert.assertNull(first);
     }
 }

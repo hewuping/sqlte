@@ -77,7 +77,9 @@ public interface SqlConnection extends AutoCloseable {
 
     <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
-    void batchInsert(List<?> beans, String table) throws UncheckedSQLException;
+    BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException;
+
+    BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException;
 
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 

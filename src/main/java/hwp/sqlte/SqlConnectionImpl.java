@@ -332,7 +332,7 @@ class SqlConnectionImpl implements SqlConnection {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");
         }
 
-        if (returnColumns == null || returnColumns.length == 0) {
+        if (returnColumns == null || returnColumns.length == 0) {//TODO 如果是ID列, 但不是自动生成的情况还没处理
             returnColumns = info.getPkColumns();
         }
 
@@ -393,9 +393,9 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
         if (beans.isEmpty()) {
-            return;
+            return new BatchUpdateResult();
         }
         Object first = beans.get(0);
         for (Object o : beans) {
@@ -418,13 +418,46 @@ class SqlConnectionImpl implements SqlConnection {
             table = info.getTableName();
         }
         String sql = Helper.makeInsertSql(table, columns);
-        batchUpdate(sql, 100, executor -> {
+        return batchUpdate(sql, 100, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
             beans.forEach(obj -> {
                 try {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
                         args[i] = fields[i].get(obj);
+                    }
+                    executor.exec(args);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    if (b.get()) {
+                        logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
+                        b.set(false);
+                    }
+                }
+            });
+        });
+    }
+
+    public BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException {
+        final Class<?>[] firstClass = new Class<?>[1];
+        consumer.accept(bean -> {
+            if (firstClass[0] == null) {
+                firstClass[0] = bean.getClass();
+            }
+        });
+        ClassInfo info = ClassInfo.getClassInfo(firstClass[0]);
+        String[] columns = info.getColumns();
+        Field[] fields = info.getFields();
+        if (table == null) {
+            table = info.getTableName();
+        }
+        String sql = Helper.makeInsertSql(table, info.getColumns());
+        return batchUpdate(sql, 500, executor -> {
+            AtomicBoolean b = new AtomicBoolean(true);
+            consumer.accept(bean -> {
+                try {
+                    Object[] args = new Object[columns.length];
+                    for (int i = 0; i < columns.length; i++) {
+                        args[i] = fields[i].get(bean);
                     }
                     executor.exec(args);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -607,7 +640,7 @@ class SqlConnectionImpl implements SqlConnection {
         if (logger.isDebugEnabled()) {
             logger.debug("sql: {}", sql);
         }
-        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
             return batchUpdate(statement, batchSize, consumer, null);
         } catch (SQLException e) {
             throw new UncheckedException(e);

@@ -20,6 +20,7 @@ class ClassInfo {
     private String schema;
     private String fullTableName;
     private String[] columns;
+    private Field[] fields;
     private String[] excludePkColumns;
     private String[] idColumns;
     private Class<?> clazz;
@@ -40,6 +41,7 @@ class ClassInfo {
     }
 
     private void init() {
+        //fields
         Field[] fields = clazz.getFields();
         for (Field field : fields) {
             if (isPublicField(field)) {
@@ -68,10 +70,22 @@ class ClassInfo {
                 }
             }
         }
+
         Table table = clazz.getAnnotation(Table.class);
         this.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
         this.idColumns = this.ids.keySet().toArray(new String[0]);
-        this.columns = this.columnFieldMap.keySet().toArray(new String[0]);
+
+        //columns, fields
+        UnsafeCount index = new UnsafeCount();
+        this.columns = new String[this.columnFieldMap.size()];
+        this.fields = new Field[this.columnFieldMap.size()];
+        this.columnFieldMap.forEach((k, v) -> {
+            this.columns[index.get()] = k;
+            this.fields[index.get()] = v;
+            index.add(1);
+        });
+
+        //excludePkColumns
         int s = this.columns.length - this.ids.size();
         this.excludePkColumns = new String[s];
         if (s > 0) {
@@ -82,6 +96,8 @@ class ClassInfo {
                 }
             }
         }
+
+        //fullTableName
         if (table != null && !table.schema().isEmpty()) {
             this.schema = table.schema();
             this.fullTableName = this.schema + "." + this.tableName;
@@ -118,7 +134,7 @@ class ClassInfo {
     }
 
     Field[] getFields() {
-        return columnFieldMap.values().toArray(new Field[0]);
+        return fields;
     }
 
     String[] getColumns() {

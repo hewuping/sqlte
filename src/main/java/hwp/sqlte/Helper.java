@@ -32,14 +32,18 @@ class Helper {
         return new SqlResultSet(columnNames, results);
     }
 
-    static void fillStatement(PreparedStatement statement, Object[] args) throws SQLException {
-        for (int i = 0; i < args.length; i++) {
-            Object value = args[i];
-            if (value == null) {
-                statement.setNull(i + 1, Types.NULL);
-            } else {
-                statement.setObject(i + 1, value);
+    static void fillStatement(PreparedStatement statement, Object[] args) throws UncheckedSQLException {
+        try {
+            for (int i = 0; i < args.length; i++) {
+                Object value = args[i];
+                if (value == null) {
+                    statement.setNull(i + 1, Types.NULL);
+                } else {
+                    statement.setObject(i + 1, value);
+                }
             }
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
         }
     }
 
