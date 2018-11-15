@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Reader;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -409,11 +408,7 @@ class SqlConnectionImpl implements SqlConnection {
         if (columns.length == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        Field[] fields = new Field[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            fields[i] = info.getField(columns[i]);
-        }
-
+        Field[] fields = info.getFields();
         if (table == null) {
             table = info.getTableName();
         }
@@ -442,6 +437,8 @@ class SqlConnectionImpl implements SqlConnection {
         consumer.accept(bean -> {
             if (firstClass[0] == null) {
                 firstClass[0] = bean.getClass();
+            } else if (bean.getClass() != firstClass[0]) {
+                throw new IllegalArgumentException("Inconsistent data types");
             }
         });
         ClassInfo info = ClassInfo.getClassInfo(firstClass[0]);
@@ -487,8 +484,7 @@ class SqlConnectionImpl implements SqlConnection {
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
         String sql = Helper.makeInsertSql(table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());
-        try (PreparedStatement stat = (returnColumns == null
-                ? conn.prepareStatement(sql)
+        try (PreparedStatement stat = (returnColumns == null ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns))) {//Statement.RETURN_GENERATED_KEYS
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, row.values());
@@ -601,8 +597,8 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws
-            UncheckedSQLException {
+    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
+            throws UncheckedSQLException {
         this.batchUpdate(sql, 1000, it, consumer);
     }
 
@@ -614,21 +610,21 @@ class SqlConnectionImpl implements SqlConnection {
 
     //分批导入大量数据
     @Override
-    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         return this.batchUpdate(sql, 1000, consumer);
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         String sql = Helper.makeUpdateSql(table, columns);
         return this.batchUpdate(sql, consumer);
     }
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         String sql = Helper.makeInsertSql(table, columns);
         return this.batchUpdate(sql, consumer);
     }
@@ -648,8 +644,8 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<
-            BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer,
+                                         BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         try {
             boolean autoCommit = conn.getAutoCommit();
             if (autoCommit) {
@@ -1016,8 +1012,8 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws
-            UncheckedSQLException {
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+            throws UncheckedSQLException {
         try {
             return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
         } catch (SQLException e) {
@@ -1028,12 +1024,6 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public Connection connection() {
         return this.conn;
-    }
-
-//
-
-    private boolean isPublicField(Field field) {
-        return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
     }
 
     private String toSql(String sql) {
