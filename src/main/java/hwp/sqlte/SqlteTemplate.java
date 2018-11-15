@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import javax.sql.DataSource;
 import java.io.Reader;
 import java.sql.*;
 import java.util.HashMap;
@@ -12,12 +13,13 @@ import java.util.function.Supplier;
 
 /**
  * <pre>
- *     Spring:
+ *     for Spring:
  *     @Bean
  *     public SqlteTemplate getSqlteTemplate(DataSource dataSource) {
+ *         Sql.config().setDataSource(dataSource)
  *         SqlteTemplate template = new SqlteTemplate() {
  *             @Override
- *             protected Connection open() {
+ *             protected Connection open(DataSource dataSource) {
  *                 return DataSourceUtils.getConnection(dataSource);
  *             }
  *
@@ -406,18 +408,24 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
 
-    protected abstract Connection open();
-//    {
-//       return DataSourceUtils.getConnection(this.dataSource);
-//    }
+    protected Connection open(DataSource dataSource) {
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
 
-    protected abstract void close(Connection connection);
-//    {
-//        DataSourceUtils.releaseConnection(connection, dataSource);
-//    }
+    protected void close(Connection connection) {
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            //Ignore
+        }
+    }
 
     private <R> R run(Function<SqlConnection, R> function) {
-        Connection conn = open();
+        Connection conn = open(Sql.config().getDataSource());
         try {
             SqlConnection sqlConn = SqlConnectionImpl.use(conn);
             return function.apply(sqlConn);

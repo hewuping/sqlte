@@ -20,7 +20,7 @@ dependencies {
     // TestNG is also supported by the Gradle Test task. Just change the
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
-    compile group: 'org.springframework', name: 'spring-jdbc', version: '4.3.2.RELEASE'
+//    compile group: 'org.springframework', name: 'spring-jdbc', version: '4.3.2.RELEASE'
     //logger
     testCompile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.1'
     testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.1'
