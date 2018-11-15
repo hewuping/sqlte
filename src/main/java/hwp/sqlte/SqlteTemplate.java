@@ -1,8 +1,5 @@
 package hwp.sqlte;
 
-import org.springframework.jdbc.datasource.DataSourceUtils;
-
-import javax.sql.DataSource;
 import java.io.Reader;
 import java.sql.*;
 import java.util.HashMap;
@@ -10,259 +7,170 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * <pre>
+ *     Spring:
  *     @Bean
  *     public SqlteTemplate getSqlteTemplate(DataSource dataSource) {
- *         Sql.config().setDataSource(dataSource);
- *         return new SqlteTemplate(dataSource);
+ *         SqlteTemplate template = new SqlteTemplate() {
+ *             @Override
+ *             protected Connection open() {
+ *                 return DataSourceUtils.getConnection(dataSource);
+ *             }
+ *
+ *             @Override
+ *             protected void close(Connection connection) {
+ *                 DataSourceUtils.releaseConnection(connection, dataSource);
+ *             }
+ *         };
+ *         return template;
  *     }
  * </pre>
  *
  * @author Zero
  * Created on 2018/11/5.
  */
-public class SqlteTemplate implements SqlConnection {//sql
-
-    private DataSource dataSource;
-
-    public SqlteTemplate(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
+public abstract class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void executeSqlScript(Reader reader, boolean ignoreError) {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.executeSqlScript(reader, ignoreError);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void statement(Consumer<Statement> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.statement(consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.prepareStatement(sql, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
+    }
+
+    @Override
+    public SqlResultSet query(String sql) throws UncheckedSQLException {
+        return run(conn -> conn.query(sql));
     }
 
     @Override
     public SqlResultSet query(String sql, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.query(sql, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.query(sql, args));
     }
 
     @Override
     public SqlResultSet query(Sql sql) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.query(sql);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.query(sql));
     }
 
     @Override
     public SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.query(consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.query(consumer));
+    }
+
+    @Override
+    public <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+        return run(conn -> conn.get(supplier, id));
+    }
+
+    @Override
+    public <T> T refresh(T bean) throws UncheckedSQLException {
+        return run(conn -> conn.refresh(bean));
     }
 
     @Override
     public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.query(sql, rowHandler);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.query(consumer, rowHandler);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.query(sql, rowHandler, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.query(sql, rowHandler);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public int insert(Sql sql) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.insert(sql);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.insert(sql));
     }
 
     @Override
     public int insert(String sql, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.insert(sql, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.insert(sql, args));
     }
 
     @Override
     public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.insert(table, columns, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.insert(table, columns, args));
     }
 
     @Override
     public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.insert(sql, resultHandler);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.insertAndReturnKey(sql, idColumn, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.insertAndReturnKey(sql, idColumn, args));
     }
 
     @Override
     public void insertBean(Object bean) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.insertBean(bean);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void insertBean(Object bean, String table) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.insertBean(bean, table);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
     public void insertBean(Object bean, String table, String... returnColumns) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.insertBean(bean, table, returnColumns);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
@@ -279,207 +187,103 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.insertMap(table, row, returnColumns);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.insertMap(table, row, returnColumns));
     }
 
     @Override
     public int update(String sql, Object... args) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.update(sql, args);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.update(sql, args));
     }
 
     @Override
     public int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.update(consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.update(consumer));
+    }
+
+    @Override
+    public int updateBean(Object bean, String columns) throws UncheckedSQLException {
+        return 0;
     }
 
     @Override
     public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
+        run(conn -> {
             conn.batchUpdate(sql, it, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+            return null;
+        });
     }
 
     @Override
-    public void batchInsert(List<?> beans, String table) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            conn.batchInsert(beans, table);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(beans, table));
+    }
+
+    @Override
+    public BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(consumer, table));
     }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchUpdate(sql, maxBatchSize, it, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchUpdate(sql, maxBatchSize, it, consumer));
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchUpdate(sql, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchUpdate(sql, consumer));
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchUpdate(table, columns, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchUpdate(table, columns, consumer));
     }
 
     @Override
     public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchInsert(table, columns, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchInsert(table, columns, consumer));
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchUpdate(sql, maxBatchSize, consumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchUpdate(sql, maxBatchSize, consumer));
     }
 
     @Override
     public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.batchUpdate(statement, maxBatchSize, consumer, psConsumer);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, psConsumer));
     }
 
     @Override
     public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.update(bean, table, where);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.update(bean, table, where));
     }
 
     @Override
     public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.update(map, table, where);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.update(map, table, where));
     }
 
     @Override
     public int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.update(map, table, where);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.update(map, table, where));
     }
 
     @Override
     public int updateByPks(Map<String, Object> map, String table, String... pk) throws UncheckedSQLException {
-        SqlConnection conn = null;
-        try {
-            conn = getSqlConnection();
-            return conn.updateByPks(map, table, pk);
-        } finally {
-            if (conn != null) {
-                DataSourceUtils.releaseConnection(conn.connection(), dataSource);
-            }
-        }
+        return run(conn -> conn.updateByPks(map, table, pk));
     }
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws UncheckedSQLException {
-        getSqlConnection().setAutoCommit(autoCommit);
+        run(conn -> {
+            conn.setAutoCommit(autoCommit);
+            return null;
+        });
     }
 
     @Override
     public boolean getAutoCommit() throws UncheckedSQLException {
-        return getSqlConnection().getAutoCommit();
+        return run(SqlConnection::getAutoCommit);
     }
 
     @Override
@@ -499,47 +303,53 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public boolean isClosed() throws UncheckedSQLException {
-        return getSqlConnection().isClosed();
+        return run(SqlConnection::isClosed);
     }
 
     @Override
     public void setReadOnly(boolean readOnly) throws UncheckedSQLException {
-        getSqlConnection().setReadOnly(readOnly);
+        run(conn -> {
+            conn.setReadOnly(readOnly);
+            return null;
+        });
     }
 
     @Override
     public boolean isReadOnly() throws UncheckedSQLException {
-        return getSqlConnection().isReadOnly();
+        return run(SqlConnection::isReadOnly);
     }
 
     @Override
     public void setTransactionIsolation(int level) throws UncheckedSQLException {
-        getSqlConnection().setTransactionIsolation(level);
+        run(conn -> {
+            conn.setTransactionIsolation(level);
+            return null;
+        });
     }
 
     @Override
     public int getTransactionIsolation() throws UncheckedSQLException {
-        return getSqlConnection().getTransactionIsolation();
+        return run(SqlConnection::getTransactionIsolation);
     }
 
     @Override
     public SqlConnection beginTransaction() throws UncheckedSQLException {
-        return getSqlConnection().beginTransaction();
+        return run(SqlConnection::beginTransaction);
     }
 
     @Override
     public SqlConnection beginTransaction(int level) throws UncheckedSQLException {
-        return getSqlConnection().beginTransaction(level);
+        return run(conn -> conn.beginTransaction(level));
     }
 
     @Override
     public Savepoint setSavepoint() throws UncheckedSQLException {
-        return getSqlConnection().setSavepoint();
+        return run(SqlConnection::setSavepoint);
     }
 
     @Override
     public Savepoint setSavepoint(String name) throws UncheckedSQLException {
-        return getSqlConnection().setSavepoint(name);
+        return run(conn -> conn.setSavepoint(name));
     }
 
     @Override
@@ -549,54 +359,85 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws UncheckedSQLException {
-        getSqlConnection().releaseSavepoint(savepoint);
+        run(connection -> {
+            connection.releaseSavepoint(savepoint);
+            return null;
+        });
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws UncheckedSQLException {
-        return getSqlConnection().prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        return run(conn -> prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability));
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws UncheckedSQLException {
-        return getSqlConnection().prepareStatement(sql, autoGeneratedKeys);
+        return run(conn -> conn.prepareStatement(sql, autoGeneratedKeys));
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, String[] columnNames) throws UncheckedSQLException {
-        return getSqlConnection().prepareStatement(sql, columnNames);
+        return run(conn -> conn.prepareStatement(sql, columnNames));
     }
 
     @Override
     public boolean isValid(int timeout) throws UncheckedSQLException {
-        return getSqlConnection().isValid(timeout);
+        return run(conn -> conn.isValid(timeout));
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws UncheckedSQLException {
-        return getSqlConnection().prepareStatement(sql);
+        return run(conn -> conn.prepareStatement(sql));
     }
 
     @Override
     public CallableStatement prepareCall(String sql) throws UncheckedSQLException {
-        return getSqlConnection().prepareCall(sql);
+        return run(conn -> conn.prepareCall(sql));
     }
 
     @Override
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws UncheckedSQLException {
-        return getSqlConnection().prepareCall(sql, resultSetType, resultSetConcurrency);
+        return run(conn -> conn.prepareCall(sql, resultSetType, resultSetConcurrency));
     }
 
     @Override
     public Connection connection() {
-        return getSqlConnection().connection();
+        return null;
     }
 
 
-    private SqlConnection getSqlConnection() {
-        return SqlConnectionImpl.use(DataSourceUtils.getConnection(this.dataSource));
-//        return SqlConnectionImpl.use(factory.get());
+    protected abstract Connection open();
+//    {
+//       return DataSourceUtils.getConnection(this.dataSource);
+//    }
+
+    protected abstract void close(Connection connection);
+//    {
+//        DataSourceUtils.releaseConnection(connection, dataSource);
+//    }
+
+    private <R> R run(Function<SqlConnection, R> function) {
+        Connection conn = open();
+        try {
+            SqlConnection sqlConn = SqlConnectionImpl.use(conn);
+            return function.apply(sqlConn);
+        } finally {
+            close(conn);
+        }
     }
 
+/*    public static void main(String[] args) {
+        SqlteTemplate template = new SqlteTemplate() {
+            @Override
+            protected Connection open() {
+                return DataSourceUtils.getConnection(dataSource);
+            }
+
+            @Override
+            protected void close(Connection connection) {
+                DataSourceUtils.releaseConnection(connection, dataSource);
+            }
+        };
+    }*/
 
 }
