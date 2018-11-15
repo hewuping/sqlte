@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 /**
  * @author Zero
- *         Created on 2017/4/11.
+ * Created on 2017/4/11.
  */
 public class DataSourceWrapper implements DataSource {
 
@@ -65,10 +65,10 @@ public class DataSourceWrapper implements DataSource {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        if(isWrapperFor(iface)) {
+        if (isWrapperFor(iface)) {
             return iface.cast(this);
         } else {
-            throw new SQLException("unwrap failed for:"+ iface);
+            throw new SQLException("unwrap failed for:" + iface);
         }
     }
 

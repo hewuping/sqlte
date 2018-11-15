@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 /**
  * @author Zero
- *         Created on 2017/3/21.
+ * Created on 2017/3/21.
  */
 public class SqlBuilder implements Builder, Sql {
     private List<Object> args = new ArrayList<>();
@@ -147,8 +147,6 @@ public class SqlBuilder implements Builder, Sql {
         builder.append("sql:  ").append(sql()).append("\nargs: ").append(Arrays.toString(args()));
         return builder.toString();
     }
-
-
 
 
     @Override

@@ -43,7 +43,7 @@ public interface Sql {
         return Config.config;
     }
 
-    static SqlConnection newConnection() {
+    static SqlConnection open() {
         try {
             return SqlConnectionImpl.use(config().getDataSource().getConnection());
         } catch (SQLException e) {
@@ -51,7 +51,7 @@ public interface Sql {
         }
     }
 
-    static SqlConnection newConnection(String dsName) {
+    static SqlConnection open(String dsName) {
         try {
             return SqlConnectionImpl.use(config().getDataSource(dsName).getConnection());
         } catch (SQLException e) {
@@ -59,7 +59,7 @@ public interface Sql {
         }
     }
 
-    static SqlConnection newConnection(DataSource dataSource) {
+    static SqlConnection open(DataSource dataSource) {
         try {
             return SqlConnectionImpl.use(dataSource.getConnection());
         } catch (SQLException e) {
@@ -76,13 +76,13 @@ public interface Sql {
     }
 
     static void use(Consumer<SqlConnection> consumer) {
-        try (SqlConnection conn = newConnection()) {
+        try (SqlConnection conn = open()) {
             consumer.accept(conn);
         }
     }
 
     static <T> T transaction(Function<SqlConnection, T> function) throws Exception {
-        SqlConnection connection = newConnection();
+        SqlConnection connection = open();
         try {
             connection.setAutoCommit(false);
             return function.apply(connection);

@@ -1,5 +1,8 @@
 package hwp.sqlte;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.URL;
 import java.util.HashMap;
@@ -18,7 +21,8 @@ public interface SqlProvider {
     }
 
     class DefaultSqlProvider implements SqlProvider {
-        static DefaultSqlProvider def = new DefaultSqlProvider();
+        private static Logger logger = LoggerFactory.getLogger(SqlProvider.class);
+        private static DefaultSqlProvider def = new DefaultSqlProvider();
 
         private Map<String, String> sqlMap = new HashMap<>();
 
@@ -58,6 +62,9 @@ public interface SqlProvider {
         }
 
         private Map<String, String> parse(URL url, String prefix) throws IOException {
+            if (logger.isInfoEnabled()) {
+                logger.info("loading sql from: {}", url);
+            }
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
                 String line;
                 Map<String, String> map = new HashMap<>();
@@ -82,6 +89,11 @@ public interface SqlProvider {
                 }
                 if (key != null) {
                     map.put(prefix == null ? key : prefix + "." + key, sql.toString());
+                }
+                if (logger.isInfoEnabled()) {
+                    map.forEach((k, v) -> {
+                        logger.info("key: {},  sql: {}", k, v.replace('\n', ' '));
+                    });
                 }
                 return map;
             }

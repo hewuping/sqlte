@@ -6,12 +6,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Reader;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  */
 class SqlConnectionImpl implements SqlConnection {
 
-    private static final Logger logger = LoggerFactory.getLogger("sql");
+    private static final Logger logger = LoggerFactory.getLogger(SqlConnectionImpl.class);
 
     private final static Map<Connection, SqlConnection> cache = new WeakHashMap<>();
 
@@ -55,7 +55,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException {
-        try (PreparedStatement stat = connection().prepareStatement(sql)) {
+        try (PreparedStatement stat = connection().prepareStatement(toSql(sql))) {
             consumer.accept(stat);
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
@@ -63,13 +63,29 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    public SqlResultSet query(String sql) throws UncheckedSQLException {
+        try (Statement stat = conn.createStatement()) {
+            sql = toSql(sql);
+            if (logger.isDebugEnabled()) {
+                logger.debug("sql: {}", sql);
+            }
+            try (java.sql.ResultSet rs = stat.executeQuery(sql)) {
+                return Helper.convert(rs);
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
+
+    @Override
     public SqlResultSet query(String sql, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 return Helper.convert(rs);
@@ -92,6 +108,41 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    public <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+        T bean = supplier.get();
+        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        String pkColumn = info.getSinglePKColumn();
+        Row first = query("select * from " + info.getTableName() + " where " + pkColumn + "=?", id).first();
+        if (first == null) {
+            return null;
+        }
+        return first.copyTo(bean);
+    }
+
+    @Override
+    public <T> T refresh(T bean) throws UncheckedSQLException {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            String[] pkColumns = info.getPkColumns();
+            SqlBuilder builder = new SqlBuilder();
+            Where where = new Where();
+            for (String k : pkColumns) {
+                where.and(k + "=?", info.getField(k).get(bean));
+            }
+
+            builder.sql("select * from ").add(info.getTableName()).where(where);
+            Row first = query(builder.sql(), builder.args()).first();
+            if (first == null) {
+                return null;
+            }
+            return first.copyTo(bean);
+        } catch (IllegalAccessException e) {
+            return bean;
+        }
+    }
+
+
+    @Override
     public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
         query(sql.sql(), rowHandler, sql.args());
     }
@@ -105,12 +156,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
+        sql = toSql(sql);
         try (PreparedStatement stat = createQueryStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next()) {
@@ -130,12 +182,13 @@ class SqlConnectionImpl implements SqlConnection {
      */
     @Override
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
-        try (PreparedStatement stat = createQueryStatement(sql.sql())) {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = createQueryStatement(_sql)) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("query: {}\t args: {}", sql, Arrays.toString(sql.args()));
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next() && rowHandler.handle(Row.from(rs))) {
@@ -149,7 +202,8 @@ class SqlConnectionImpl implements SqlConnection {
 
     private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
         try {
-            PreparedStatement stat = conn.prepareStatement(toSql(sql), ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            sql = toSql(sql);
+            PreparedStatement stat = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             if (isMySQL()) {
                 //jdbc规范: rows >= 0. MySQL有个例外, 可以是Integer.MIN_VALUE
                 stat.setFetchSize(Integer.MIN_VALUE);//防止查询大数据时MySQL OOM
@@ -170,12 +224,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public int insert(String sql, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql)) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             return stat.executeUpdate();
         } catch (SQLException e) {
@@ -190,12 +245,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql.sql()), Statement.RETURN_GENERATED_KEYS)) {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = conn.prepareStatement(_sql, Statement.RETURN_GENERATED_KEYS)) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(sql.args()));
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
             }
             stat.executeUpdate();
             try (ResultSet rs = stat.getGeneratedKeys()) {
@@ -210,12 +266,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
-        try (PreparedStatement stat = conn.prepareStatement(toSql(sql), new String[]{idColumn})) {
+        sql = toSql(sql);
+        try (PreparedStatement stat = conn.prepareStatement(sql, new String[]{idColumn})) {
             if (args.length > 0) {
                 Helper.fillStatement(stat, args);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
             int i = stat.executeUpdate();
             if (i > 0) {
@@ -237,7 +294,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insertBean(Object bean) throws UncheckedSQLException {
-        this.insertBean(bean, bean.getClass().getSimpleName().toLowerCase());
+        this.insertBean(bean, null);
     }
 
     @Override
@@ -248,25 +305,22 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insertBean(Object bean, String table, String... returnColumns) throws UncheckedSQLException {
-        Field[] fields = bean.getClass().getFields();//只映射public字段，public字段必须有
-        Field[] fs = new Field[fields.length];
-        int count = 0;
-        for (Field field : fields) {
-            if (isPublicField(field)) {
-                fs[count++] = field;
-            }
+        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        if (table == null) {
+            table = info.getTableName();
         }
-        if (count == 0) {
+        Map<String, Field> columnFieldMap = info.getColumnFieldMap();
+        if (columnFieldMap.size() == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        List<String> columns = new ArrayList<>(count);
-        List<Object> values = new ArrayList<>(count);
+        List<String> columns = new ArrayList<>(columnFieldMap.size());
+        List<Object> values = new ArrayList<>(columnFieldMap.size());
         try {
-            for (int i = 0; i < count; i++) {
-                Field field = fs[i];
+            for (Map.Entry<String, Field> entry : columnFieldMap.entrySet()) {
+                Field field = entry.getValue();
                 Object v = field.get(bean);
                 if (v != null) {
-                    columns.add(Helper.getColumnName(field));
+                    columns.add(entry.getKey());
                     values.add(field.get(bean));
                 }
             }
@@ -276,16 +330,18 @@ class SqlConnectionImpl implements SqlConnection {
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");
         }
-        if (table == null) {
-            table = bean.getClass().getSimpleName().toLowerCase();
+
+        if (returnColumns == null || returnColumns.length == 0) {//TODO 如果是ID列, 但不是自动生成的情况还没处理
+            returnColumns = info.getPkColumns();
         }
+
         String sql = Helper.makeInsertSql(table, columns.toArray(new String[0]));
         //Statement.RETURN_GENERATED_KEYS
         try (PreparedStatement stat = returnColumns == null || returnColumns.length == 0 ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns)) {// new String[]{"id"}
             Helper.fillStatement(stat, values.toArray(new Object[0]));
             if (logger.isDebugEnabled()) {
-                logger.debug("insert: {}\t args: {}", sql, values);
+                logger.debug("sql: {}\t args: {}", sql, values);
             }
             int c = stat.executeUpdate();
             if (c == 0) {
@@ -309,7 +365,7 @@ class SqlConnectionImpl implements SqlConnection {
                         String driverName = conn.getMetaData().getDriverName().toLowerCase();
                         if (driverName.contains("sqlite") || driverName.contains("mysql")) {
                             String idColumn = returnColumns[0];
-                            Field f = Helper.getField(bean.getClass(), idColumn);
+                            Field f = info.getField(idColumn);
                             if (f != null) {
                                 if (f.getType() == Long.TYPE || f.getType() == Long.class) {
                                     f.set(bean, keys.getLong(i));
@@ -319,7 +375,7 @@ class SqlConnectionImpl implements SqlConnection {
                             }
                             break;
                         }
-                        Field f = Helper.getField(bean.getClass(), name);
+                        Field f = info.getField(name);
                         if (f != null) {
 //                          f.set(bean, keys.getObject(i, f.getType()));
                             f.set(bean, keys.getObject(i));
@@ -336,9 +392,9 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
         if (beans.isEmpty()) {
-            return;
+            return new BatchUpdateResult();
         }
         Object first = beans.get(0);
         for (Object o : beans) {
@@ -346,33 +402,59 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-        if (table == null) {
-            table = first.getClass().getSimpleName().toLowerCase();
-        }
         //
-        List<Field> fields = new ArrayList<>();
-        for (Field field : first.getClass().getFields()) {
-            if (isPublicField(field)) {
-                fields.add(field);
-            }
-        }
-        if (fields.size() == 0) {
+        ClassInfo info = ClassInfo.getClassInfo(first.getClass());
+        String[] columns = info.getColumns();
+        if (columns.length == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        String[] columns = new String[fields.size()];
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-            columns[i] = Helper.getColumnName(field);
+        Field[] fields = info.getFields();
+        if (table == null) {
+            table = info.getTableName();
         }
-
         String sql = Helper.makeInsertSql(table, columns);
-        batchUpdate(sql, 100, executor -> {
+        return batchUpdate(sql, 100, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
             beans.forEach(obj -> {
                 try {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
-                        args[i] = fields.get(i).get(obj);
+                        args[i] = fields[i].get(obj);
+                    }
+                    executor.exec(args);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    if (b.get()) {
+                        logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
+                        b.set(false);
+                    }
+                }
+            });
+        });
+    }
+
+    public BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException {
+        final Class<?>[] firstClass = new Class<?>[1];
+        consumer.accept(bean -> {
+            if (firstClass[0] == null) {
+                firstClass[0] = bean.getClass();
+            } else if (bean.getClass() != firstClass[0]) {
+                throw new IllegalArgumentException("Inconsistent data types");
+            }
+        });
+        ClassInfo info = ClassInfo.getClassInfo(firstClass[0]);
+        String[] columns = info.getColumns();
+        Field[] fields = info.getFields();
+        if (table == null) {
+            table = info.getTableName();
+        }
+        String sql = Helper.makeInsertSql(table, info.getColumns());
+        return batchUpdate(sql, 500, executor -> {
+            AtomicBoolean b = new AtomicBoolean(true);
+            consumer.accept(bean -> {
+                try {
+                    Object[] args = new Object[columns.length];
+                    for (int i = 0; i < columns.length; i++) {
+                        args[i] = fields[i].get(bean);
                     }
                     executor.exec(args);
                 } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -402,8 +484,7 @@ class SqlConnectionImpl implements SqlConnection {
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
         String sql = Helper.makeInsertSql(table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());
-        try (PreparedStatement stat = (returnColumns == null
-                ? conn.prepareStatement(sql)
+        try (PreparedStatement stat = (returnColumns == null ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns))) {//Statement.RETURN_GENERATED_KEYS
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, row.values());
@@ -442,6 +523,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public int update(String sql, Object... args) throws UncheckedSQLException {
+        sql = toSql(sql);
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
@@ -457,10 +539,11 @@ class SqlConnectionImpl implements SqlConnection {
     public int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
+        String sql = toSql(builder.sql());
         if (logger.isDebugEnabled()) {
-            logger.debug("sql: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
+            logger.debug("sql: {}\t args: {}", sql, Arrays.toString(builder.args()));
         }
-        try (PreparedStatement statement = conn.prepareStatement(builder.sql())) {
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
@@ -469,54 +552,100 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws
-            UncheckedSQLException {
+    public int updateBean(Object bean, String columns) throws UncheckedSQLException {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            String[] pkColumns = info.getPkColumns();
+            if (pkColumns.length == 0) {
+                throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
+            }
+
+            String[] _columns;
+            if (columns == null) {
+                _columns = info.getColumns(true);
+            } else {
+                _columns = columns.split(",");
+            }
+
+            if (_columns.length == 0) {
+                throw new IllegalArgumentException("No fields to modify: " + columns);
+            }
+
+            String sql = Helper.makeUpdateSql(info.getTableName(), _columns);
+            Object[] args = new Object[_columns.length];
+            for (int i = 0; i < _columns.length; i++) {
+                String column = _columns[i];
+                Field field = info.getField(column);
+                if (field == null) {
+                    throw new IllegalArgumentException("No field mapping: " + column);
+                }
+                args[i] = field.get(bean);
+            }
+            SqlBuilder builder = new SqlBuilder();
+            builder.add(sql, args);
+
+            Where where = new Where();
+            for (String k : pkColumns) {
+                where.and(k + "=?", info.getField(k).get(bean));
+            }
+            builder.where(where);
+            return update(builder.sql(), builder.args());
+        } catch (IllegalAccessException e) {
+            //Never happen
+            return 0;
+        }
+    }
+
+    @Override
+    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
+            throws UncheckedSQLException {
         this.batchUpdate(sql, 1000, it, consumer);
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<
+    public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<
             T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        return batchUpdate(sql, maxBatchSize, executor -> it.forEach(t -> consumer.accept(executor, t)));
+        return batchUpdate(sql, batchSize, executor -> it.forEach(t -> consumer.accept(executor, t)));
     }
 
     //分批导入大量数据
     @Override
-    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         return this.batchUpdate(sql, 1000, consumer);
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         String sql = Helper.makeUpdateSql(table, columns);
         return this.batchUpdate(sql, consumer);
     }
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer)
+            throws UncheckedSQLException {
         String sql = Helper.makeInsertSql(table, columns);
         return this.batchUpdate(sql, consumer);
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws
             UncheckedSQLException {
+        sql = toSql(sql);
         if (logger.isDebugEnabled()) {
             logger.debug("sql: {}", sql);
         }
-        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-            return batchUpdate(statement, maxBatchSize, consumer, null);
+        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+            return batchUpdate(statement, batchSize, consumer, null);
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<
-            BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer,
+                                         BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         try {
             boolean autoCommit = conn.getAutoCommit();
             if (autoCommit) {
@@ -529,7 +658,7 @@ class SqlConnectionImpl implements SqlConnection {
                 try {
                     Helper.fillStatement(statement, args);
                     statement.addBatch();
-                    if (count.add(1) >= maxBatchSize) {
+                    if (count.add(1) >= batchSize) {
                         int[] rs0 = statement.executeBatch();
                         updateBatchUpdateResult(result, rs0);
                         if (psConsumer != null) {
@@ -582,21 +711,22 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            if (table == null) {
+                table = info.getTableName();
+            }
             SqlBuilder builder = new SqlBuilder();
             builder.add("UPDATE ").add(table).add(" SET ");
-            Field[] fields = bean.getClass().getFields();
-            int updateCount = 0;
-            for (int i = 0; i < fields.length; i++) {
-                Field field = fields[i];
-                if (isPublicField(field)) {
-                    Object value = field.get(bean);
-                    if (value != null) {
-                        if (updateCount > 0) {
-                            builder.add(",");
-                        }
-                        builder.sql(Helper.getColumnName(field)).add("=? ", value);
-                        updateCount++;
+
+            int updateColumnCount = 0;
+            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
+                Object value = entry.getValue().get(bean);
+                if (value != null) {
+                    if (updateColumnCount > 0) {
+                        builder.add(", ");
                     }
+                    builder.sql(entry.getKey()).add("=?", value);
+                    updateColumnCount++;
                 }
             }
             builder.where(where);
@@ -882,8 +1012,8 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws
-            UncheckedSQLException {
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+            throws UncheckedSQLException {
         try {
             return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
         } catch (SQLException e) {
@@ -896,14 +1026,8 @@ class SqlConnectionImpl implements SqlConnection {
         return this.conn;
     }
 
-//
-
-    private boolean isPublicField(Field field) {
-        return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
-    }
-
     private String toSql(String sql) {
-        if (sql.startsWith("#")) {
+        if (sql.charAt(0) == '#') {
             return Config.getConfig().getSqlProvider().getSql(sql.substring(1));
         }
         return sql;

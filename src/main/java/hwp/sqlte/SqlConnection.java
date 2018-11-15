@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -19,11 +20,17 @@ public interface SqlConnection extends AutoCloseable {
 
     void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException;
 
+    SqlResultSet query(String sql) throws UncheckedSQLException;
+
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
     SqlResultSet query(Sql sql) throws UncheckedSQLException;
 
     SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
+
+    <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException;
+
+    <T> T refresh(T bean) throws UncheckedSQLException;
 
     void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
 
@@ -66,11 +73,15 @@ public interface SqlConnection extends AutoCloseable {
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
+    int updateBean(Object bean, String columns) throws UncheckedSQLException;
+
     <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
-    void batchInsert(List<?> beans, String table) throws UncheckedSQLException;
+    BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException;
 
-    <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException;
+
+    <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
     BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
@@ -78,9 +89,9 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
-    BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
-    BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
     int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
 

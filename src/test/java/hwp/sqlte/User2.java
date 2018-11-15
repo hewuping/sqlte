@@ -1,7 +1,4 @@
-package hwp.sqlte.example;
-
-import hwp.sqlte.Row;
-import hwp.sqlte.RowMapper;
+package hwp.sqlte;
 
 import java.util.Date;
 
@@ -9,15 +6,17 @@ import java.util.Date;
  * @author Zero
  * Created on 2017/3/27.
  */
-public class User {
+@Table(name = "users")
+public class User2 {
 
+    @Id
     public Integer id;
     public String username;
     public String email;
     public String password;
-    public String password_salt = "sfwerx";
+    public String passwordSalt = "sfwerx";
     //    public Date creation_time;
-    public Date updated_time;
+    public Date updatedTime;
 
     private String other;
 
@@ -25,16 +24,16 @@ public class User {
         return other;
     }
 
-    public User setOther(String other) {
+    public User2 setOther(String other) {
         this.other = other;
         return this;
     }
 
-    public User() {
+    public User2() {
     }
 
 
-    public User(String username, String email, String password) {
+    public User2(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;
@@ -47,19 +46,12 @@ public class User {
         sb.append(", username='").append(username).append('\'');
         sb.append(", email='").append(email).append('\'');
         sb.append(", password='").append(password).append('\'');
-        sb.append(", password_salt='").append(password_salt).append('\'');
+        sb.append(", password_salt='").append(passwordSalt).append('\'');
 //        sb.append(", creation_time=").append(creation_time);
-        sb.append(", updated_time=").append(updated_time);
+        sb.append(", updated_time=").append(updatedTime);
         sb.append('}');
         return sb.toString();
     }
 
-    public static final RowMapper<User> MAPPER = row -> {
-        User user = new User();
-        user.username = row.getString("username");
-        user.password = row.getString("password");
-        user.email = row.getString("email");
-        return user;
-    };
 
 }

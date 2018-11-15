@@ -9,6 +9,7 @@ CREATE TABLE "public"."users" (
 "updated_time" timestamp(6) DEFAULT now(),
 "password_salt" varchar(255),
 "creation_time" date,
-CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+CONSTRAINT "users_pkey" PRIMARY KEY ("id"),
+CONSTRAINT "idx_un" UNIQUE ("username")
 );
 ALTER SEQUENCE users_id_seq OWNED BY "public"."users"."id";

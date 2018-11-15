@@ -2,10 +2,10 @@ package hwp.sqlte;
 
 /**
  * @author Zero
- *         Created on 2018/4/4.
+ * Created on 2018/4/4.
  */
-public class UnsafeCount {
-    int count;
+class UnsafeCount {
+    private int count;
 
     public int add(int v) {
         this.count += v;
@@ -28,7 +28,7 @@ public class UnsafeCount {
         this.count = value;
     }
 
-    public void reset(){
+    public void reset() {
         this.count = 0;
     }
 

@@ -1,7 +1,8 @@
 apply plugin: 'java'
+//apply plugin: 'java-library'
 apply plugin: 'idea'
 
-version = '0.2.0'
+version = '0.2.3'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -14,7 +15,6 @@ repositories {
 dependencies {
     // The production code uses the SLF4J logging API at compile time
     compile 'org.slf4j:slf4j-api:1.7.25'
-    compile group: 'javax.persistence', name: 'persistence-api', version: '1.0.2'
 
     // Declare the dependency for your favourite test framework you want to use in your tests.
     // TestNG is also supported by the Gradle Test task. Just change the
