@@ -18,4 +18,8 @@ public @interface Column {
 
     String name();
 
+    Class<?> transcoder() default Void.class;
+
+//    JDBCType jdbcType() default JDBCType.JAVA_OBJECT;//@jdbcType=Date.class NULL
+
 }

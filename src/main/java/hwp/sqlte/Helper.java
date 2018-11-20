@@ -39,7 +39,11 @@ class Helper {
                 if (value == null) {
                     statement.setNull(i + 1, Types.NULL);
                 } else {
-                    statement.setObject(i + 1, value);
+                    if (value instanceof Enum) {
+                        statement.setString(i + 1, ((Enum) value).name());
+                    } else {
+                        statement.setObject(i + 1, value);
+                    }
                 }
             }
         } catch (SQLException e) {

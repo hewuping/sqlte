@@ -43,7 +43,7 @@ public interface Sql {
         return Config.config;
     }
 
-    static SqlConnection open() {
+    static SqlConnection open() throws UncheckedSQLException {
         try {
             return SqlConnectionImpl.use(config().getDataSource().getConnection());
         } catch (SQLException e) {
@@ -51,7 +51,7 @@ public interface Sql {
         }
     }
 
-    static SqlConnection open(String dsName) {
+    static SqlConnection open(String dsName) throws UncheckedSQLException {
         try {
             return SqlConnectionImpl.use(config().getDataSource(dsName).getConnection());
         } catch (SQLException e) {
@@ -59,7 +59,7 @@ public interface Sql {
         }
     }
 
-    static SqlConnection open(DataSource dataSource) {
+    static SqlConnection open(DataSource dataSource) throws UncheckedSQLException {
         try {
             return SqlConnectionImpl.use(dataSource.getConnection());
         } catch (SQLException e) {
@@ -67,7 +67,7 @@ public interface Sql {
         }
     }
 
-    static void use(DataSource dataSource, Consumer<SqlConnection> consumer) {
+    static void use(DataSource dataSource, Consumer<SqlConnection> consumer) throws UncheckedSQLException {
         try (SqlConnection conn = SqlConnectionImpl.use(dataSource.getConnection())) {
             consumer.accept(conn);
         } catch (SQLException e) {
@@ -75,17 +75,25 @@ public interface Sql {
         }
     }
 
-    static void use(Consumer<SqlConnection> consumer) {
+    static void use(Consumer<SqlConnection> consumer) throws UncheckedSQLException {
         try (SqlConnection conn = open()) {
             consumer.accept(conn);
         }
     }
 
-    static <T> T transaction(Function<SqlConnection, T> function) throws Exception {
+    static <R> R apply(Function<SqlConnection, R> function) throws UncheckedSQLException {
+        try (SqlConnection conn = open()) {
+            return function.apply(conn);
+        }
+    }
+
+    static <R> R transaction(Function<SqlConnection, R> function) throws UncheckedSQLException {
         SqlConnection connection = open();
         try {
             connection.setAutoCommit(false);
-            return function.apply(connection);
+            R r = function.apply(connection);
+            connection.commit();
+            return r;
         } catch (Exception e) {
             connection.rollback();
             throw e;

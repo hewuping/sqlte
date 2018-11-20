@@ -46,8 +46,18 @@ public interface RowMapper<T> extends Function<Row, T> {
                 ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
                 for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
                     Object value = from.getValue(entry.getKey());
+                    Field field = entry.getValue();
                     if (value != null) {
-                        entry.getValue().set(obj, value);
+                        if (value.getClass() == field.getType() || field.getType().isInstance(value)) {
+                            field.set(obj, value);
+                        } else {
+                            ConversionService conversionService = Config.getConfig().getConversionService();
+                            if (conversionService.canConvert(value.getClass(), field.getType())) {
+                                field.set(obj, conversionService.convert(value, field.getType()));
+                            } else if (field.getType() == String.class) {
+                                entry.getValue().set(obj, value.toString());
+                            }
+                        }
                     }
                 }
                 return obj;

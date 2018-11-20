@@ -318,10 +318,10 @@ class SqlConnectionImpl implements SqlConnection {
         try {
             for (Map.Entry<String, Field> entry : columnFieldMap.entrySet()) {
                 Field field = entry.getValue();
-                Object v = field.get(bean);
+                Object v = getFieldValue(bean, field);
                 if (v != null) {
                     columns.add(entry.getKey());
-                    values.add(field.get(bean));
+                    values.add(v);//enum->int
                 }
             }
         } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -579,7 +579,7 @@ class SqlConnectionImpl implements SqlConnection {
                 if (field == null) {
                     throw new IllegalArgumentException("No field mapping: " + column);
                 }
-                args[i] = field.get(bean);
+                args[i] = getFieldValue(bean, field);
             }
             SqlBuilder builder = new SqlBuilder();
             builder.add(sql, args);
@@ -1036,6 +1036,15 @@ class SqlConnectionImpl implements SqlConnection {
     private boolean isMySQL() throws SQLException {
         String driverName = conn.getMetaData().getDriverName().toLowerCase();
         return driverName.contains("mysql");
+    }
+
+    private Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
+        Object value = field.get(obj);
+        if (value instanceof Enum) {
+            Enum e = (Enum) value;
+            return e.name();
+        }
+        return value;
     }
 
 }

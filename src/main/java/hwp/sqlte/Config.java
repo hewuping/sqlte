@@ -48,6 +48,10 @@ final public class Config {
         return sqlProvider;
     }
 
+    public ConversionService getConversionService(){
+        return ConversionService.DEFAULT;
+    }
+
     public Config setSqlProvider(SqlProvider sqlProvider) {
         Objects.requireNonNull(sqlProvider, "sqlProvider can not be null");
         this.sqlProvider = sqlProvider;
