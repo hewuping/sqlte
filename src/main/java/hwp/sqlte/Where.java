@@ -84,7 +84,7 @@ public class Where {
             }
             //展开数组
             for (int x = 0, size = Array.getLength(obj); x < size; x++) {
-                whereArgs.add(Array.get(obj, x));
+                whereArgs.add(Array.load(obj, x));
             }
         } else {
             whereArgs.add(obj);

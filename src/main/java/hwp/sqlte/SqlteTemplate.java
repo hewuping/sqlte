@@ -82,13 +82,13 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException {
-        return run(conn -> conn.get(supplier, id));
+    public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+        return run(conn -> conn.load(supplier, id));
     }
 
     @Override
-    public <T> T refresh(T bean) throws UncheckedSQLException {
-        return run(conn -> conn.refresh(bean));
+    public <T> T reload(T bean) throws UncheckedSQLException {
+        return run(conn -> conn.reload(bean));
     }
 
     @Override
@@ -152,25 +152,9 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void insertBean(Object bean) throws UncheckedSQLException {
+    public void insert(Object bean, String table) throws UncheckedSQLException {
         run(conn -> {
-            conn.insertBean(bean);
-            return null;
-        });
-    }
-
-    @Override
-    public void insertBean(Object bean, String table) throws UncheckedSQLException {
-        run(conn -> {
-            conn.insertBean(bean, table);
-            return null;
-        });
-    }
-
-    @Override
-    public void insertBean(Object bean, String table, String... returnColumns) throws UncheckedSQLException {
-        run(conn -> {
-            conn.insertBean(bean, table, returnColumns);
+            conn.insert(bean, table);
             return null;
         });
     }
@@ -203,8 +187,8 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int updateBean(Object bean, String columns) throws UncheckedSQLException {
-        return 0;
+    public boolean update(Object bean, String columns) throws UncheckedSQLException {
+        return run(conn -> conn.update(bean, columns));
     }
 
     @Override
@@ -218,6 +202,11 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     @Override
     public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
         return run(conn -> conn.batchInsert(beans, table));
+    }
+
+    @Override
+    public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(beans, table, sqlProcessor));
     }
 
     @Override
@@ -256,7 +245,7 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         return run(conn -> conn.update(bean, table, where));
     }
 

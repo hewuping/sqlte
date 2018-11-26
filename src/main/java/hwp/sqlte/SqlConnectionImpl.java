@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -108,7 +109,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> T get(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+    public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         String pkColumn = info.getSinglePKColumn();
@@ -120,7 +121,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> T refresh(T bean) throws UncheckedSQLException {
+    public <T> T reload(T bean) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
@@ -292,19 +293,9 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-    @Override
-    public void insertBean(Object bean) throws UncheckedSQLException {
-        this.insertBean(bean, null);
-    }
 
     @Override
-    public void insertBean(Object bean, String table) throws UncheckedSQLException {
-        this.insertBean(bean, table, (String[]) null);
-    }
-
-
-    @Override
-    public void insertBean(Object bean, String table, String... returnColumns) throws UncheckedSQLException {
+    public void insert(Object bean, String table) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         if (table == null) {
             table = info.getTableName();
@@ -331,9 +322,7 @@ class SqlConnectionImpl implements SqlConnection {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");
         }
 
-        if (returnColumns == null || returnColumns.length == 0) {//TODO 如果是ID列, 但不是自动生成的情况还没处理
-            returnColumns = info.getPkColumns();
-        }
+        String[] returnColumns = info.getAutoGenerateColumns();
 
         String sql = Helper.makeInsertSql(table, columns.toArray(new String[0]));
         //Statement.RETURN_GENERATED_KEYS
@@ -393,6 +382,11 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+        return batchInsert(beans, table, null);
+    }
+
+    @Override
+    public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return new BatchUpdateResult();
         }
@@ -412,7 +406,7 @@ class SqlConnectionImpl implements SqlConnection {
         if (table == null) {
             table = info.getTableName();
         }
-        String sql = Helper.makeInsertSql(table, columns);
+        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
         return batchUpdate(sql, 100, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
             beans.forEach(obj -> {
@@ -552,7 +546,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public int updateBean(Object bean, String columns) throws UncheckedSQLException {
+    public boolean update(Object bean, String columns) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
@@ -589,10 +583,10 @@ class SqlConnectionImpl implements SqlConnection {
                 where.and(k + "=?", info.getField(k).get(bean));
             }
             builder.where(where);
-            return update(builder.sql(), builder.args());
+            return update(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             //Never happen
-            return 0;
+            return false;
         }
     }
 
@@ -709,7 +703,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public int update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             if (table == null) {
@@ -731,9 +725,37 @@ class SqlConnectionImpl implements SqlConnection {
             }
             builder.where(where);
             if (logger.isDebugEnabled()) {
-                logger.debug("update: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
+                logger.debug("sql: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
             }
-            return update(builder.sql(), builder.args());
+            return update(builder.sql(), builder.args()) == 1;
+        } catch (IllegalAccessException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
+
+    @Override
+    public boolean delete(Object bean, String table) throws UncheckedSQLException {
+        try {
+            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            if (table == null) {
+                table = info.getTableName();
+            }
+            String[] pkColumns = info.getPkColumns();
+            if (pkColumns.length == 0) {
+                throw new IllegalArgumentException("The class unspecified ID field: " + bean.getClass().getName());
+            }
+            SqlBuilder builder = new SqlBuilder();
+            builder.add("DELETE FROM ").add(table);
+
+            Where where = new Where();
+            for (String pkColumn : pkColumns) {
+                Field field = info.getField(pkColumn);
+                Object value = getFieldValue(bean, field);
+                Objects.requireNonNull(value, "ID field value is NULL: " + bean.getClass().getName() + "." + field.getName());
+                where.and(pkColumn + "=?", value);
+            }
+            builder.where(where);
+            return update(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             throw new UncheckedSQLException(e);
         }
@@ -1040,6 +1062,16 @@ class SqlConnectionImpl implements SqlConnection {
 
     private Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
         Object value = field.get(obj);
+        try {
+            Column column = field.getAnnotation(Column.class);
+            if (column != null) {
+                Class<? extends Serializer> serializerClass = column.serializer();
+                Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
+                return serializer.encode(value);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Serialization error: " + e.getMessage());
+        }
         if (value instanceof Enum) {
             Enum e = (Enum) value;
             return e.name();

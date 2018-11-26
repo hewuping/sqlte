@@ -10,6 +10,7 @@ import org.junit.*;
 
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
@@ -38,7 +39,7 @@ public class SqlConnectionTest {
         config.setJdbcUrl("jdbc:h2:mem:h2-memory");
         //mysql
         if ("mysql".equals(dbname)) {
-            config.setJdbcUrl("jdbc:mysql://localhost:3306/test?characterEncoding=utf-8&useAffectedRows=true");
+            config.setJdbcUrl("jdbc:mysql://localhost:3306/test?serverTimezone=UTC&characterEncoding=utf-8&useAffectedRows=true");
             config.setUsername("root");
         }
         //pgsql
@@ -77,7 +78,7 @@ public class SqlConnectionTest {
     private void insertUser() {
         User user = new User("May", "may@xxx.com", "123456");
         user.password_salt = "***";
-        conn.insertBean(user, "users");
+        conn.insert(user, "users");
     }
 
     @Test
@@ -87,26 +88,26 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testGet() { // Single primary key
+    public void testLoad() { // Single primary key
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
         user.id = 123456;
-        conn.insertBean(user, "users");
-        User2 _user = conn.get(User2::new, 123456);
+        conn.insert(user, "users");
+        User2 _user = conn.load(User2::new, 123456);
         Assert.assertNotNull(_user);
         Assert.assertNotNull(_user.passwordSalt);
     }
 
     @Test
-    public void testRefresh() { // Single primary key OR Composite primary key
+    public void testReload() { // Single primary key OR Composite primary key
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
         user.id = 123456;
-        conn.insertBean(user, "users");
+        conn.insert(user, "users");
 
         User2 tmp = new User2();
         tmp.id = user.id;
-        conn.refresh(tmp);
+        conn.reload(tmp);
         Assert.assertNotNull(tmp.password);
     }
 
@@ -116,12 +117,21 @@ public class SqlConnectionTest {
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
         user.id = 123456;
-        conn.insertBean(user, "users");
+        conn.insert(user, "users");
         String newPassword = ThreadLocalRandom.current().nextInt() + "@";
         user.password = newPassword;
-        conn.updateBean(user, "password");
+        conn.update(user, "password");
         User2 user2 = conn.query("select * from users where password=?", newPassword).first(User2::new);
         Assert.assertNotNull(user2);
+    }
+
+    @Test
+    public void testDeleteBean() {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.passwordSalt = "***";
+        user.id = 123456;
+        conn.insert(user, "users");
+        Assert.assertTrue(conn.delete(user, "users"));
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -452,4 +462,15 @@ public class SqlConnectionTest {
         User first = conn.query("#user.login", "zero", "123456").first(User::new);
         Assert.assertNull(first);
     }
+
+    @Test
+    public void testLocalDate() {
+        User3 user = new User3("May", "may@xxx.com", "123456");
+        user.updatedTime = LocalDateTime.now();
+        user.passwordSalt = User3.PasswordSalt.B123456;
+        conn.insert(user, "users");
+        User3 user3 = conn.query("select * from users").first(User3::new);
+        Assert.assertEquals(user3.passwordSalt, User3.PasswordSalt.B123456);
+    }
+
 }

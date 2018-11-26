@@ -2,7 +2,9 @@ package hwp.sqlte;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +26,7 @@ class ClassInfo {
     private String[] excludePkColumns;
     private String[] idColumns;
     private Class<?> clazz;
+    private String[] autoGenerateColumns;
 
     static ClassInfo getClassInfo(Class<?> clazz) {
         ClassInfo info = map.get(clazz);
@@ -42,6 +45,7 @@ class ClassInfo {
 
     private void init() {
         //fields
+        List<String> _autoGenerateColumns = new ArrayList<>(2);
         Field[] fields = clazz.getFields();
         for (Field field : fields) {
             if (isPublicField(field)) {
@@ -67,6 +71,9 @@ class ClassInfo {
                 Id id = field.getAnnotation(Id.class);
                 if (id != null) {
                     this.ids.put(columnName, field);
+                    if (id.generate()) {
+                        _autoGenerateColumns.add(columnName);
+                    }
                 }
             }
         }
@@ -74,6 +81,7 @@ class ClassInfo {
         Table table = clazz.getAnnotation(Table.class);
         this.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
         this.idColumns = this.ids.keySet().toArray(new String[0]);
+        this.autoGenerateColumns = _autoGenerateColumns.toArray(new String[0]);
 
         //columns, fields
         UnsafeCount index = new UnsafeCount();
@@ -151,6 +159,10 @@ class ClassInfo {
 
     String getTableName() {
         return fullTableName;
+    }
+
+    public String[] getAutoGenerateColumns() {
+        return autoGenerateColumns;
     }
 
     private boolean isPublicField(Field field) {
