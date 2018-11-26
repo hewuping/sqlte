@@ -35,7 +35,7 @@ import java.util.function.Supplier;
  * @author Zero
  * Created on 2018/11/5.
  */
-public abstract class SqlteTemplate implements SqlConnection {//sql
+public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void executeSqlScript(Reader reader, boolean ignoreError) {
@@ -160,6 +160,11 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public boolean update(Object bean) throws UncheckedSQLException {
+        return this.update(bean, null);
+    }
+
+    @Override
     public int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {
         return this.insertMap(table, row, (String[]) null);
     }
@@ -247,6 +252,11 @@ public abstract class SqlteTemplate implements SqlConnection {//sql
     @Override
     public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         return run(conn -> conn.update(bean, table, where));
+    }
+
+    @Override
+    public boolean delete(Object bean, String table) throws UncheckedSQLException {
+        return run(conn -> conn.delete(bean, table));
     }
 
     @Override
