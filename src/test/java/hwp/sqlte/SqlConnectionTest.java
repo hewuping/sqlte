@@ -355,11 +355,11 @@ public class SqlConnectionTest {
     @Test
     public void testBatchInsert_Beans2() {
         int size = 2000;
-        BatchUpdateResult result = conn.batchInsert(producer -> {
+        BatchUpdateResult result = conn.batchInsert(db -> {
             for (int i = 0; i < size; i++) {
                 User user = new User("zero" + i, "zero@xxx.com", "123456");
                 user.updated_time = new Date();
-                producer.produce(user);
+                db.accept(user);
             }
         }, "users");
         if (result.hasSuccessNoInfo()) {

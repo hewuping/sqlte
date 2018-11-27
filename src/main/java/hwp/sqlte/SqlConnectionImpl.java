@@ -426,7 +426,12 @@ class SqlConnectionImpl implements SqlConnection {
         });
     }
 
-    public BatchUpdateResult batchInsert(Consumer<Producer<Object>> consumer, String table) throws UncheckedSQLException {
+    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table) throws UncheckedSQLException {
+        return this.batchInsert(consumer, table, null);
+    }
+
+    @Override
+    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
         final Class<?>[] firstClass = new Class<?>[1];
         consumer.accept(bean -> {
             if (firstClass[0] == null) {
@@ -441,7 +446,7 @@ class SqlConnectionImpl implements SqlConnection {
         if (table == null) {
             table = info.getTableName();
         }
-        String sql = Helper.makeInsertSql(table, info.getColumns());
+        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, info.getColumns()) : sqlProcessor.apply(Helper.makeInsertSql(table, info.getColumns()));
         return batchUpdate(sql, 500, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
             consumer.accept(bean -> {
