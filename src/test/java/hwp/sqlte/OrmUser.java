@@ -15,7 +15,7 @@ public class OrmUser {
     public LocalDateTime updatedTime;//MySQL driver 5.x is not support
 
 
-    enum PasswordSalt {
+    public enum PasswordSalt {
         A123456, B123456, C123456
     }
 
