@@ -3,27 +3,27 @@ package hwp.sqlte;
 import java.time.LocalDateTime;
 
 @Table(name = "users")
-public class User3 {
+public class OrmUser {
 
-    @Id
+    @Id(generate = true)
     public Integer id;
     public String username;
     public String email;
     public String password;
     //test enum
     public PasswordSalt passwordSalt = PasswordSalt.A123456;
-    public LocalDateTime updatedTime;
+    public LocalDateTime updatedTime;//MySQL driver 5.x is not support
 
 
     enum PasswordSalt {
         A123456, B123456, C123456
     }
 
-    public User3() {
+    public OrmUser() {
     }
 
 
-    public User3(String username, String email, String password) {
+    public OrmUser(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;

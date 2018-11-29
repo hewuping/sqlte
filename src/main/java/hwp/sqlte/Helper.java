@@ -1,11 +1,13 @@
 package hwp.sqlte;
 
 
+import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -38,12 +40,12 @@ class Helper {
                 Object value = args[i];
                 if (value == null) {
                     statement.setNull(i + 1, Types.NULL);
+                } else if (value instanceof Enum) {
+                    statement.setString(i + 1, ((Enum) value).name());
+                } else if (value instanceof Date) {
+                    statement.setDate(i + 1, new java.sql.Date(((Date) value).getTime()));
                 } else {
-                    if (value instanceof Enum) {
-                        statement.setString(i + 1, ((Enum) value).name());
-                    } else {
-                        statement.setObject(i + 1, value);
-                    }
+                    statement.setObject(i + 1, value);
                 }
             }
         } catch (SQLException e) {
@@ -81,7 +83,7 @@ class Helper {
         StringBuilder builder = new StringBuilder("UPDATE ").append(table);
         builder.append(" SET");
         for (int i = 0, len = columns.length; i < len; i++) {
-            String column = columns[i];
+            String column = columns[i].trim();
             if (i > 0) {
                 builder.append(", ");
             } else {
@@ -91,6 +93,25 @@ class Helper {
             builder.append("=?");
         }
         return builder.toString();
+    }
+
+    static Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
+        Object value = field.get(obj);
+        try {
+            Column column = field.getAnnotation(Column.class);
+            if (column != null) {
+                Class<? extends Serializer> serializerClass = column.serializer();
+                Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
+                return serializer.encode(value);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Serialization error: " + e.getMessage());
+        }
+        if (value instanceof Enum) {
+            Enum e = (Enum) value;
+            return e.name();
+        }
+        return value;
     }
 
 }

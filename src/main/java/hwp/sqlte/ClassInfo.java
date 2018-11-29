@@ -2,10 +2,7 @@ package hwp.sqlte;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Zero
@@ -15,18 +12,22 @@ class ClassInfo {
 
     private static Map<Class<?>, ClassInfo> map = new HashMap<>();
 
-    private Map<Field, String> fieldColumnMap = new HashMap<>();
-    private Map<String, Field> columnFieldMap = new HashMap<>();
-    private Map<String, Field> ids = new HashMap<>(4);
+
+    private Class<?> clazz;
     private String tableName;
     private String schema;
     private String fullTableName;
     private String[] columns;
     private Field[] fields;
-    private String[] excludePkColumns;
-    private String[] idColumns;
-    private Class<?> clazz;
+    private String[] pkColumns;
+    private String[] nonPkColumns;
     private String[] autoGenerateColumns;
+    private String[] nonAutoGenerateColumns;
+    private Field[] nonAutoGenerateFields;
+
+    private Map<Field, String> fieldColumnMap = new HashMap<>();
+    private Map<String, Field> columnFieldMap = new HashMap<>();
+    private Map<String, Field> pks = new HashMap<>(4);
 
     static ClassInfo getClassInfo(Class<?> clazz) {
         ClassInfo info = map.get(clazz);
@@ -47,6 +48,7 @@ class ClassInfo {
         //fields
         List<String> _autoGenerateColumns = new ArrayList<>(2);
         Field[] fields = clazz.getFields();
+        Map<String, Field> columnFieldMap0 = new LinkedHashMap<>();
         for (Field field : fields) {
             if (isPublicField(field)) {
                 Column column = field.getAnnotation(Column.class);
@@ -66,11 +68,11 @@ class ClassInfo {
                 } else {
                     columnName = column.name();
                 }
-                this.columnFieldMap.put(columnName, field);
+                columnFieldMap0.put(columnName, field);
                 this.fieldColumnMap.put(field, columnName);
                 Id id = field.getAnnotation(Id.class);
                 if (id != null) {
-                    this.ids.put(columnName, field);
+                    this.pks.put(columnName, field);
                     if (id.generate()) {
                         _autoGenerateColumns.add(columnName);
                     }
@@ -80,31 +82,31 @@ class ClassInfo {
 
         Table table = clazz.getAnnotation(Table.class);
         this.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
-        this.idColumns = this.ids.keySet().toArray(new String[0]);
+        this.pkColumns = this.pks.keySet().toArray(new String[0]);
         this.autoGenerateColumns = _autoGenerateColumns.toArray(new String[0]);
+
 
         //columns, fields
         UnsafeCount index = new UnsafeCount();
-        this.columns = new String[this.columnFieldMap.size()];
-        this.fields = new Field[this.columnFieldMap.size()];
-        this.columnFieldMap.forEach((k, v) -> {
+        this.columns = new String[columnFieldMap0.size()];
+        this.fields = new Field[columnFieldMap0.size()];
+        columnFieldMap0.forEach((k, v) -> {
             this.columns[index.get()] = k;
             this.fields[index.get()] = v;
             index.add(1);
         });
-
-        //excludePkColumns
-        int s = this.columns.length - this.ids.size();
-        this.excludePkColumns = new String[s];
-        if (s > 0) {
-            int ss = 0;
-            for (String column : this.columns) {
-                if (!this.ids.containsKey(column)) {
-                    this.excludePkColumns[ss++] = column;
-                }
-            }
+        this.columnFieldMap.putAll(columnFieldMap0);
+        columnFieldMap0.clear();
+        //nonPkColumns
+        this.nonPkColumns = Arrays.stream(this.columns).filter(s -> !pks.containsKey(s)).toArray(String[]::new);
+        //nonAutoGenerateColumns
+        this.nonAutoGenerateColumns = Arrays.stream(this.columns).filter(s -> !_autoGenerateColumns.contains(s)).toArray(String[]::new);
+        //nonAutoGenerateFields
+        this.nonAutoGenerateFields = new Field[this.nonAutoGenerateColumns.length];
+        for (int i = 0; i < nonAutoGenerateColumns.length; i++) {
+            String column = nonAutoGenerateColumns[i];
+            this.nonAutoGenerateFields[i] = getField(column);
         }
-
         //fullTableName
         if (table != null && !table.schema().isEmpty()) {
             this.schema = table.schema();
@@ -115,18 +117,18 @@ class ClassInfo {
     }
 
     String getSinglePKColumn() {
-        if (ids.size() != 1) {
-            throw new UncheckedException("Non-single primary key exception, the number of PK: " + ids.size());
+        if (pks.size() != 1) {
+            throw new UncheckedException("Non-single primary key exception, the number of PK: " + pks.size());
         }
-        return ids.keySet().iterator().next();
+        return pks.keySet().iterator().next();
     }
 
     boolean hasIds() {
-        return !ids.isEmpty();
+        return !pks.isEmpty();
     }
 
     String[] getPkColumns() {
-        return idColumns;
+        return pkColumns;
     }
 
     Map<String, Field> getColumnFieldMap() {
@@ -149,12 +151,17 @@ class ClassInfo {
         return columns;
     }
 
-    String[] getColumns(boolean excludePks) {
-        if (excludePks) {
-            return excludePkColumns;
-        } else {
-            return columns;
-        }
+
+    public String[] getNonPkColumns() {
+        return nonPkColumns;
+    }
+
+    public String[] getNonAutoGenerateColumns() {
+        return nonAutoGenerateColumns;
+    }
+
+    public Field[] getNonAutoGenerateFields() {
+        return nonAutoGenerateFields;
     }
 
     String getTableName() {

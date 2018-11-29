@@ -9,11 +9,21 @@ public class BatchUpdateResult {
     /**
      * <p>MySQL: 当rewriteBatchedStatements=true时, 该值是不可靠的<br/>
      *
+     * <p>当rewriteBatchedStatements=true时, JDBC可以通过以下方法获取要获取成功插入的行<br/>
+     * <p><pre>ResultSet keys = statement.getGeneratedKeys();//MySQL只有自增ID才会返回
+     *    if (keys != null) {
+     *      if (keys.last()) {
+     *      count.add(keys.getRow());
+     *  }
+     * }</pre></p>
+     *
      * <p>see: https://bugs.mysql.com/bug.php?id=68562
      */
     public long affectedRows;
     public long successNoInfoCount;
     public long failedCount;
+
+    public static final BatchUpdateResult EMPTY = new BatchUpdateResult();
 
 
     public boolean hasSuccessNoInfo() {

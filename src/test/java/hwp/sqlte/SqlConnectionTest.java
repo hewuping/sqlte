@@ -75,10 +75,11 @@ public class SqlConnectionTest {
 
     ////////////////////////////////////ORM////////////////////////////////////////////////////////////////
 
-    private void insertUser() {
+    private User insertUser() {
         User user = new User("May", "may@xxx.com", "123456");
         user.password_salt = "***";
         conn.insert(user, "users");
+        return user;
     }
 
     @Test
@@ -322,11 +323,11 @@ public class SqlConnectionTest {
 //                        count.add(keys.getRow());
 //                    }
                     while (keys.next()) {//Statement.RETURN_GENERATED_KEYS 才会返回, 但是很耗性能
-                        if ("mysql".equals(dbname)) {
-                            keys.getString("GENERATED_KEY");
-                        } else {
-                            keys.getString("id");
-                        }
+                        int cc = keys.getMetaData().getColumnCount();
+                        //MySQL: GENERATED_KEY
+                        //H2: 1.4.193 返回固定名称:identity  1.4.197 返回实际列名
+                        //PGSQL: 返回实际列名, 如果没有指定返回列名而是Statement.RETURN_GENERATED_KEYS, 则会返回所有列数据
+                        String name = keys.getMetaData().getColumnName(1);
                         count.add(1);
                     }
                 }
@@ -342,11 +343,14 @@ public class SqlConnectionTest {
 
     @Test
     public void testBatchInsert_Beans() {
+        //pgsql9.x 自增的id列可以为null, pgsql10.x是不行的
         List<User> users = new ArrayList<>();
         int size = 20;
         for (int i = 0; i < size; i++) {
             User user = new User("zero" + i, "zero@xxx.com", "123456");
+            user.id = i;
             user.updated_time = new Date();
+            user.password_salt = "***";
             users.add(user);
         }
         conn.batchInsert(users, "users");
@@ -358,10 +362,11 @@ public class SqlConnectionTest {
         BatchUpdateResult result = conn.batchInsert(db -> {
             for (int i = 0; i < size; i++) {
                 User user = new User("zero" + i, "zero@xxx.com", "123456");
+                user.id = i;
                 user.updated_time = new Date();
                 db.accept(user);
             }
-        }, "users");
+        }, User.class, "users");
         if (result.hasSuccessNoInfo()) {
             Assert.assertTrue(result.successNoInfoCount > 0);
         } else {
@@ -450,6 +455,18 @@ public class SqlConnectionTest {
         Assert.assertEquals(1, update);
     }
 
+    @Test
+    public void testUpdate3() {
+        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
+        conn.insert(user, "users");
+        user.username = "My new name";
+        user.email = null;
+        conn.update(user, "username", true);
+        OrmUser _user = conn.load(OrmUser::new, user.id);
+        Assert.assertEquals(_user.username, user.username);
+        Assert.assertNotNull(_user.email);
+    }
+
     ///////////////////////////////////////////Use Sql Provider////////////////////////////////////////////////////
     @Test
     public void testExecuteExternalSql() {
@@ -465,12 +482,12 @@ public class SqlConnectionTest {
 
     @Test
     public void testLocalDate() {
-        User3 user = new User3("May", "may@xxx.com", "123456");
+        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
         user.updatedTime = LocalDateTime.now();
-        user.passwordSalt = User3.PasswordSalt.B123456;
+        user.passwordSalt = OrmUser.PasswordSalt.B123456;
         conn.insert(user, "users");
-        User3 user3 = conn.query("select * from users").first(User3::new);
-        Assert.assertEquals(user3.passwordSalt, User3.PasswordSalt.B123456);
+        OrmUser user3 = conn.query("select * from users").first(OrmUser::new);
+        Assert.assertEquals(user3.passwordSalt, OrmUser.PasswordSalt.B123456);
     }
 
 }

@@ -50,11 +50,16 @@ public interface ConversionService {
             register(Time.class, String.class, new TimeToStringConverter());
             register(Date.class, String.class, new DateToStringConverter());
             //int
-            register(Long.class, Integer.class, new LongToIntegerConverter());
-            register(Integer.class, Long.class, new IntegerToLongConverter());
-            //float
-            register(Double.class, Float.class, new DoubleToFloatConverter());
-            register(Float.class, Double.class, new FloatToDoubleConverter());
+            Class<?>[] numbers = new Class<?>[]{
+                    Byte.TYPE, Short.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE,
+                    Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class
+            };
+            for (Class<?> f : numbers) {
+                for (Class<?> t : numbers) {
+                    register(f, t, new NumberToNumberConverter(t));
+                }
+            }
+
             //time
             register(Time.class, Long.class, new TimeToLongConverter());
             register(Time.class, LocalTime.class, new TimeToLocalTimeConverter());
@@ -98,7 +103,7 @@ public interface ConversionService {
                 return (T) Integer.valueOf(((Enum) from).ordinal());
             }
             if (from instanceof String && to.isEnum()) {
-                return (T) Enum.valueOf((Class) to, (String) from);
+                return (T) Enum.valueOf((Class) to, ((String) from).toUpperCase());
             }
             if (from instanceof Enum && String.class == to) {
                 return (T) ((Enum) from).name();
@@ -111,7 +116,7 @@ public interface ConversionService {
             if (converter != null) {
                 return (T) converter.convert(from);
             }
-            return null;
+            return (T) from;
         }
 
 
@@ -236,30 +241,40 @@ public interface ConversionService {
         }
     }
 
-    final class LongToIntegerConverter implements TypeConverter<Long, Integer> {
-        public Integer convert(Long source) {
-            return source.intValue();
+    @SuppressWarnings("unchecked")
+    final class NumberToNumberConverter<F extends Number, T extends Number> implements TypeConverter<F, T> {
+        private Class<T> toClass;
+
+        NumberToNumberConverter(Class<T> toClass) {
+            this.toClass = toClass;
+        }
+
+        public T convert(F o) {
+            if (toClass == o.getClass()) {
+                return (T) o;
+            }
+            if (toClass == Integer.TYPE || toClass == Integer.class) {
+                return (T) ((Integer) o.intValue());
+            }
+            if (toClass == Long.TYPE || toClass == Long.class) {
+                return (T) ((Long) o.longValue());
+            }
+            if (toClass == Short.TYPE || toClass == Short.class) {
+                return (T) ((Short) o.shortValue());
+            }
+            if (toClass == Float.TYPE || toClass == Float.class) {
+                return (T) ((Float) o.floatValue());
+            }
+            if (toClass == Double.TYPE || toClass == Double.class) {
+                return (T) ((Double) o.doubleValue());
+            }
+            if (toClass == Byte.TYPE || toClass == Byte.class) {
+                return (T) ((Byte) o.byteValue());
+            }
+            return (T) o;
         }
     }
 
-    final class IntegerToLongConverter implements TypeConverter<Integer, Long> {
-        public Long convert(Integer source) {
-            return source.longValue();
-        }
-    }
-
-    final class DoubleToFloatConverter implements TypeConverter<Double, Float> {
-        public Float convert(Double source) {
-            return source.floatValue();
-        }
-    }
-
-
-    final class FloatToDoubleConverter implements TypeConverter<Float, Double> {
-        public Double convert(Float source) {
-            return source.doubleValue();
-        }
-    }
 
     final class TimeToLongConverter implements TypeConverter<Time, Long> {
         public Long convert(Time source) {

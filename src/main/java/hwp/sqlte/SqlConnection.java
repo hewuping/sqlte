@@ -25,13 +25,21 @@ public interface SqlConnection extends AutoCloseable {
     SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
 
+    void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException;
+
     void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
 
     void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
 
     void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException;
 
-    void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException;
+/*    <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException;
+
+    default <T> List<T> query(Consumer<SqlBuilder> consumer, Function<ResultSet, T> function) throws UncheckedSQLException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        return query(sb, function);
+    }*/
 
     int insert(Sql sql) throws UncheckedSQLException;
 
@@ -54,6 +62,7 @@ public interface SqlConnection extends AutoCloseable {
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
+
     int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException;
 
     int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException;
@@ -72,17 +81,25 @@ public interface SqlConnection extends AutoCloseable {
 
     void insert(Object bean, String table) throws UncheckedSQLException;
 
-    default boolean update(Object bean) throws UncheckedSQLException {
-        return update(bean, null);
-    }
-
-    boolean update(Object bean, String columns) throws UncheckedSQLException;
-
-    boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
-
     default boolean delete(Object bean) throws UncheckedSQLException {
         return delete(bean, null);
     }
+
+    default boolean update(Object bean) throws UncheckedSQLException {
+        return update(bean, null, false);
+    }
+
+    default boolean update(Object bean, String columns) throws UncheckedSQLException {
+        return this.update(bean, columns, false);
+    }
+
+    default boolean update(Object bean, boolean ignoreNullValue) throws UncheckedSQLException {
+        return this.update(bean, null, ignoreNullValue);
+    }
+
+    boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
+
+    boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException;
 
     boolean delete(Object bean, String table) throws UncheckedSQLException;
 
@@ -94,9 +111,9 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
 
-    BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException;
 
-    BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
 
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 

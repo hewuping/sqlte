@@ -123,6 +123,13 @@ public class SqlteTemplate implements SqlConnection {//sql
         });
     }
 
+/*
+    @Override
+    public <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException {
+        return run(conn -> conn.query(sql, function));
+    }
+*/
+
     @Override
     public int insert(Sql sql) throws UncheckedSQLException {
         return run(conn -> conn.insert(sql));
@@ -215,13 +222,13 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table) throws UncheckedSQLException {
-        return run(conn -> conn.batchInsert(consumer, table));
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(consumer, clazz, table, null));
     }
 
     @Override
-    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
-        return run(conn -> conn.batchInsert(consumer, table, sqlProcessor));
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(consumer, clazz, table, sqlProcessor));
     }
 
     @Override
@@ -257,6 +264,11 @@ public class SqlteTemplate implements SqlConnection {//sql
     @Override
     public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         return run(conn -> conn.update(bean, table, where));
+    }
+
+    @Override
+    public boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+        return run(conn -> conn.update(bean, columns, ignoreNullValue));
     }
 
     @Override

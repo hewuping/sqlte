@@ -2,7 +2,7 @@ apply plugin: 'java'
 //apply plugin: 'java-library'
 apply plugin: 'idea'
 
-version = '0.2.4'
+version = '0.2.5'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -18,11 +18,11 @@ dependencies {
     testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.1'
 
     testCompile 'junit:junit:4.12'
-//    testCompile 'mysql:mysql-connector-java:5.1.6'
+    testCompile 'mysql:mysql-connector-java:5.1.37' //min: 5.1.37
 //    testCompile 'mysql:mysql-connector-java:6.0.6'
-    testCompile group: 'mysql', name: 'mysql-connector-java', version: '8.0.11'
+//    testCompile group: 'mysql', name: 'mysql-connector-java', version: '8.0.11'
 
-    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197'
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.197' //min: 1.4.193
     testCompile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.21.0.1'
     testCompile group: 'org.postgresql', name: 'postgresql', version: '42.2.2'
 

@@ -71,10 +71,16 @@ public class Row extends HashMap<String, Object> {
     public <T> T copyTo(T bean) {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            ConversionService conversion = Config.getConfig().getConversionService();
             for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
                 Object value = getValue(entry.getKey());
+                Field field = entry.getValue();
                 if (value != null) {
-                    entry.getValue().set(bean, value);
+                    if (value.getClass() == field.getType()) {
+                        field.set(bean, value);
+                    } else {
+                        field.set(bean, conversion.convert(value, field.getType()));
+                    }
                 }
             }
         } catch (IllegalAccessException e) {

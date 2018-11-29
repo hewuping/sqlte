@@ -200,6 +200,28 @@ class SqlConnectionImpl implements SqlConnection {
             throw new UncheckedSQLException(e);
         }
     }
+/*
+    @Override
+    public <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = createQueryStatement(_sql)) {
+            if (sql.args().length > 0) {
+                Helper.fillStatement(stat, sql.args());
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
+            }
+            List<T> list = new ArrayList<>();
+            try (java.sql.ResultSet rs = stat.executeQuery()) {
+                while (rs.next()) {
+                    list.add(function.apply(rs));
+                }
+            }
+            return list;
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }*/
 
     private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
         try {
@@ -309,7 +331,7 @@ class SqlConnectionImpl implements SqlConnection {
         try {
             for (Map.Entry<String, Field> entry : columnFieldMap.entrySet()) {
                 Field field = entry.getValue();
-                Object v = getFieldValue(bean, field);
+                Object v = Helper.getFieldValue(bean, field);
                 if (v != null) {
                     columns.add(entry.getKey());
                     values.add(v);//enum->int
@@ -346,6 +368,7 @@ class SqlConnectionImpl implements SqlConnection {
                     //MySQL: BigInteger
                     ResultSetMetaData metaData = keys.getMetaData();
                     int cols = metaData.getColumnCount();
+//                    ConversionService conversion = Config.getConfig().getConversionService();
                     for (int i = 1; i <= cols; i++) {
                         String name = metaData.getColumnLabel(i);
 //                    System.out.println(name + " --> " + keys.getObject(name));
@@ -356,18 +379,21 @@ class SqlConnectionImpl implements SqlConnection {
                             String idColumn = returnColumns[0];
                             Field f = info.getField(idColumn);
                             if (f != null) {
-                                if (f.getType() == Long.TYPE || f.getType() == Long.class) {
-                                    f.set(bean, keys.getLong(i));
-                                } else {
-                                    f.set(bean, keys.getInt(i));
-                                }
+                                Object id = keys.getObject(1, f.getType());//bug: MySQL driver 5.1.6 is not support
+                                f.set(bean, id);
+                                break;
                             }
                             break;
                         }
-                        Field f = info.getField(name);
-                        if (f != null) {
-//                          f.set(bean, keys.getObject(i, f.getType()));
-                            f.set(bean, keys.getObject(i));
+                        for (String column : info.getColumns()) {
+                            if (column.equalsIgnoreCase(name)) {
+                                Field f = info.getField(column);
+                                if (f != null) {
+                                    Object id = keys.getObject(i, f.getType());
+                                    f.set(bean, id);
+                                }
+                                break;
+                            }
                         }
                     }
                 }
@@ -375,6 +401,7 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new UncheckedException(e);
             }
         } catch (SQLException e) {
+//            e.printStackTrace();
             throw new UncheckedSQLException(e);
         }
     }
@@ -388,7 +415,7 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
         if (beans.isEmpty()) {
-            return new BatchUpdateResult();
+            return BatchUpdateResult.EMPTY;
         }
         Object first = beans.get(0);
         for (Object o : beans) {
@@ -398,14 +425,15 @@ class SqlConnectionImpl implements SqlConnection {
         }
         //
         ClassInfo info = ClassInfo.getClassInfo(first.getClass());
-        String[] columns = info.getColumns();
+        String[] columns = info.getNonAutoGenerateColumns();
         if (columns.length == 0) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
-        Field[] fields = info.getFields();
+        Field[] fields = info.getNonAutoGenerateFields();
         if (table == null) {
             table = info.getTableName();
         }
+
         String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
         return batchUpdate(sql, 100, executor -> {
             AtomicBoolean b = new AtomicBoolean(true);
@@ -426,23 +454,15 @@ class SqlConnectionImpl implements SqlConnection {
         });
     }
 
-    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table) throws UncheckedSQLException {
-        return this.batchInsert(consumer, table, null);
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
+        return this.batchInsert(consumer, clazz, table, null);
     }
 
     @Override
-    public BatchUpdateResult batchInsert(Consumer<Consumer<Object>> consumer, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
-        final Class<?>[] firstClass = new Class<?>[1];
-        consumer.accept(bean -> {
-            if (firstClass[0] == null) {
-                firstClass[0] = bean.getClass();
-            } else if (bean.getClass() != firstClass[0]) {
-                throw new IllegalArgumentException("Inconsistent data types");
-            }
-        });
-        ClassInfo info = ClassInfo.getClassInfo(firstClass[0]);
-        String[] columns = info.getColumns();
-        Field[] fields = info.getFields();
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        String[] columns = info.getNonAutoGenerateColumns();
+        Field[] fields = info.getNonAutoGenerateFields();
         if (table == null) {
             table = info.getTableName();
         }
@@ -551,7 +571,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public boolean update(Object bean, String columns) throws UncheckedSQLException {
+    public boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
@@ -561,7 +581,7 @@ class SqlConnectionImpl implements SqlConnection {
 
             String[] _columns;
             if (columns == null) {
-                _columns = info.getColumns(true);
+                _columns = info.getNonPkColumns();
             } else {
                 _columns = columns.split(",");
             }
@@ -570,16 +590,38 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("No fields to modify: " + columns);
             }
 
-            String sql = Helper.makeUpdateSql(info.getTableName(), _columns);
             Object[] args = new Object[_columns.length];
+            int nullCount = 0;
             for (int i = 0; i < _columns.length; i++) {
                 String column = _columns[i];
                 Field field = info.getField(column);
                 if (field == null) {
                     throw new IllegalArgumentException("No field mapping: " + column);
                 }
-                args[i] = getFieldValue(bean, field);
+                args[i] = Helper.getFieldValue(bean, field);
+                if (args[i] == null) {
+                    nullCount++;
+                }
             }
+            if (ignoreNullValue && nullCount > 0) {
+                int updateColumnCount = _columns.length - nullCount;
+                if (updateColumnCount < 1) {
+//                    throw new UncheckedException("No fields to update");
+                    return false;
+                }
+                String[] newColumns = new String[updateColumnCount];
+                Object[] newArgs = new Object[updateColumnCount];
+                for (int i = 0, ci = 0; i < args.length; i++) {
+                    Object v = args[i];
+                    if (v != null) {
+                        newColumns[ci++] = _columns[i];
+                        newArgs[ci++] = v;
+                    }
+                }
+                args = newArgs;
+                _columns = newColumns;
+            }
+            String sql = Helper.makeUpdateSql(info.getTableName(), _columns);
             SqlBuilder builder = new SqlBuilder();
             builder.add(sql, args);
 
@@ -594,6 +636,7 @@ class SqlConnectionImpl implements SqlConnection {
             return false;
         }
     }
+
 
     @Override
     public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
@@ -755,7 +798,7 @@ class SqlConnectionImpl implements SqlConnection {
             Where where = new Where();
             for (String pkColumn : pkColumns) {
                 Field field = info.getField(pkColumn);
-                Object value = getFieldValue(bean, field);
+                Object value = Helper.getFieldValue(bean, field);
                 Objects.requireNonNull(value, "ID field value is NULL: " + bean.getClass().getName() + "." + field.getName());
                 where.and(pkColumn + "=?", value);
             }
@@ -1065,23 +1108,5 @@ class SqlConnectionImpl implements SqlConnection {
         return driverName.contains("mysql");
     }
 
-    private Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
-        Object value = field.get(obj);
-        try {
-            Column column = field.getAnnotation(Column.class);
-            if (column != null) {
-                Class<? extends Serializer> serializerClass = column.serializer();
-                Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
-                return serializer.encode(value);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Serialization error: " + e.getMessage());
-        }
-        if (value instanceof Enum) {
-            Enum e = (Enum) value;
-            return e.name();
-        }
-        return value;
-    }
 
 }
