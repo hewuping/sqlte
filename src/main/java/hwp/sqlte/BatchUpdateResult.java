@@ -7,7 +7,7 @@ package hwp.sqlte;
 public class BatchUpdateResult {
 
     /**
-     * <p>MySQL: 当rewriteBatchedStatements=true时, 该值是不可靠的<br/>
+     * <p>MySQL: 当rewriteBatchedStatements=true时, 该值是不可靠的, 优点是可以大幅提升插入效率<br/>
      *
      * <p>当rewriteBatchedStatements=true时, JDBC可以通过以下方法获取要获取成功插入的行<br/>
      * <p><pre>ResultSet keys = statement.getGeneratedKeys();//MySQL只有自增ID才会返回
@@ -17,7 +17,8 @@ public class BatchUpdateResult {
      *  }
      * }</pre></p>
      *
-     * <p>see: https://bugs.mysql.com/bug.php?id=68562
+     * <p>see: https://bugs.mysql.com/bug.php?id=68562,
+     * https://bugs.mysql.com/bug.php?id=61213
      */
     public long affectedRows;
     public long successNoInfoCount;

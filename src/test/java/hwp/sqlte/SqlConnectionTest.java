@@ -375,6 +375,24 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testBatchInsert_Beans_ORM() {
+        int size = 200;
+        BatchUpdateResult result = conn.batchInsert(db -> {
+            for (int i = 0; i < size; i++) {
+                OrmUser user = new OrmUser("zero" + i, "zero@xxx.com", "123456");
+                user.updatedTime = LocalDateTime.now();
+                db.accept(user);
+            }
+        }, OrmUser.class, "users");
+        if (result.hasSuccessNoInfo()) {
+            Assert.assertTrue(result.successNoInfoCount > 0);
+        } else {
+            Assert.assertEquals(size, result.affectedRows);
+        }
+    }
+
+
+    @Test
     public void testBatchUpdate_insert5() {
         List<User> users = new ArrayList<>();
         int size = 20;

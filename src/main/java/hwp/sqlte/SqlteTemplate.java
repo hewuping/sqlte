@@ -232,6 +232,11 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+        return run(conn -> conn.batchInsert(consumer, clazz, table, sqlProcessor, psConsumer));
+    }
+
+    @Override
     public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
         return run(conn -> conn.batchUpdate(sql, maxBatchSize, it, consumer));
     }

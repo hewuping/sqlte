@@ -36,6 +36,18 @@ public class Row extends HashMap<String, Object> {
     }
 
     @SuppressWarnings("unchecked")
+    public <T> T getValue(String name, Class<T> tClass) {
+        Object value = get(name);
+        if (value == null) return null;
+        if (value.getClass() == tClass || tClass.isInstance(value)) {
+            return (T) value;
+        } else {
+            ConversionService conversionService = Config.getConfig().getConversionService();
+            return conversionService.convert(value, tClass);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public <T> Optional<T> getOptValue(String name) {
         return Optional.ofNullable((T) super.get(name));
     }

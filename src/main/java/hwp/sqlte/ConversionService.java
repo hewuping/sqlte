@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Currency;
@@ -64,8 +65,9 @@ public interface ConversionService {
             register(Time.class, Long.class, new TimeToLongConverter());
             register(Time.class, LocalTime.class, new TimeToLocalTimeConverter());
             register(Timestamp.class, Long.class, new TimestampToLongConverter());
-            register(Timestamp.class, LocalDate.class, new TimestampToLocalDateConverter());
             register(Timestamp.class, LocalDateTime.class, new TimestampToLocalDateTimeConverter());
+            register(Timestamp.class, LocalDate.class, new TimestampToLocalDateConverter());
+            register(Timestamp.class, java.util.Date.class, new TimestampToDateTimeConverter());
             register(Date.class, Long.class, new DateToLongConverter());
             register(Date.class, LocalDate.class, new DateToLocalDateConverter());
             //
@@ -96,6 +98,7 @@ public interface ConversionService {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T convert(Object from, Class<T> to) {
+            if (from == null) return null;
             if (from instanceof Integer && to.isEnum()) {
                 return to.getEnumConstants()[(Integer) from];
             }
@@ -103,7 +106,11 @@ public interface ConversionService {
                 return (T) Integer.valueOf(((Enum) from).ordinal());
             }
             if (from instanceof String && to.isEnum()) {
-                return (T) Enum.valueOf((Class) to, ((String) from).toUpperCase());
+                String _from = (String) from;
+                if (_from.isEmpty()) {
+                    return null;
+                }
+                return (T) Enum.valueOf((Class) to, _from.toUpperCase());
             }
             if (from instanceof Enum && String.class == to) {
                 return (T) ((Enum) from).name();
@@ -218,20 +225,20 @@ public interface ConversionService {
 
     final class TimestampToStringConverter implements TypeConverter<Timestamp, String> {
         public String convert(Timestamp source) {
-            return ZonedDateTime.of(source.toLocalDateTime(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+            return ZonedDateTime.of(source.toLocalDateTime(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);//2018-11-30T16:08:37.734Z
         }
     }
 
     final class DateToStringConverter implements TypeConverter<Date, String> {
         public String convert(Date source) {
-            return ZonedDateTime.of(source.toLocalDate().atStartOfDay(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+//            return ZonedDateTime.of(source.toLocalDate().atStartOfDay(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE);
+             return DateTimeFormatter.ofPattern("yyyy-MM-dd").format(source.toLocalDate());
         }
     }
 
     final class TimeToStringConverter implements TypeConverter<Time, String> {
         public String convert(Time source) {
-//            return ZonedDateTime.of(source.toString(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
-            return source.toString();
+            return DateTimeFormatter.ofPattern("HH:mm:ss").format(source.toLocalTime());
         }
     }
 
@@ -304,6 +311,12 @@ public interface ConversionService {
     final class TimestampToLocalDateTimeConverter implements TypeConverter<Timestamp, LocalDateTime> {
         public LocalDateTime convert(Timestamp source) {
             return source.toLocalDateTime();
+        }
+    }
+
+    final class TimestampToDateTimeConverter implements TypeConverter<Timestamp, java.util.Date> {
+        public java.util.Date convert(Timestamp source) {
+            return new java.util.Date(source.getTime());
         }
     }
 

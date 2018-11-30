@@ -2,10 +2,7 @@ package hwp.sqlte;
 
 
 import java.lang.reflect.Field;
-import java.sql.PreparedStatement;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,7 +40,7 @@ class Helper {
                 } else if (value instanceof Enum) {
                     statement.setString(i + 1, ((Enum) value).name());
                 } else if (value instanceof Date) {
-                    statement.setDate(i + 1, new java.sql.Date(((Date) value).getTime()));
+                    statement.setTimestamp(i + 1, new Timestamp(((Date) value).getTime()));
                 } else {
                     statement.setObject(i + 1, value);
                 }

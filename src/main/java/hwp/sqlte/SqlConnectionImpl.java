@@ -413,6 +413,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
@@ -423,69 +424,54 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-        //
-        ClassInfo info = ClassInfo.getClassInfo(first.getClass());
-        String[] columns = info.getNonAutoGenerateColumns();
-        if (columns.length == 0) {
-            throw new IllegalArgumentException("The bean must contain public fields");
-        }
-        Field[] fields = info.getNonAutoGenerateFields();
-        if (table == null) {
-            table = info.getTableName();
-        }
-
-        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
-        return batchUpdate(sql, 100, executor -> {
-            AtomicBoolean b = new AtomicBoolean(true);
-            beans.forEach(obj -> {
-                try {
-                    Object[] args = new Object[columns.length];
-                    for (int i = 0; i < columns.length; i++) {
-                        args[i] = fields[i].get(obj);
-                    }
-                    executor.exec(args);
-                } catch (IllegalArgumentException | IllegalAccessException e) {
-                    if (b.get()) {
-                        logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
-                        b.set(false);
-                    }
-                }
-            });
-        });
+        return batchInsert(consumer -> beans.forEach(consumer::accept), (Class) first.getClass(), table, sqlProcessor);
     }
 
+    @Override
     public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
         return this.batchInsert(consumer, clazz, table, null);
     }
 
     @Override
     public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+//        ClassInfo info = ClassInfo.getClassInfo(clazz);
+//        boolean hasGks = info.getAutoGenerateColumns().length > 0;
+        //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
+        return batchInsert(consumer, clazz, table, sqlProcessor, null);
+    }
+
+    @Override
+    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         String[] columns = info.getNonAutoGenerateColumns();
         Field[] fields = info.getNonAutoGenerateFields();
         if (table == null) {
             table = info.getTableName();
         }
-        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, info.getColumns()) : sqlProcessor.apply(Helper.makeInsertSql(table, info.getColumns()));
-        return batchUpdate(sql, 500, executor -> {
-            AtomicBoolean b = new AtomicBoolean(true);
-            consumer.accept(bean -> {
-                try {
-                    Object[] args = new Object[columns.length];
-                    for (int i = 0; i < columns.length; i++) {
-                        args[i] = fields[i].get(bean);
-                    }
-                    executor.exec(args);
-                } catch (IllegalArgumentException | IllegalAccessException e) {
-                    if (b.get()) {
-                        logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
-                        b.set(false);
-                    }
-                }
-            });
-        });
-    }
 
+        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
+        try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
+            return batchUpdate(stat, 500, executor -> {
+                AtomicBoolean b = new AtomicBoolean(true);
+                consumer.accept(bean -> {
+                    try {
+                        Object[] args = new Object[columns.length];
+                        for (int i = 0; i < columns.length; i++) {
+                            args[i] = fields[i].get(bean);
+                        }
+                        executor.exec(args);
+                    } catch (IllegalArgumentException | IllegalAccessException e) {
+                        if (b.get()) {
+                            logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
+                            b.set(false);
+                        }
+                    }
+                });
+            }, psConsumer);
+        } catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
+    }
 
     @Override
     public int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {

@@ -2,7 +2,6 @@ package hwp.sqlte;
 
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -49,6 +48,7 @@ public interface RowMapper<T> extends Function<Row, T> {
                     Object value = from.getValue(entry.getKey());
                     Field field = entry.getValue();
                     if (value != null) {
+                        //decode
                         if (value instanceof String && !field.isEnumConstant()) {
                             Column column = field.getAnnotation(Column.class);//TODO 这一步需要优化, 因为有同步锁
                             if (column != null) {
@@ -58,24 +58,21 @@ public interface RowMapper<T> extends Function<Row, T> {
                                         //TODO 这一步需要优化, 如果是线程安全的则缓存
                                         Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
                                         value = serializer.decode((String) value);
-                                    } catch (InstantiationException e) {
-                                        e.printStackTrace();
-                                    } catch (InvocationTargetException e) {
-                                        e.printStackTrace();
-                                    } catch (NoSuchMethodException e) {
-                                        throw new RuntimeException("缺少无参构造器: " + serializerClass.getName());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
                                     }
                                 }
                             }
                         }
+                        //
                         if (value.getClass() == field.getType() || field.getType().isInstance(value)) {
                             field.set(obj, value);
+                        } else if (field.getType() == String.class) {
+                            entry.getValue().set(obj, value.toString());
                         } else {
                             ConversionService conversionService = Config.getConfig().getConversionService();
                             if (conversionService.canConvert(value.getClass(), field.getType())) {
                                 field.set(obj, conversionService.convert(value, field.getType()));
-                            } else if (field.getType() == String.class) {
-                                entry.getValue().set(obj, value.toString());
                             }
                         }
                     }
