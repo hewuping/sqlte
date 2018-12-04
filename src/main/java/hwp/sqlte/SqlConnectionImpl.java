@@ -97,18 +97,6 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public SqlResultSet query(Sql sql) throws UncheckedSQLException {
-        return query(sql.sql(), sql.args());
-    }
-
-    @Override
-    public SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
-        SqlBuilder sb = new SqlBuilder();
-        consumer.accept(sb);
-        return query(sb.sql(), sb.args());
-    }
-
-    @Override
     public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
@@ -142,18 +130,6 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-
-    @Override
-    public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
-        query(sql.sql(), rowHandler, sql.args());
-    }
-
-    @Override
-    public void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
-        SqlBuilder sb = new SqlBuilder();
-        consumer.accept(sb);
-        query(sb.sql(), rowHandler, sb.args());
-    }
 
     @Override
     public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
@@ -557,13 +533,9 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-            String[] pkColumns = info.getPkColumns();
-            if (pkColumns.length == 0) {
-                throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
-            }
 
             String[] _columns;
             if (columns == null) {
@@ -607,15 +579,31 @@ class SqlConnectionImpl implements SqlConnection {
                 args = newArgs;
                 _columns = newColumns;
             }
-            String sql = Helper.makeUpdateSql(info.getTableName(), _columns);
+            if (table == null) {
+                table = info.getTableName();
+            }
+            String sql = Helper.makeUpdateSql(table, _columns);
             SqlBuilder builder = new SqlBuilder();
             builder.add(sql, args);
 
-            Where where = new Where();
-            for (String k : pkColumns) {
-                where.and(k + "=?", info.getField(k).get(bean));
+            Where where0 = new Where();
+            if (where == null) {
+                String[] pkColumns = info.getPkColumns();
+                if (pkColumns.length == 0) {
+                    throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
+                }
+                for (String k : pkColumns) {
+                    Field field = info.getField(k);
+                    Object idValue = field.get(bean);
+                    if (idValue == null) {
+                        throw new IllegalArgumentException("Key field value is null: " + field.getName());
+                    }
+                    where0.and(k + "=?", idValue);
+                }
+            } else {
+                where.accept(where0);
             }
-            builder.where(where);
+            builder.where(where0);
             return update(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             //Never happen
@@ -736,8 +724,7 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-    @Override
-    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+/*    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             if (table == null) {
@@ -765,7 +752,7 @@ class SqlConnectionImpl implements SqlConnection {
         } catch (IllegalAccessException e) {
             throw new UncheckedSQLException(e);
         }
-    }
+    }*/
 
     @Override
     public boolean delete(Object bean, String table) throws UncheckedSQLException {
@@ -818,14 +805,6 @@ class SqlConnectionImpl implements SqlConnection {
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }
-    }
-
-    @Override
-    public int update(Map<String, Object> map, String table, Consumer<Where> where) throws
-            UncheckedSQLException {
-        Where w = new Where();
-        where.accept(w);
-        return update(map, table, w);
     }
 
     /**

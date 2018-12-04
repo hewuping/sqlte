@@ -33,12 +33,11 @@ public class Where {
     public Where add(String operator, boolean filter, String sql, Object... args) {
         if (filter) {
             if (whereBuilder.length() == 0) {
-                whereBuilder.append(" WHERE");
+                whereBuilder.append(" ").append(keyword());
             }
             if (whereBuilder.length() > 8) {
                 whereBuilder.append(" ");
                 whereBuilder.append(operator);
-                whereBuilder.append(" ");
             }
             whereBuilder.append(" ");
             whereBuilder.append(sql);
@@ -48,15 +47,68 @@ public class Where {
     }
 
 
-    public void apply(Where where) {
+/*    public void apply(Where where) {
         this.whereBuilder = where.whereBuilder;
         this.whereArgs = where.whereArgs;
-    }
+    }*/
 
     protected List<Object> args() {
         return whereArgs;
     }
 
+    protected boolean isEmpty() {
+        return whereBuilder.length() == 0;
+    }
+
+    protected String keyword() {
+        return "WHERE";
+    }
+
+    public Where and(Condition... conditions) {
+        if (conditions.length == 1) {
+            return and(true, conditions[0].sql(), conditions[0].args());
+        } else if (conditions.length > 1) {
+            StringBuilder builder = new StringBuilder();
+            List<Object> args = new ArrayList<>();
+            builder.append('(');
+            for (int i = 0; i < conditions.length; i++) {
+                Condition condition = conditions[i];
+                if (i > 0) {
+                    builder.append(" AND ");
+                }
+                builder.append(condition.sql());
+                for (Object arg : condition.args()) {
+                    args.add(arg);
+                }
+            }
+            builder.append(')');
+            return and(true, builder.toString(), args.toArray());
+        }
+        return this;
+    }
+
+    public Where or(Condition... conditions) {
+        if (conditions.length == 1) {
+            return and(true, conditions[0].sql(), conditions[0].args());
+        } else if (conditions.length > 1) {
+            StringBuilder builder = new StringBuilder();
+            builder.append('(');
+            List<Object> args = new ArrayList<>();
+            for (int i = 0; i < conditions.length; i++) {
+                Condition condition = conditions[i];
+                if (i > 0) {
+                    builder.append(" OR ");
+                }
+                builder.append(condition.sql());
+                for (Object arg : condition.args()) {
+                    args.add(arg);
+                }
+            }
+            builder.append(')');
+            return or(true, builder.toString(), args.toArray());
+        }
+        return this;
+    }
 
     //apply(where)
     //limit()
@@ -65,31 +117,11 @@ public class Where {
     //
     @Override
     public String toString() {
+        return sql();
+    }
+
+    public String sql() {
         return whereBuilder.toString();
     }
-/*
-
-    for (int i = 0; i < args.length; i++) {
-        Object obj = args[i];
-        if (obj.getClass().isArray()) {
-            //添加占位: ?3
-            int index = -1;
-            for (int x = 0; x < whereBuilder.length(); x++) {
-                if ('?' == whereBuilder.charAt(x)) {
-                    index++;
-                    if (index == whereArgs.size()) {
-                        whereBuilder.insert(x, Array.getLength(obj));
-                    }
-                }
-            }
-            //展开数组
-            for (int x = 0, size = Array.getLength(obj); x < size; x++) {
-                whereArgs.add(Array.load(obj, x));
-            }
-        } else {
-            whereArgs.add(obj);
-        }
-    }
-*/
 
 }

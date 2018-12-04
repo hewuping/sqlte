@@ -6,8 +6,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author Zero
@@ -21,45 +19,43 @@ public class SqlBuilder implements Builder, Sql {
 
     }
 
-    private static Pattern pattern = Pattern.compile("\\?(\\d+)");
-
     @Override
     public String sql() {
-        Matcher matcher = pattern.matcher(sql);
-        while (matcher.find()) {
-            int num = Integer.parseInt(matcher.group(1));
-            if (num > 0) {
-                int start = matcher.start(0);
-                boolean wrap = false;
-                if (sql.charAt(start - 1) == '(') {
-                    wrap = true;
-                }
-                StringBuilder rep = new StringBuilder();
-                if (!wrap) {
-                    rep.append('(');
-                }
-                for (int i = 0; i < num; i++) {
-                    if (i > 0) {
-                        rep.append(',');
-                    }
-                    rep.append('?');
-                }
-                if (!wrap) {
-                    rep.append(')');
-                }
-                sql.replace(matcher.start(0), matcher.end(0), rep.toString());
-                matcher.reset(sql);
-            } else {
-                //error
-                throw new UncheckedException("SQL syntax error: " + sql);
-            }
-        }
         return sql.toString();
     }
 
     @Override
     public Object[] args() {
         return this.args.toArray();
+    }
+
+
+    public SqlBuilder select(String table) {
+        this.sql.append("SELECT * FROM ").append(table);
+        return this;
+    }
+
+    public SqlBuilder select(String table, String columns) {
+        this.sql.append("SELECT ").append(columns).append(" FROM ").append(table);
+        return this;
+    }
+
+    public SqlBuilder update(String table, String columns, Object... values) {
+        add("UPDATE ").add(table);
+        String[] split = columns.split(",");
+        add(" SET ");
+        for (int i = 0; i < split.length; i++) {
+            String column = split[i];
+            if (i > 0) {
+                add(", ");
+            }
+            add(column + "=?", values[i]);
+        }
+        return this;
+    }
+
+    public SqlBuilder delete(String table) {
+        return add("DELETE FROM ").add(table);
     }
 
     public SqlBuilder sql(CharSequence sql) {
@@ -96,8 +92,10 @@ public class SqlBuilder implements Builder, Sql {
 
 
     public SqlBuilder where(Where where) {
-        this.sql.append(where);
-        this.args.addAll(where.args());
+        if (!where.isEmpty()) {
+            this.sql.append(where);
+            this.args.addAll(where.args());
+        }
         return this;
     }
 
@@ -117,6 +115,11 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    public SqlBuilder orderBy(String orderSql) {
+        sql.append(" ORDER BY ").append(orderSql);
+        return this;
+    }
+
     public SqlBuilder orderBy(Order order) {
         sql.append(order);
         return this;
@@ -128,6 +131,29 @@ public class SqlBuilder implements Builder, Sql {
         return orderBy(order);
     }
 
+    public SqlBuilder groupBy(Consumer<Group> group) {
+        return groupBy(group, null);
+    }
+
+    public SqlBuilder groupBy(Consumer<Group> group, Consumer<Having> having) {
+        Group g = new Group();
+        group.accept(g);
+        add(g.sql());
+        if (having != null) {
+            Having h = new Having();
+            having.accept(h);
+            having(h);
+        }
+        return this;
+    }
+
+    private SqlBuilder having(Where where) {
+        if (!where.isEmpty()) {
+            this.sql.append(where.sql());
+            this.args.addAll(where.args());
+        }
+        return this;
+    }
 
     public SqlBuilder add(String sql) {
         this.sql.append(sql);

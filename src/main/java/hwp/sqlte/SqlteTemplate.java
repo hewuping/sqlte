@@ -267,13 +267,8 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
-        return run(conn -> conn.update(bean, table, where));
-    }
-
-    @Override
-    public boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
-        return run(conn -> conn.update(bean, columns, ignoreNullValue));
+    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException {
+        return run(conn -> conn.update(bean, table, columns, ignoreNullValue, where));
     }
 
     @Override
@@ -283,11 +278,6 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
-        return run(conn -> conn.update(map, table, where));
-    }
-
-    @Override
-    public int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException {
         return run(conn -> conn.update(map, table, where));
     }
 

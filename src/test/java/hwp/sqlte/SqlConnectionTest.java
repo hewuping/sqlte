@@ -448,16 +448,6 @@ public class SqlConnectionTest {
 
 
     @Test
-    public void testUpdate() {
-        conn.update(new User("Frank", "123456", "test@gmail.com"), "users", where -> {
-            where.and("username=?", "Frank");
-        });
-        SqlResultSet rows = conn.query("select * from users where username =? limit 10", "Frank");
-        List<User> users = rows.list(User::new);
-        System.out.println(users.size());
-    }
-
-    @Test
     public void testUpdate2() {
         Row data = new Row().set("username", "Zero").set("email", "bb@example.com");
         conn.insertMap("users", data, "id");

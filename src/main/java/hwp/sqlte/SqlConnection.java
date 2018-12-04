@@ -16,22 +16,41 @@ import java.util.function.Supplier;
 public interface SqlConnection extends AutoCloseable {
 
 
-    SqlResultSet query(String sql) throws UncheckedSQLException;
-
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
-    SqlResultSet query(Sql sql) throws UncheckedSQLException;
+    default SqlResultSet query(String sql) throws UncheckedSQLException {
+        return query(sql, (Object[]) null);
+    }
 
-    SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
+    default SqlResultSet query(Sql sql) throws UncheckedSQLException {
+        return query(sql.sql(), sql.args());
+    }
 
+    default SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        return query(sb.sql(), sb.args());
+    }
 
     void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException;
 
-    void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
-
-    void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
+    default void query(Consumer<SqlBuilder> consumer, RowHandler rowHandler) throws UncheckedSQLException {
+        SqlBuilder builder = new SqlBuilder();
+        consumer.accept(builder);
+        query(builder, rowHandler);
+    }
 
     void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException;
+
+    default void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+        query(sql.sql(), rowHandler, sql.args());
+    }
+
+    default void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        query(sb.sql(), rowHandler, sb.args());
+    }
 
 /*    <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException;
 
@@ -62,10 +81,13 @@ public interface SqlConnection extends AutoCloseable {
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
-
     int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException;
 
-    int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException;
+    default int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException{
+        Where w = new Where();
+        where.accept(w);
+        return update(map, table, w);
+    }
 
     int updateByPks(Map<String, Object> map, String table, String... pk) throws UncheckedSQLException;
 
@@ -85,6 +107,12 @@ public interface SqlConnection extends AutoCloseable {
         return delete(bean, null);
     }
 
+    boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException;
+
+    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws UncheckedSQLException{
+        return update(bean, table, columns, ignoreNullValue, null);
+    }
+
     default boolean update(Object bean) throws UncheckedSQLException {
         return update(bean, null, false);
     }
@@ -97,9 +125,11 @@ public interface SqlConnection extends AutoCloseable {
         return this.update(bean, null, ignoreNullValue);
     }
 
-    boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
+    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+        return update(bean, null, columns, ignoreNullValue);
+    }
 
-    boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException;
+//  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
 
     boolean delete(Object bean, String table) throws UncheckedSQLException;
 
