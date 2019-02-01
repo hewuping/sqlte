@@ -5,6 +5,7 @@ apply plugin: 'idea'
 version = '0.2.8'
 
 [compileJava]*.options*.encoding='utf-8'
+[compileTestJava]*.options*.encoding='utf-8'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
