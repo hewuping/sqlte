@@ -43,15 +43,13 @@ public class SqlBuilderTest {
                 .where(where -> where.and(Condition.eq("id", 123456)));
         Assert.assertEquals(builder.sql(), "UPDATE users SET age=?, username=? WHERE id = ?");
         Assert.assertEquals(builder.args().length, 3);
-        System.out.println(builder);
     }
 
     @Test
     public void testDeleteSql() {
         SqlBuilder builder = new SqlBuilder();
         builder.delete("users").where(where -> where.and(Condition.eq("id", 123456)));
-        Assert.assertEquals(builder.sql(), " DELETE FROM users WHERE id = ?");
-        Assert.assertEquals(builder.args().length, 3);
-        System.out.println(builder);
+        Assert.assertEquals(builder.sql(), "DELETE FROM users WHERE id = ?");
+        Assert.assertEquals(builder.args().length, 1);
     }
 }
