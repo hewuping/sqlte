@@ -123,22 +123,6 @@ public class SqlteTemplate implements SqlConnection {//sql
         });
     }
 
-/*
-    @Override
-    public <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException {
-        return run(conn -> conn.query(sql, function));
-    }
-*/
-
-    @Override
-    public int insert(Sql sql) throws UncheckedSQLException {
-        return run(conn -> conn.insert(sql));
-    }
-
-    @Override
-    public int insert(String sql, Object... args) throws UncheckedSQLException {
-        return run(conn -> conn.insert(sql, args));
-    }
 
     @Override
     public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
@@ -189,8 +173,8 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int update(String sql, Object... args) throws UncheckedSQLException {
-        return run(conn -> conn.update(sql, args));
+    public int executeUpdate(String sql, Object... args) throws UncheckedSQLException {
+        return run(conn -> conn.executeUpdate(sql, args));
     }
 
     @Override
@@ -277,13 +261,13 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
-        return run(conn -> conn.update(map, table, where));
+    public int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException {
+        return run(conn -> conn.update(table, map, where));
     }
 
     @Override
-    public int updateByPks(Map<String, Object> map, String table, String... pk) throws UncheckedSQLException {
-        return run(conn -> conn.updateByPks(map, table, pk));
+    public int updateByPks(String table, Map<String, Object> map, String... pk) throws UncheckedSQLException {
+        return run(conn -> conn.updateByPks(table, map, pk));
     }
 
     @Override

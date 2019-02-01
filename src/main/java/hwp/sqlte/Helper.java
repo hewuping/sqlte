@@ -56,7 +56,12 @@ class Helper {
     }
 
     static String makeInsertSql(String table, String... columns) {
-        StringBuilder builder = new StringBuilder("INSERT INTO ").append(table);
+        Config.Options options = Config.getConfig().options();
+        StringBuilder builder = new StringBuilder("INSERT INTO ");
+        if (options.batchInsertIgnoreError) {//Only MySQL
+            builder.append(" IGNORE ");
+        }
+        builder.append(table);
         builder.append('(');
         int len = columns.length;
         for (int i = 0; i < len; i++) {
@@ -98,8 +103,10 @@ class Helper {
             Column column = field.getAnnotation(Column.class);
             if (column != null) {
                 Class<? extends Serializer> serializerClass = column.serializer();
-                Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
-                return serializer.encode(value);
+                if (serializerClass != Serializer.class) {
+                    Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
+                    return serializer.encode(value);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Serialization error: " + e.getMessage());

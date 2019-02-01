@@ -12,6 +12,7 @@ import java.util.Objects;
 final public class Config {
     protected static Config config = new Config();
     private SqlProvider sqlProvider = SqlProvider.Default();
+    private Options options = new Options();
 
 
     private Map<String, DataSource> dataSourceMap = new HashMap<>();
@@ -48,7 +49,7 @@ final public class Config {
         return sqlProvider;
     }
 
-    public ConversionService getConversionService(){
+    public ConversionService getConversionService() {
         return ConversionService.DEFAULT;
     }
 
@@ -57,4 +58,13 @@ final public class Config {
         this.sqlProvider = sqlProvider;
         return this;
     }
+
+    public Options options() {
+        return options;
+    }
+
+    public class Options {
+        public boolean batchInsertIgnoreError = false;
+    }
+
 }

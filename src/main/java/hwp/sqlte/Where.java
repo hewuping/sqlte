@@ -5,9 +5,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class Where {
+
     private StringBuilder whereBuilder = new StringBuilder();
     private List<Object> whereArgs = new ArrayList<>(4);
-
 
     public Where add(String sql) {
         whereBuilder.append(sql);
@@ -47,10 +47,10 @@ public class Where {
     }
 
 
-/*    public void apply(Where where) {
+    public void apply(Where where) {
         this.whereBuilder = where.whereBuilder;
         this.whereArgs = where.whereArgs;
-    }*/
+    }
 
     protected List<Object> args() {
         return whereArgs;

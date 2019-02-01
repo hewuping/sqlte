@@ -96,12 +96,24 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
+
+/*    @Override
+    public <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql) {
+        T bean = supplier.get();
+        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        SqlBuilder builder = new SqlBuilder();
+        builder.select(info.getTableName());
+        sql.accept(builder);
+        return query(builder).list(supplier);
+    }*/
+
+
     @Override
     public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         String pkColumn = info.getSinglePKColumn();
-        Row first = query("select * from " + info.getTableName() + " where " + pkColumn + "=?", id).first();
+        Row first = query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
         if (first == null) {
             return null;
         }
@@ -113,14 +125,11 @@ class SqlConnectionImpl implements SqlConnection {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
-            SqlBuilder builder = new SqlBuilder();
             Where where = new Where();
             for (String k : pkColumns) {
                 where.and(k + "=?", info.getField(k).get(bean));
             }
-
-            builder.sql("select * from ").add(info.getTableName()).where(where);
-            Row first = query(builder.sql(), builder.args()).first();
+            Row first = query(sql -> sql.select(info.getTableName()).where(where)).first();
             if (first == null) {
                 return null;
             }
@@ -217,29 +226,8 @@ class SqlConnectionImpl implements SqlConnection {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public int insert(Sql sql) throws UncheckedSQLException {
-        return this.insert(sql.sql(), sql.args());
-    }
-
-    @Override
-    public int insert(String sql, Object... args) throws UncheckedSQLException {
-        sql = toSql(sql);
-        try (PreparedStatement stat = conn.prepareStatement(sql)) {
-            if (args.length > 0) {
-                Helper.fillStatement(stat, args);
-            }
-            if (logger.isDebugEnabled()) {
-                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
-            }
-            return stat.executeUpdate();
-        } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
-        }
-    }
-
-    @Override
     public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
-        return insert(Helper.makeInsertSql(table, columns), args);
+        return executeUpdate(Helper.makeInsertSql(table, columns), args);
     }
 
     @Override
@@ -500,10 +488,10 @@ class SqlConnectionImpl implements SqlConnection {
             throw new UncheckedException(e);
         }
     }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
-    public int update(String sql, Object... args) throws UncheckedSQLException {
+    public int executeUpdate(String sql, Object... args) throws UncheckedSQLException {
         sql = toSql(sql);
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             if (logger.isDebugEnabled()) {
@@ -572,8 +560,9 @@ class SqlConnectionImpl implements SqlConnection {
                 for (int i = 0, ci = 0; i < args.length; i++) {
                     Object v = args[i];
                     if (v != null) {
-                        newColumns[ci++] = _columns[i];
-                        newArgs[ci++] = v;
+                        newColumns[ci] = _columns[i];
+                        newArgs[ci] = v;
+                        ci++;
                     }
                 }
                 args = newArgs;
@@ -604,7 +593,7 @@ class SqlConnectionImpl implements SqlConnection {
                 where.accept(where0);
             }
             builder.where(where0);
-            return update(builder.sql(), builder.args()) == 1;
+            return executeUpdate(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             //Never happen
             return false;
@@ -776,7 +765,7 @@ class SqlConnectionImpl implements SqlConnection {
                 where.and(pkColumn + "=?", value);
             }
             builder.where(where);
-            return update(builder.sql(), builder.args()) == 1;
+            return executeUpdate(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             throw new UncheckedSQLException(e);
         }
@@ -784,7 +773,7 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException {
+    public int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
         builder.add("UPDATE ").add(table).add(" SET ");
         Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
@@ -808,14 +797,14 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     /**
-     * @param map   data
      * @param table table name
+     * @param map   data
      * @param ids   default name is "id"
      * @throws UncheckedSQLException if a database access error occurs
      */
     @Override
-    public int updateByPks(Map<String, Object> map, String table, String... ids) throws UncheckedSQLException {
-        return update(new HashMap<>(map), table, where -> {
+    public int updateByPks(String table, Map<String, Object> map, String... ids) throws UncheckedSQLException {
+        return update(table, new HashMap<>(map), where -> {
             if (ids.length == 0) {
                 Object v = map.get("id");
                 if (v == null) {
@@ -878,6 +867,7 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public void close() throws UncheckedSQLException {
         try {
+            conn.setAutoCommit(true);
             conn.close();
             if (logger.isDebugEnabled()) {
                 logger.debug("SqlConnection closed");

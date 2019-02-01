@@ -67,6 +67,7 @@ public class SqlConnectionTest {
 
     @After
     public void after() {
+        deleteAllUsers();
         if (conn != null) {
             conn.close();
         }
@@ -80,6 +81,10 @@ public class SqlConnectionTest {
         user.password_salt = "***";
         conn.insert(user, "users");
         return user;
+    }
+
+    private void deleteAllUsers(){
+        conn.executeUpdate("delete from users");
     }
 
     @Test
@@ -117,7 +122,7 @@ public class SqlConnectionTest {
     public void testUpdateBean() {
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
-        user.id = 123456;
+        user.id = 8888888;
         conn.insert(user, "users");
         String newPassword = ThreadLocalRandom.current().nextInt() + "@";
         user.password = newPassword;
@@ -165,7 +170,7 @@ public class SqlConnectionTest {
     public void testQuery3() {
         insertUser();
         String sql = "select * from users where username=?";
-
+        // 如果User中有单个参数的构造器, 会导致冲突
         //select list
         List<User> users1 = conn.query(sql, "May").list(User.MAPPER);
         Assert.assertTrue(users1.size() > 0);
@@ -196,6 +201,11 @@ public class SqlConnectionTest {
             Assert.assertEquals("frank@xxx.com", row.getString("email"));
             return true;
         });
+    }
+
+    @Test
+    public void testQuery5() {
+//        conn.query(sql -> sql.select(""));
     }
 
     @Test
@@ -389,6 +399,7 @@ public class SqlConnectionTest {
         } else {
             Assert.assertEquals(size, result.affectedRows);
         }
+        deleteAllUsers();
     }
 
 
@@ -407,6 +418,7 @@ public class SqlConnectionTest {
         } else {
             Assert.assertEquals(size, result.affectedRows);
         }
+        deleteAllUsers();
     }
 
     @Test
@@ -424,6 +436,7 @@ public class SqlConnectionTest {
         } else {
             Assert.assertEquals(size, result.affectedRows);
         }
+        deleteAllUsers();
     }
 
     @Test
@@ -451,15 +464,15 @@ public class SqlConnectionTest {
     public void testUpdate2() {
         Row data = new Row().set("username", "Zero").set("email", "bb@example.com");
         conn.insertMap("users", data, "id");
-        int update = conn.update(data.set("username", "zero1"), "users", where -> {
+        int update = conn.update("users", data.set("username", "zero1"), where -> {
             where.and("id=?", data.get("id"));
         });
         Assert.assertEquals(1, update);
         //OR
-        update = conn.updateByPks(data.set("username", "zero2"), "users", "id");
+        update = conn.updateByPks("users", data.set("username", "zero2"), "id");
         Assert.assertEquals(1, update);
         //OR
-        update = conn.updateByPks(data.set("username", "zero3"), "users");// pk default: id
+        update = conn.updateByPks("users", data.set("username", "zero3"));// pk default: id
         Assert.assertEquals(1, update);
     }
 
@@ -473,6 +486,12 @@ public class SqlConnectionTest {
         OrmUser _user = conn.load(OrmUser::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
+    }
+
+    public void testUpdate2_2() {
+        conn.update("", "");
+        conn.update("", "", true);
+        conn.update("qw", "", true);
     }
 
     ///////////////////////////////////////////Use Sql Provider////////////////////////////////////////////////////
@@ -494,7 +513,7 @@ public class SqlConnectionTest {
         user.updatedTime = LocalDateTime.now();
         user.passwordSalt = OrmUser.PasswordSalt.B123456;
         conn.insert(user, "users");
-        OrmUser user3 = conn.query("select * from users").first(OrmUser::new);
+        OrmUser user3 = conn.query("select * from users where email=?", user.email).first(OrmUser::new);
         Assert.assertEquals(user3.passwordSalt, OrmUser.PasswordSalt.B123456);
     }
 

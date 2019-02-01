@@ -29,6 +29,8 @@ class ClassInfo {
     private Map<String, Field> columnFieldMap = new HashMap<>();
     private Map<String, Field> pks = new HashMap<>(4);
 
+//    private Map<String, Class<?>> typeMap = new HashMap<>();
+
     static ClassInfo getClassInfo(Class<?> clazz) {
         ClassInfo info = map.get(clazz);
         if (info != null) {
@@ -118,7 +120,7 @@ class ClassInfo {
 
     String getSinglePKColumn() {
         if (pks.size() != 1) {
-            throw new UncheckedException("Non-single primary key exception, the number of PK: " + pks.size());
+            throw new UncheckedException("Undefined ID field: " + clazz.getName());
         }
         return pks.keySet().iterator().next();
     }

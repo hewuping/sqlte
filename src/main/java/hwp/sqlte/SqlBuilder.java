@@ -40,6 +40,11 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    public SqlBuilder selectCount(String table) {
+        this.sql.append("SELECT count(*) as _count FROM ").append(table);
+        return this;
+    }
+
     public SqlBuilder update(String table, String columns, Object... values) {
         add("UPDATE ").add(table);
         String[] split = columns.split(",");

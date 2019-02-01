@@ -30,6 +30,10 @@ public class User {
     public User() {
     }
 
+    //会与RowMapper产出冲突
+//    public User(Integer id) {
+//        this.id = id;
+//    }
 
     public User(String username, String email, String password) {
         this.username = username;

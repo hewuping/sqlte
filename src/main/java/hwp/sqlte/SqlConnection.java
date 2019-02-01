@@ -52,18 +52,6 @@ public interface SqlConnection extends AutoCloseable {
         query(sb.sql(), rowHandler, sb.args());
     }
 
-/*    <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException;
-
-    default <T> List<T> query(Consumer<SqlBuilder> consumer, Function<ResultSet, T> function) throws UncheckedSQLException {
-        SqlBuilder sb = new SqlBuilder();
-        consumer.accept(sb);
-        return query(sb, function);
-    }*/
-
-    int insert(Sql sql) throws UncheckedSQLException;
-
-    int insert(String sql, Object... args) throws UncheckedSQLException;
-
     int insert(String table, String columns, Object... args) throws UncheckedSQLException;
 
     void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException;
@@ -77,21 +65,30 @@ public interface SqlConnection extends AutoCloseable {
 
     int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException;
 
-    int update(String sql, Object... args) throws UncheckedSQLException;
+    int executeUpdate(String sql, Object... args) throws UncheckedSQLException;//execute
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
-    int update(Map<String, Object> map, String table, Where where) throws UncheckedSQLException;
+    int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException;
 
-    default int update(Map<String, Object> map, String table, Consumer<Where> where) throws UncheckedSQLException{
+    default int update(String table, Map<String, Object> map, Consumer<Where> where) throws UncheckedSQLException {
         Where w = new Where();
         where.accept(w);
-        return update(map, table, w);
+        return update(table, map, w);
     }
 
-    int updateByPks(Map<String, Object> map, String table, String... pk) throws UncheckedSQLException;
+    default int update(String table, Consumer<Row> consumer, Consumer<Where> where) throws UncheckedSQLException {
+        Where w = new Where();
+        where.accept(w);
+        Row row = new Row();
+        consumer.accept(row);
+        return update(table, row, w);
+    }
+
+    int updateByPks(String table, Map<String, Object> map, String... pk) throws UncheckedSQLException;
 
     ////////////////////////////////////////Simple ORM//////////////////////////////////////////////////////////
+//    <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql);
 
     <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException;
 
@@ -109,12 +106,16 @@ public interface SqlConnection extends AutoCloseable {
 
     boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException;
 
-    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws UncheckedSQLException{
+    default boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+        return update(bean, table, null, false, where);
+    }
+
+    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
         return update(bean, table, columns, ignoreNullValue, null);
     }
 
-    default boolean update(Object bean) throws UncheckedSQLException {
-        return update(bean, null, false);
+    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+        return update(bean, null, columns, ignoreNullValue);
     }
 
     default boolean update(Object bean, String columns) throws UncheckedSQLException {
@@ -125,9 +126,10 @@ public interface SqlConnection extends AutoCloseable {
         return this.update(bean, null, ignoreNullValue);
     }
 
-    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
-        return update(bean, null, columns, ignoreNullValue);
+    default boolean update(Object bean) throws UncheckedSQLException {
+        return update(bean, null, false);
     }
+
 
 //  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
 

@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -51,6 +52,17 @@ public class SqlResultSet implements Iterable<Row> {
         return row.map(new RowMapper.BeanMapper<>(supplier));
     }
 
+    public Integer firstInt() {
+        return this.first(RowMapper.INTEGER).orElse(null);
+    }
+
+    public Long firstLong() {
+        return this.first(RowMapper.LONG).orElse(null);
+    }
+
+    public String firstString() {
+        return this.first(RowMapper.STRING).orElse(null);
+    }
 
     public <T> List<T> list(RowMapper<T> mapper) {
         List<T> list = new ArrayList<>(this.rows.size());

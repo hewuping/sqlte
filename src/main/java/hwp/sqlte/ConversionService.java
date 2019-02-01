@@ -5,7 +5,6 @@ import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Currency;
@@ -44,6 +43,7 @@ public interface ConversionService {
             register(String.class, BigDecimal.class, new StringToBigDecimalConverter());
             register(String.class, Currency.class, new StringToCurrencyConverter());
             register(String.class, UUID.class, new StringToUUIDConverter());
+            register(String.class, Boolean.class, new StringToBooleanConverter());
 
             //to String
             register(Object.class, String.class, new ObjectToStringConverter());
@@ -217,6 +217,15 @@ public interface ConversionService {
         }
     }
 
+    final class StringToBooleanConverter implements TypeConverter<String, Boolean> {
+        public Boolean convert(String source) {
+            if (source == null || source.isEmpty()) {
+                return null;
+            }
+            return ("y".equalsIgnoreCase(source) || "true".equalsIgnoreCase(source) || "1".equalsIgnoreCase(source));
+        }
+    }
+
     final class ObjectToStringConverter implements TypeConverter<Object, String> {
         public String convert(Object source) {
             return source.toString();
@@ -232,7 +241,7 @@ public interface ConversionService {
     final class DateToStringConverter implements TypeConverter<Date, String> {
         public String convert(Date source) {
 //            return ZonedDateTime.of(source.toLocalDate().atStartOfDay(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE);
-             return DateTimeFormatter.ofPattern("yyyy-MM-dd").format(source.toLocalDate());
+            return DateTimeFormatter.ofPattern("yyyy-MM-dd").format(source.toLocalDate());
         }
     }
 
