@@ -83,7 +83,7 @@ public class SqlConnectionTest {
         return user;
     }
 
-    private void deleteAllUsers(){
+    private void deleteAllUsers() {
         conn.executeUpdate("delete from users");
     }
 
@@ -465,6 +465,12 @@ public class SqlConnectionTest {
         Row data = new Row().set("username", "Zero").set("email", "bb@example.com");
         conn.insertMap("users", data, "id");
         int update = conn.update("users", data.set("username", "zero1"), where -> {
+            where.and("id=?", data.get("id"));
+        });
+        Assert.assertEquals(1, update);
+        update = conn.update("users", row -> {
+            row.set("username", "zero00").set("email", "zero@example.com");
+        }, where -> {
             where.and("id=?", data.get("id"));
         });
         Assert.assertEquals(1, update);

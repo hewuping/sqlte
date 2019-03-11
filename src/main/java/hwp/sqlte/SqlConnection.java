@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  */
 public interface SqlConnection extends AutoCloseable {
 
-
+    //@Cacheable
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
     default SqlResultSet query(String sql) throws UncheckedSQLException {
@@ -166,6 +166,8 @@ public interface SqlConnection extends AutoCloseable {
     BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+//    void setQueryCache(boolean b);
 
     void executeSqlScript(Reader reader, boolean ignoreError);
 

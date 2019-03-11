@@ -13,10 +13,6 @@ import java.util.stream.StreamSupport;
  */
 public class SqlResultSet implements Iterable<Row> {
 
-    //cache
-    private String sql;
-    private Object[] args;
-
     private List<String> columns;
     private List<Row> rows;
 

@@ -63,8 +63,13 @@ public class SqlBuilder implements Builder, Sql {
         return add("DELETE FROM ").add(table);
     }
 
-    public SqlBuilder sql(CharSequence sql) {
+    public SqlBuilder sql(CharSequence sql, Object... args) {
         this.sql.append(sql);
+        char lastChar = sql.charAt(sql.length() - 1);
+        if (!Character.isSpaceChar(lastChar)) {
+            this.sql.append(" ");
+        }
+        addArgs(args);
         return this;
     }
 
@@ -86,6 +91,7 @@ public class SqlBuilder implements Builder, Sql {
                 for (int i = 0, len = Array.getLength(arg); i < len; i++) {
                     this.args.add(Array.get(arg, i));
                 }
+                continue;
             }
             if (arg instanceof Collection) {
                 this.args.addAll((Collection) arg);
@@ -134,6 +140,11 @@ public class SqlBuilder implements Builder, Sql {
         Order order = new Order();
         consumer.accept(order);
         return orderBy(order);
+    }
+
+    public SqlBuilder groupBy(String groupSql) {
+        sql.append(" GROUP BY ").append(groupSql);
+        return this;
     }
 
     public SqlBuilder groupBy(Consumer<Group> group) {
