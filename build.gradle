@@ -1,11 +1,17 @@
-apply plugin: 'java'
-//apply plugin: 'java-library'
-apply plugin: 'idea'
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+}
 
+group = 'hwp.sqlte'
+archivesBaseName = 'sqlte'
 version = '0.2.8'
 
-[compileJava]*.options*.encoding='utf-8'
-[compileTestJava]*.options*.encoding='utf-8'
+sourceCompatibility = 1.8
+
+[compileJava]*.options*.encoding = 'utf-8'
+[compileTestJava]*.options*.encoding = 'utf-8'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -42,4 +48,16 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 
 artifacts {
     archives sourcesJar
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = group
+            artifactId = archivesBaseName
+            version = version
+
+            from components.java
+        }
+    }
 }

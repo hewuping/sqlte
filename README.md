@@ -10,3 +10,14 @@ MySQL|5.1.37
 H2|1.4.197
 
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
+
+
+```
+gradle build
+gradle publishToMavenLocal
+
+```
+
+```
+ compile group: 'hwp.sqlte', name: 'sqlte', version: 'x.x.x'
+```

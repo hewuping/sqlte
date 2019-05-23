@@ -63,13 +63,17 @@ public class SqlBuilder implements Builder, Sql {
         return add("DELETE FROM ").add(table);
     }
 
-    public SqlBuilder sql(CharSequence sql, Object... args) {
+    public SqlBuilder sql(CharSequence sql) {
         this.sql.append(sql);
         char lastChar = sql.charAt(sql.length() - 1);
         if (!Character.isSpaceChar(lastChar)) {
             this.sql.append(" ");
         }
-        addArgs(args);
+        return this;
+    }
+
+    public SqlBuilder sql(CharSequence sql, Object... args) {
+        sql(sql).addArgs(args);
         return this;
     }
 
