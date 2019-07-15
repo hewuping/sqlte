@@ -1,6 +1,5 @@
 package hwp.sqlte;
 
-import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -101,6 +100,10 @@ public class SqlResultSet implements Iterable<Row> {
             return Optional.empty();
         }
         return Optional.of(row.map(mapper));
+    }
+
+    public boolean isEmpty() {
+        return rows == null || rows.isEmpty();
     }
 /*
     public void putCache(Cache cache) {
