@@ -31,6 +31,9 @@ public interface Sql {
     Object[] args();
 
     default String id() {
+        if (args() == null || args().length == 0) {
+            return sql();
+        }
         return sql().concat("@").concat(Arrays.toString(args()));
     }
 
@@ -40,7 +43,7 @@ public interface Sql {
     }
 
     static Config config() {
-        return Config.config;
+        return Config.getConfig();
     }
 
     static SqlConnection open() throws UncheckedSQLException {

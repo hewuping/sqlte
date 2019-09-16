@@ -3,7 +3,6 @@ package hwp.sqlte;
 import javax.sql.DataSource;
 import java.io.Reader;
 import java.sql.*;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -36,6 +35,14 @@ import java.util.function.Supplier;
  * Created on 2018/11/5.
  */
 public class SqlteTemplate implements SqlConnection {//sql
+
+    private boolean cacheable;
+
+    @Override
+    public SqlteTemplate cacheable() {
+        this.cacheable = true;
+        return this;
+    }
 
     @Override
     public void executeSqlScript(Reader reader, boolean ignoreError) {
@@ -161,9 +168,9 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int insertMap(String table, Consumer<Map<String, Object>> map) throws UncheckedSQLException {
-        Map<String, Object> _map = new HashMap<>();
-        map.accept(_map);
+    public int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException {
+        Row _map = new Row();
+        row.accept(_map);
         return this.insertMap(table, _map);
     }
 
@@ -285,17 +292,17 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void commit() throws UncheckedSQLException {
-        throw new UnsupportedOperationException("Manual commit is not allowed over a Spring managed SqlConnection");
+        throw new UnsupportedOperationException("Manual commit is not allowed");
     }
 
     @Override
     public void rollback() throws UncheckedSQLException {
-        throw new UnsupportedOperationException("Manual rollback is not allowed over a Spring managed SqlConnection");
+        throw new UnsupportedOperationException("Manual rollback is not allowed");
     }
 
     @Override
     public void close() throws UncheckedSQLException {
-        throw new UnsupportedOperationException("Manual close is not allowed over a Spring managed SqlConnection");
+        throw new UnsupportedOperationException("Manual close is not allowed");
     }
 
     @Override
@@ -351,7 +358,7 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void rollback(Savepoint savepoint) throws UncheckedSQLException {
-        throw new UnsupportedOperationException("Manual rollback is not allowed over a Spring managed SqlConnection");
+        throw new UnsupportedOperationException("Manual rollback is not allowed");
     }
 
     @Override
@@ -423,24 +430,10 @@ public class SqlteTemplate implements SqlConnection {//sql
         Connection conn = open(Sql.config().getDataSource());
         try {
             SqlConnection sqlConn = SqlConnectionImpl.use(conn);
-            return function.apply(sqlConn);
+            return function.apply(cacheable ? sqlConn.cacheable() : sqlConn);
         } finally {
             close(conn);
         }
     }
-
-/*    public static void main(String[] args) {
-        SqlteTemplate template = new SqlteTemplate() {
-            @Override
-            protected Connection open() {
-                return DataSourceUtils.getConnection(dataSource);
-            }
-
-            @Override
-            protected void close(Connection connection) {
-                DataSourceUtils.releaseConnection(connection, dataSource);
-            }
-        };
-    }*/
 
 }

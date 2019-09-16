@@ -26,7 +26,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     private final Connection conn;
 
-    private SqlConnectionImpl(Connection conn) {
+    SqlConnectionImpl(Connection conn) {
         this.conn = conn;
     }
 
@@ -37,6 +37,11 @@ class SqlConnectionImpl implements SqlConnection {
             SqlConnectionImpl.cache.put(conn, c);
         }
         return new SqlConnectionImpl(conn);
+    }
+
+    @Override
+    public SqlConnection cacheable() {
+        return new SqlConnectionCacheImpl(conn, Config.getConfig().getCache());
     }
 
     @Override
@@ -62,6 +67,12 @@ class SqlConnectionImpl implements SqlConnection {
             throw new UncheckedSQLException(e);
         }
     }
+
+//    @Override
+//    public Query query() throws UncheckedSQLException {
+//        Query query = new Query(this);
+//        return query;
+//    }
 
     @Override
     public SqlResultSet query(String sql) throws UncheckedSQLException {
@@ -443,9 +454,9 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public int insertMap(String table, Consumer<Map<String, Object>> map) throws UncheckedSQLException {
-        Map<String, Object> _map = new HashMap<>();
-        map.accept(_map);
+    public int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException {
+        Row _map = new Row();
+        row.accept(_map);
         return this.insertMap(table, _map);
     }
 

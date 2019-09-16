@@ -105,9 +105,9 @@ public class SqlResultSet implements Iterable<Row> {
     public boolean isEmpty() {
         return rows == null || rows.isEmpty();
     }
-/*
-    public void putCache(Cache cache) {
 
+/*    public void cache(Cache cache) {
+        cache.put("", this);
     }*/
 
 }

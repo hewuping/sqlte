@@ -15,7 +15,9 @@ import java.util.function.Supplier;
  */
 public interface SqlConnection extends AutoCloseable {
 
-    //@Cacheable
+//    Query query() throws UncheckedSQLException;
+    SqlConnection cacheable();
+
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
     default SqlResultSet query(String sql) throws UncheckedSQLException {
@@ -61,7 +63,7 @@ public interface SqlConnection extends AutoCloseable {
 
     int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException;
 
-    int insertMap(String table, Consumer<Map<String, Object>> map) throws UncheckedSQLException;
+    int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException;
 
     int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException;
 
@@ -100,10 +102,6 @@ public interface SqlConnection extends AutoCloseable {
 
     void insert(Object bean, String table) throws UncheckedSQLException;
 
-    default boolean delete(Object bean) throws UncheckedSQLException {
-        return delete(bean, null);
-    }
-
     boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException;
 
     default boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
@@ -130,10 +128,22 @@ public interface SqlConnection extends AutoCloseable {
         return update(bean, null, false);
     }
 
+    //  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
 
-//  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
+    default boolean delete(Object bean) throws UncheckedSQLException {
+        return delete(bean, null);
+    }
 
     boolean delete(Object bean, String table) throws UncheckedSQLException;
+
+    default int delete(String table, Consumer<Where> whereConsumer) throws UncheckedSQLException {
+        Where where = new Where();
+        whereConsumer.accept(where);
+        if (where.isEmpty()) {
+            throw new IllegalArgumentException("Dangerous deletion without cause is not supported");
+        }
+        return this.executeUpdate("DELETE FROM " + table + " " + where.sql());
+    }
 
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
 

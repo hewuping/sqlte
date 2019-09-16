@@ -56,11 +56,7 @@ class Helper {
     }
 
     static String makeInsertSql(String table, String... columns) {
-        Config.Options options = Config.getConfig().options();
         StringBuilder builder = new StringBuilder("INSERT INTO ");
-        if (options.batchInsertIgnoreError) {//Only MySQL
-            builder.append(" IGNORE ");
-        }
         builder.append(table);
         builder.append('(');
         int len = columns.length;

@@ -1,5 +1,8 @@
 package hwp.sqlte;
 
+import hwp.sqlte.cache.Cache;
+import hwp.sqlte.cache.LruCache;
+
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,9 +13,11 @@ import java.util.Objects;
  * Created on 2018/4/13.
  */
 final public class Config {
-    protected static Config config = new Config();
+    private static Config config = new Config();
+    private final Cache DEFAULT_CACHE = new LruCache(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
-    private Options options = new Options();
+
+    private  Cache cache;
 
 
     private Map<String, DataSource> dataSourceMap = new HashMap<>();
@@ -59,12 +64,11 @@ final public class Config {
         return this;
     }
 
-    public Options options() {
-        return options;
+    public Cache getCache() {
+        return cache == null ? DEFAULT_CACHE : cache;
     }
 
-    public class Options {
-        public boolean batchInsertIgnoreError = false;
+    public void setCache(Cache cache) {
+        this.cache = cache;
     }
-
 }
