@@ -114,13 +114,6 @@ public class SqlteTemplate implements SqlConnection {//sql
         });
     }
 
-    @Override
-    public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
-        run(conn -> {
-            conn.query(sql, rowHandler, args);
-            return null;
-        });
-    }
 
     @Override
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {

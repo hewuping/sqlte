@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  */
 public interface SqlConnection extends AutoCloseable {
 
-//    Query query() throws UncheckedSQLException;
+    //    Query query() throws UncheckedSQLException;
     SqlConnection cacheable();
 
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
@@ -34,25 +34,36 @@ public interface SqlConnection extends AutoCloseable {
         return query(sb.sql(), sb.args());
     }
 
+    /**
+     * @param sql        sql
+     * @param rowHandler return true if continue
+     * @throws UncheckedSQLException if a database access error occurs
+     */
     void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException;
 
+    /**
+     * @param consumer   build SQL
+     * @param rowHandler return true if continue
+     * @throws UncheckedSQLException
+     */
     default void query(Consumer<SqlBuilder> consumer, RowHandler rowHandler) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
         query(builder, rowHandler);
     }
 
-    void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException;
 
-    default void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
-        query(sql.sql(), rowHandler, sql.args());
-    }
+    void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
 
     default void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
-        query(sb.sql(), rowHandler, sb.args());
+        query(sb, rowHandler);
     }
+
+/*    default <T> List<T> queryList(Supplier<T> supplier, Consumer<SqlBuilder> consumer) {
+        return this.query(consumer).list(supplier);
+    }*/
 
     int insert(String table, String columns, Object... args) throws UncheckedSQLException;
 

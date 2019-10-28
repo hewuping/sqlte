@@ -210,14 +210,14 @@ public class SqlConnectionTest {
 
     @Test
     public void testQueryResultSet() {
-        conn.query("select * from users where username=?", rs -> {
+        conn.query(Sql.create("select * from users where username=?", "Frank"), rs -> {
             try {
                 String name = rs.getString("username");
                 Assert.assertEquals("Frank", name);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }, "Frank");
+        });
     }
 
     @Test

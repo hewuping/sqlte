@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,7 +66,7 @@ public interface SqlProvider {
             if (logger.isInfoEnabled()) {
                 logger.info("loading sql from: {}", url);
             }
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
                 String line;
                 Map<String, String> map = new HashMap<>();
                 String key = null;

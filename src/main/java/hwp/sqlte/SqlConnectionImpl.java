@@ -68,11 +68,6 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-//    @Override
-//    public Query query() throws UncheckedSQLException {
-//        Query query = new Query(this);
-//        return query;
-//    }
 
     @Override
     public SqlResultSet query(String sql) throws UncheckedSQLException {
@@ -108,17 +103,6 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
 
-/*    @Override
-    public <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql) {
-        T bean = supplier.get();
-        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-        SqlBuilder builder = new SqlBuilder();
-        builder.select(info.getTableName());
-        sql.accept(builder);
-        return query(builder).list(supplier);
-    }*/
-
-
     @Override
     public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
@@ -152,14 +136,13 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void query(String sql, Consumer<ResultSet> rowHandler, Object... args) throws UncheckedSQLException {
-        sql = toSql(sql);
-        try (PreparedStatement stat = createQueryStatement(sql)) {
-            if (args.length > 0) {
-                Helper.fillStatement(stat, args);
+    public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+        try (PreparedStatement stat = createQueryStatement(sql.sql())) {
+            if (sql.args().length > 0) {
+                Helper.fillStatement(stat, sql.args());
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
+                logger.debug("sql: {}\t args: {}", sql, Arrays.toString(sql.args()));
             }
             try (java.sql.ResultSet rs = stat.executeQuery()) {
                 while (rs.next()) {
@@ -172,11 +155,6 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
 
-    /**
-     * @param sql        sql
-     * @param rowHandler Stop if it returns false
-     * @throws UncheckedSQLException if a database access error occurs
-     */
     @Override
     public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
         String _sql = toSql(sql.sql());
@@ -196,28 +174,7 @@ class SqlConnectionImpl implements SqlConnection {
             throw new UncheckedSQLException(e);
         }
     }
-/*
-    @Override
-    public <T> List<T> query(Sql sql, Function<ResultSet, T> function) throws UncheckedSQLException {
-        String _sql = toSql(sql.sql());
-        try (PreparedStatement stat = createQueryStatement(_sql)) {
-            if (sql.args().length > 0) {
-                Helper.fillStatement(stat, sql.args());
-            }
-            if (logger.isDebugEnabled()) {
-                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
-            }
-            List<T> list = new ArrayList<>();
-            try (java.sql.ResultSet rs = stat.executeQuery()) {
-                while (rs.next()) {
-                    list.add(function.apply(rs));
-                }
-            }
-            return list;
-        } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
-        }
-    }*/
+
 
     private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
         try {
