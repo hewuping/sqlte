@@ -451,7 +451,7 @@ class SqlConnectionImpl implements SqlConnection {
                 }
                 return uc;
             }
-            return 0;
+            return uc;
         } catch (SQLException e) {
             throw new UncheckedException(e);
         }

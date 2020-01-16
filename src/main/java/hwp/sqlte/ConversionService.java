@@ -53,7 +53,7 @@ public interface ConversionService {
             //int
             Class<?>[] numbers = new Class<?>[]{
                     Byte.TYPE, Short.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE,
-                    Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class
+                    Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class
             };
             for (Class<?> f : numbers) {
                 for (Class<?> t : numbers) {
