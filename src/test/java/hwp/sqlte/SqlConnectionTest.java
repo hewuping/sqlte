@@ -10,9 +10,10 @@ import org.junit.*;
 
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
 import java.util.Date;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -23,7 +24,7 @@ public class SqlConnectionTest {
 
     private SqlConnection conn;
 
-    private static String dbname = "h2";//h2, mysql, pgsql
+    private static String dbname = "mysql";//h2, mysql, pgsql
 
     @BeforeClass
     public static void beforeClass() {
@@ -514,7 +515,7 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testLocalDate() {
+    public void LocalDateTime() {
         OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
         user.updatedTime = LocalDateTime.now();
         user.passwordSalt = OrmUser.PasswordSalt.B123456;
@@ -522,5 +523,22 @@ public class SqlConnectionTest {
         OrmUser user3 = conn.query("select * from users where email=?", user.email).first(OrmUser::new);
         Assert.assertEquals(user3.passwordSalt, OrmUser.PasswordSalt.B123456);
     }
+
+    @Test
+    public void testLocalDate() {
+        int i = conn.insertMap("users", row -> {
+            row.put("username", "QQ");
+            row.put("email", "qq@qq.com");
+            row.put("password", "123456");
+            row.put("password_salt", "999");
+            row.put("updated_time", LocalDateTime.of(2019, 12, 31, 12, 5));
+        });
+//        conn.commit();
+        Assert.assertEquals(1, i);
+        LocalDate from = LocalDate.of(2019, 12, 25);
+        LocalDate to = LocalDate.of(2020, 1, 1);
+        Assert.assertFalse(conn.query("select * from users where updated_time BETWEEN ? AND ?", from, to).isEmpty());
+    }
+
 
 }

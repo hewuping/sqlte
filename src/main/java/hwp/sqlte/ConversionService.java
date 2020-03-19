@@ -34,22 +34,47 @@ public interface ConversionService {
             //String to X
             register(String.class, Character.class, new StringToCharacterConverter());
             register(String.class, Byte.class, new StringToByteConverter());
+            register(String.class, Byte.TYPE, new StringToByteConverter());
             register(String.class, Short.class, new StringToShortConverter());
+            register(String.class, Short.TYPE, new StringToShortConverter());
             register(String.class, Integer.class, new StringToIntegerConverter());
+            register(String.class, Integer.TYPE, new StringToIntegerConverter());
             register(String.class, Float.class, new StringToFloatConverter());
+            register(String.class, Float.TYPE, new StringToFloatConverter());
             register(String.class, Double.class, new StringToDoubleConverter());
+            register(String.class, Double.TYPE, new StringToDoubleConverter());
             register(String.class, Long.class, new StringToLongConverter());
+            register(String.class, Long.TYPE, new StringToLongConverter());
             register(String.class, BigInteger.class, new StringToBigIntegerConverter());
             register(String.class, BigDecimal.class, new StringToBigDecimalConverter());
             register(String.class, Currency.class, new StringToCurrencyConverter());
             register(String.class, UUID.class, new StringToUUIDConverter());
             register(String.class, Boolean.class, new StringToBooleanConverter());
+            register(String.class, Boolean.TYPE, new StringToBooleanConverter());
 
             //to String
             register(Object.class, String.class, new ObjectToStringConverter());
             register(Timestamp.class, String.class, new TimestampToStringConverter());
             register(Time.class, String.class, new TimeToStringConverter());
             register(Date.class, String.class, new DateToStringConverter());
+
+            // Boolean
+            register(Boolean.class, Boolean.class, new BooleanToBoolean());
+            register(Boolean.class, Boolean.TYPE, new BooleanToBoolean());
+            register(Boolean.class, String.class, new BooleanToString());
+            register(Boolean.class, Number.class, new BooleanToNumber());
+            register(Boolean.class, Integer.class, new BooleanToInteger());
+            register(Boolean.class, Integer.TYPE, new BooleanToInteger());
+            register(Boolean.class, Long.class, new BooleanToLong());
+            register(Boolean.class, Long.TYPE, new BooleanToLong());
+            register(Boolean.class, Double.class, new BooleanToDouble());
+            register(Boolean.class, Double.TYPE, new BooleanToDouble());
+            register(Boolean.class, Float.class, new BooleanToFloat());
+            register(Boolean.class, Float.TYPE, new BooleanToFloat());
+            register(Boolean.class, Byte.class, new BooleanToByte());
+            register(Boolean.class, Byte.TYPE, new BooleanToByte());
+
+
             //int
             Class<?>[] numbers = new Class<?>[]{
                     Byte.TYPE, Short.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE,
@@ -98,10 +123,14 @@ public interface ConversionService {
         @Override
         @SuppressWarnings("unchecked")
         public <T> T convert(Object from, Class<T> to) {
+            if (from == null && to == Boolean.TYPE) {
+                return (T) Boolean.FALSE;
+            }
             if (from == null) return null;
             if (from instanceof Integer && to.isEnum()) {
                 return to.getEnumConstants()[(Integer) from];
             }
+
             if (from instanceof Enum && Integer.class == to) {
                 return (T) Integer.valueOf(((Enum) from).ordinal());
             }
@@ -117,7 +146,7 @@ public interface ConversionService {
             }
             Map<Class<?>, TypeConverter<Object, Object>> map1 = map.get(from.getClass());
             if (map1 == null) {
-                return null;
+                throw new IllegalArgumentException("Conversion not supported: " + from.getClass() + " -> " + to);
             }
             TypeConverter<Object, Object> converter = map1.get(to);
             if (converter != null) {
@@ -151,28 +180,28 @@ public interface ConversionService {
     class StringToByteConverter implements TypeConverter<String, Byte> {
         @Override
         public Byte convert(String s) {
-            return Byte.parseByte(s);
+            return Byte.valueOf(s);
         }
     }
 
     class StringToShortConverter implements TypeConverter<String, Short> {
         @Override
         public Short convert(String s) {
-            return Short.parseShort(s);
+            return Short.valueOf(s);
         }
     }
 
     class StringToIntegerConverter implements TypeConverter<String, Integer> {
         @Override
         public Integer convert(String s) {
-            return Integer.parseInt(s);
+            return Integer.valueOf(s);
         }
     }
 
     class StringToLongConverter implements TypeConverter<String, Long> {
         @Override
         public Long convert(String s) {
-            return Long.parseLong(s);
+            return Long.valueOf(s);
         }
     }
 
@@ -193,14 +222,14 @@ public interface ConversionService {
     class StringToFloatConverter implements TypeConverter<String, Float> {
         @Override
         public Float convert(String s) {
-            return Float.parseFloat(s);
+            return Float.valueOf(s);
         }
     }
 
     class StringToDoubleConverter implements TypeConverter<String, Double> {
         @Override
         public Double convert(String s) {
-            return Double.parseDouble(s);
+            return Double.valueOf(s);
         }
     }
 
@@ -254,6 +283,54 @@ public interface ConversionService {
     final class TimeToLocalTimeConverter implements TypeConverter<Time, LocalTime> {
         public LocalTime convert(Time source) {
             return source.toLocalTime();
+        }
+    }
+
+    final class BooleanToBoolean implements TypeConverter<Boolean, Boolean> {
+        public Boolean convert(Boolean source) {
+            return source;
+        }
+    }
+
+    final class BooleanToInteger implements TypeConverter<Boolean, Integer> {
+        public Integer convert(Boolean source) {
+            return source ? 1 : 0;
+        }
+    }
+
+    final class BooleanToLong implements TypeConverter<Boolean, Long> {
+        public Long convert(Boolean source) {
+            return source ? 1L : 0;
+        }
+    }
+
+    final class BooleanToNumber implements TypeConverter<Boolean, Number> {
+        public Number convert(Boolean source) {
+            return (Number) (source ? 1 : 0);
+        }
+    }
+
+    final class BooleanToDouble implements TypeConverter<Boolean, Double> {
+        public Double convert(Boolean source) {
+            return source ? 1D : 0;
+        }
+    }
+
+    final class BooleanToFloat implements TypeConverter<Boolean, Float> {
+        public Float convert(Boolean source) {
+            return source ? 1F : 0;
+        }
+    }
+
+    final class BooleanToByte implements TypeConverter<Boolean, Byte> {
+        public Byte convert(Boolean source) {
+            return (byte) (source ? 1 : 0);
+        }
+    }
+
+    final class BooleanToString implements TypeConverter<Boolean, String> {
+        public String convert(Boolean source) {
+            return source ? "true" : "false";
         }
     }
 
