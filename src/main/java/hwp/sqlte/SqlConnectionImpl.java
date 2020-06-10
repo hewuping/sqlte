@@ -22,8 +22,6 @@ class SqlConnectionImpl implements SqlConnection {
 
     private static final Logger logger = LoggerFactory.getLogger(SqlConnectionImpl.class);
 
-    private final static Map<Connection, SqlConnection> cache = new WeakHashMap<>();
-
     private final Connection conn;
 
     SqlConnectionImpl(Connection conn) {
@@ -31,17 +29,12 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     static SqlConnection use(Connection conn) {
-        SqlConnection c = SqlConnectionImpl.cache.get(conn);
-        if (c == null) {
-            c = new SqlConnectionImpl(conn);
-            SqlConnectionImpl.cache.put(conn, c);
-        }
         return new SqlConnectionImpl(conn);
     }
 
     @Override
     public SqlConnection cacheable() {
-        return new SqlConnectionCacheImpl(conn, Config.getConfig().getCache());
+        return new SqlConnectionCacheWrapper(this, Config.getConfig().getCache());
     }
 
     @Override
