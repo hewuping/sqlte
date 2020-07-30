@@ -39,7 +39,7 @@ class Helper {
                     statement.setNull(i + 1, Types.NULL);
                 } else if (value instanceof Enum) {
                     statement.setString(i + 1, ((Enum) value).name());
-                } else if (value instanceof Date) {
+                } else if (value instanceof Date) {//MySQL treatUtilDateAsTimestamp=true
                     statement.setTimestamp(i + 1, new Timestamp(((Date) value).getTime()));
                 } else {
                     statement.setObject(i + 1, value);

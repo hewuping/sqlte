@@ -40,7 +40,12 @@ public class Where {
                 whereBuilder.append(operator);
             }
             whereBuilder.append(" ");
-            whereBuilder.append(sql);
+            String _sql = sql.toUpperCase();
+            if (_sql.contains(" OR ") || _sql.contains(" AND ")) {
+                whereBuilder.append('(').append(sql).append(')');
+            } else {
+                whereBuilder.append(sql);
+            }
             Collections.addAll(whereArgs, args);
         }
         return this;

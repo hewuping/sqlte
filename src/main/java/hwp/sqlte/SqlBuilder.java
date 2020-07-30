@@ -12,8 +12,8 @@ import java.util.function.Consumer;
  * Created on 2017/3/21.
  */
 public class SqlBuilder implements Builder, Sql {
-    private List<Object> args = new ArrayList<>();
-    private StringBuilder sql = new StringBuilder();
+    private final List<Object> args = new ArrayList<>();
+    private final StringBuilder sql = new StringBuilder();
 
     public SqlBuilder() {
 
@@ -41,7 +41,7 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     public SqlBuilder selectCount(String table) {
-        this.sql.append("SELECT count(*) as _count FROM ").append(table);
+        this.sql.append("SELECT COUNT(*) AS _count FROM ").append(table);
         return this;
     }
 

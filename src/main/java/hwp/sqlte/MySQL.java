@@ -24,6 +24,9 @@ public class MySQL {
     public static final Function<String, String> TO_INSERT_IGNORE_INTO =
             sql -> sql.replace("INSERT INTO", "INSERT IGNORE INTO");
 
+    public static final Function<String, String> TO_REPLACE_INTO =
+            sql -> sql.replace("INSERT INTO", "REPLACE INTO");
+
     public static BiConsumer<PreparedStatement, int[]> newGKAdder(LongAdder adder) {
         return (ps, ints) -> {
             try {
