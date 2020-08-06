@@ -129,7 +129,7 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
         try (PreparedStatement stat = createQueryStatement(sql.sql())) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
@@ -192,7 +192,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
+    public void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException {
         String _sql = toSql(sql.sql());
         try (PreparedStatement stat = conn.prepareStatement(_sql, Statement.RETURN_GENERATED_KEYS)) {
             if (sql.args().length > 0) {

@@ -99,7 +99,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
         run(conn -> {
             conn.query(sql, rowHandler);
             return null;
@@ -107,7 +107,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    public void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws UncheckedSQLException {
         run(conn -> {
             conn.query(consumer, rowHandler);
             return null;
@@ -130,7 +130,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
+    public void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException {
         run(conn -> {
             conn.insert(sql, resultHandler);
             return null;

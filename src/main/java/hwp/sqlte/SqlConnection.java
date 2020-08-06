@@ -53,9 +53,9 @@ public interface SqlConnection extends AutoCloseable {
     }
 
 
-    void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException;
+    void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException;
 
-    default void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    default void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws UncheckedSQLException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         query(sb, rowHandler);
@@ -73,7 +73,7 @@ public interface SqlConnection extends AutoCloseable {
 
     int insert(String table, String columns, Object... args) throws UncheckedSQLException;
 
-    void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException;
+    void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException;
 
     Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException;
 

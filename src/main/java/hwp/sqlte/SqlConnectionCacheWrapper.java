@@ -75,12 +75,12 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public void query(Sql sql, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
         delegate.query(sql, rowHandler);
     }
 
     @Override
-    public void query(Consumer<SqlBuilder> consumer, Consumer<ResultSet> rowHandler) throws UncheckedSQLException {
+    public void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws UncheckedSQLException {
         delegate.query(consumer, rowHandler);
     }
 
@@ -90,7 +90,7 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public void insert(Sql sql, Consumer<ResultSet> resultHandler) throws UncheckedSQLException {
+    public void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException {
         delegate.insert(sql, resultHandler);
     }
 
