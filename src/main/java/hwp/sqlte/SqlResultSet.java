@@ -51,6 +51,10 @@ public class SqlResultSet implements Iterable<Row> {
         return this.first(RowMapper.INTEGER).orElse(null);
     }
 
+    public Integer firstInt(Integer def) {
+        return this.first(RowMapper.INTEGER).orElse(def);
+    }
+
     public Long firstLong() {
         return this.first(RowMapper.LONG).orElse(null);
     }
