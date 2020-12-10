@@ -243,6 +243,20 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void insert(Object bean, String table) throws UncheckedSQLException {
+        this.insert(null, bean, table);
+    }
+
+    @Override
+    public void replace(Object bean, String table) throws UncheckedSQLException {
+        this.insert("REPLACE INTO", bean, table);
+    }
+
+    @Override
+    public void insertIgnore(Object bean, String table) throws UncheckedSQLException {
+        this.insert("INSERT IGNORE INTO", bean, table);
+    }
+
+    private void insert(String insert, Object bean, String table) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         if (table == null) {
             table = info.getTableName();
@@ -271,7 +285,7 @@ class SqlConnectionImpl implements SqlConnection {
 
         String[] returnColumns = info.getAutoGenerateColumns();
 
-        String sql = Helper.makeInsertSql(table, columns.toArray(new String[0]));
+        String sql = Helper.makeInsertSql(insert, table, columns.toArray(new String[0]));
         //Statement.RETURN_GENERATED_KEYS
         try (PreparedStatement stat = returnColumns == null || returnColumns.length == 0 ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns)) {// new String[]{"id"}
@@ -412,7 +426,21 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
-        String sql = Helper.makeInsertSql(table, row.keySet().toArray(new String[0]));
+        return this.insertMap(null, table, row, returnColumns);
+    }
+
+    @Override
+    public int replaceMap(String table, Map<String, Object> row, String... returnColumns) {
+        return this.insertMap("REPLACE INTO", table, row, returnColumns);
+    }
+
+    @Override
+    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
+        return this.insertMap("INSERT IGNORE INTO", table, row, returnColumns);
+    }
+
+    private int insertMap(String insert, String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
+        String sql = Helper.makeInsertSql(insert, table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());
         try (PreparedStatement stat = (returnColumns == null ? conn.prepareStatement(sql)
                 : conn.prepareStatement(sql, returnColumns))) {//Statement.RETURN_GENERATED_KEYS

@@ -115,6 +115,16 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
+    public int replaceMap(String table, Map<String, Object> row, String... returnColumns) {
+        return delegate.insertMap(table, row, returnColumns);
+    }
+
+    @Override
+    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
+        return delegate.insertIgnoreMap(table, row, returnColumns);
+    }
+
+    @Override
     public int executeUpdate(String sql, Object... args) throws UncheckedSQLException {
         return delegate.executeUpdate(sql, args);
     }
@@ -162,6 +172,16 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     @Override
     public void insert(Object bean, String table) throws UncheckedSQLException {
         delegate.insert(bean, table);
+    }
+
+    @Override
+    public void replace(Object bean, String table) throws UncheckedSQLException {
+        delegate.replace(bean, table);
+    }
+
+    @Override
+    public void insertIgnore(Object bean, String table) throws UncheckedSQLException {
+        delegate.insertIgnore(bean, table);
     }
 
     @Override

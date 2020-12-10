@@ -24,7 +24,7 @@ public class SqlConnectionTest {
 
     private SqlConnection conn;
 
-    private static String dbname = "mysql";//h2, mysql, pgsql
+    private static String dbname = "h2";//h2, mysql, pgsql
 
     @BeforeClass
     public static void beforeClass() {
@@ -74,8 +74,16 @@ public class SqlConnectionTest {
         }
     }
 
+    private boolean isMySQL() {
+        return "mysql".equals(dbname);
+    }
+
 
     ////////////////////////////////////ORM////////////////////////////////////////////////////////////////
+
+    private User newUser() {
+        return new User("May", "may@xxx.com", "123456");
+    }
 
     private User insertUser() {
         User user = new User("May", "may@xxx.com", "123456");
@@ -92,6 +100,16 @@ public class SqlConnectionTest {
     public void testInsertBean() {
         conn.setAutoCommit(false);
         insertUser();
+    }
+
+    @Test
+    public void testInsertIgnoreBean() {
+        if (isMySQL()) {
+            User user = newUser();
+            user.id = 1;
+            conn.insert(user, "users");
+            conn.insertIgnore(user, "users");
+        }
     }
 
     @Test
@@ -147,6 +165,13 @@ public class SqlConnectionTest {
     public void testQuery() {
         User user = conn.query("select * from users where username =?", "Frank").first(User::new);
         Assert.assertNull(user);
+    }
+
+    @Test
+    public void testQueryBean() {
+//        User user = conn.query(User.class, where -> {
+//        }).first(User::new);
+//        Assert.assertNull(user);
     }
 
     @Test

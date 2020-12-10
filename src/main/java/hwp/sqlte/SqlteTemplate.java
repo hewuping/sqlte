@@ -151,6 +151,22 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public void replace(Object bean, String table) throws UncheckedSQLException {
+        run(conn -> {
+            conn.replace(bean, table);
+            return null;
+        });
+    }
+
+    @Override
+    public void insertIgnore(Object bean, String table) throws UncheckedSQLException {
+        run(conn -> {
+            conn.insertIgnore(bean, table);
+            return null;
+        });
+    }
+
+    @Override
     public boolean update(Object bean) throws UncheckedSQLException {
         return this.update(bean, null);
     }
@@ -170,6 +186,16 @@ public class SqlteTemplate implements SqlConnection {//sql
     @Override
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
         return run(conn -> conn.insertMap(table, row, returnColumns));
+    }
+
+    @Override
+    public int replaceMap(String table, Map<String, Object> row, String... returnColumns) {
+        return run(conn -> conn.replaceMap(table, row, returnColumns));
+    }
+
+    @Override
+    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
+        return run(conn -> conn.insertIgnoreMap(table, row, returnColumns));
     }
 
     @Override

@@ -20,6 +20,11 @@ public interface SqlConnection extends AutoCloseable {
 
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
+    default <T> SqlResultSet query(Class<T> returnType, Consumer<Where> where) throws UncheckedSQLException {
+        ClassInfo info = ClassInfo.getClassInfo(returnType);
+        return query(sql -> sql.select(info.getTableName()).where(where));
+    }
+
     default SqlResultSet query(String sql) throws UncheckedSQLException {
         return query(sql, (Object[]) null);
     }
@@ -84,6 +89,16 @@ public interface SqlConnection extends AutoCloseable {
 
     int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException;
 
+    /**
+     * MySQL: REPLACE INTO
+     */
+    int replaceMap(String table, Map<String, Object> row, String... returnColumns);
+
+    /**
+     * MySQL: INSERT IGNORE INTO
+     */
+    int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns);
+
     int executeUpdate(String sql, Object... args) throws UncheckedSQLException;//execute
 
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
@@ -118,6 +133,10 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     void insert(Object bean, String table) throws UncheckedSQLException;
+
+    void replace(Object bean, String table) throws UncheckedSQLException;
+
+    void insertIgnore(Object bean, String table) throws UncheckedSQLException;
 
     boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException;
 

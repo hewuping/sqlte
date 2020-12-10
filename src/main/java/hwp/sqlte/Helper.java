@@ -56,7 +56,15 @@ class Helper {
     }
 
     static String makeInsertSql(String table, String... columns) {
-        StringBuilder builder = new StringBuilder("INSERT INTO ");
+        return makeInsertSql("INSERT INTO", table, columns);
+    }
+
+    static String makeInsertSql(String insert, String table, String... columns) {
+        if (insert == null || insert.isEmpty()) {
+            insert = "INSERT INTO";
+        }
+        StringBuilder builder = new StringBuilder(insert);
+        builder.append(" ");
         builder.append(table);
         builder.append('(');
         int len = columns.length;
