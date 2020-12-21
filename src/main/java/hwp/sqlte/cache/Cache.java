@@ -20,11 +20,17 @@ public interface Cache {
 
     Object get(Object key);
 
-    default Object get(String key, Supplier<Object> supplier) {
+    default Object get(Object key, Supplier<Object> supplier) {
+        return get(key, supplier, true);
+    }
+
+    default Object get(Object key, Supplier<Object> supplier, boolean cache) {
         Object o = get(key);
         if (o == null) {
             o = supplier.get();
-            put(key, o);
+            if (cache) {
+                put(key, o);
+            }
         }
         return o;
     }

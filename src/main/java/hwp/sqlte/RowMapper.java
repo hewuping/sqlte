@@ -58,7 +58,7 @@ public interface RowMapper<T> extends Function<Row, T> {
                                 Class<? extends Serializer> serializerClass = column.serializer();
                                 if (serializerClass != Serializer.class) {
                                     try {
-                                        Serializer serializer = (Serializer) cache.get(serializerClass.getName(), () -> {
+                                        Serializer serializer = (Serializer) cache.get(serializerClass, () -> {
                                             try {
                                                 return serializerClass.getDeclaredConstructor().newInstance();
                                             } catch (ReflectiveOperationException e) {
