@@ -53,7 +53,7 @@ public interface RowMapper<T> extends Function<Row, T> {
                     if (value != null) {
                         //toObject
                         if (value instanceof String && !field.isEnumConstant()) {
-                            Column column = field.getAnnotation(Column.class);//TODO 这一步需要优化, 因为有同步锁
+                            Column column = field.getAnnotation(Column.class);
                             if (column != null) {
                                 Class<? extends Serializer> serializerClass = column.serializer();
                                 if (serializerClass != Serializer.class) {

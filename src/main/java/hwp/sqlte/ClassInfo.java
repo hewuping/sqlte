@@ -55,7 +55,7 @@ class ClassInfo {
             if (isPublicField(field)) {
                 Column column = field.getAnnotation(Column.class);
                 String columnName;
-                if (column == null) {
+                if (column == null || column.name().isEmpty()) {
                     String fieldName = field.getName();
                     StringBuilder builder = new StringBuilder(fieldName.length());
                     for (int i = 0, len = fieldName.length(); i < len; i++) {

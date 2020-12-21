@@ -16,7 +16,7 @@ import static java.lang.annotation.ElementType.FIELD;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
 
-    String name();
+    String name() default "";
 
     Class<? extends Serializer> serializer() default Serializer.class;
 
