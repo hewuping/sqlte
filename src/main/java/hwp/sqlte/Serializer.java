@@ -1,20 +1,15 @@
 package hwp.sqlte;
 
 /**
- * @author Zero
- * Created on 2018/11/20.
+ * 实现类必须是线程安全的
  */
-public interface Converter<T> {
+public interface Serializer {
 
-    String toString(T t);
+    String encode(Object t);
 
-    T toObject(String code);
+    Object decode(String code);
 
-    default boolean isThreadSafe() {
-        return false;
-    }
-
-/*    class JsonExampleConverter implements Converter<Map<String, String>> {
+/*    class JsonConverter implements Serializer {
 
         @Override
         public String toString(Map<String, Object> map) {

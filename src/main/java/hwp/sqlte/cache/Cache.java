@@ -8,6 +8,8 @@
 
 package hwp.sqlte.cache;
 
+import java.util.function.Supplier;
+
 /**
  * @author Zero
  * Created on 2019/9/6.
@@ -17,6 +19,15 @@ public interface Cache {
     void put(Object key, Object value);
 
     Object get(Object key);
+
+    default Object get(String key, Supplier<Object> supplier) {
+        Object o = get(key);
+        if (o == null) {
+            o = supplier.get();
+            put(key, o);
+        }
+        return o;
+    }
 
     void remove(Object key);
 

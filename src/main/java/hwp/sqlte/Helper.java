@@ -106,10 +106,10 @@ class Helper {
         try {
             Column column = field.getAnnotation(Column.class);
             if (column != null) {
-                Class<? extends Converter> serializerClass = column.serializer();
-                if (serializerClass != Converter.class) {
-                    Converter converter = serializerClass.getDeclaredConstructor().newInstance();
-                    return converter.toString(value);
+                Class<? extends Serializer> serializerClass = column.serializer();
+                if (serializerClass != Serializer.class) {
+                    Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
+                    return serializer.encode(value);
                 }
             }
         } catch (Exception e) {

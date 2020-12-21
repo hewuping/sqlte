@@ -1,6 +1,8 @@
 package hwp.sqlte;
 
 
+import hwp.sqlte.cache.FifoCache;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +30,7 @@ public interface RowMapper<T> extends Function<Row, T> {
 
 
     class BeanMapper<T extends Object> implements RowMapper<T> {
+        private static final FifoCache cache = new FifoCache(1024);
 
         private Supplier<T> supplier;
 
@@ -52,12 +55,17 @@ public interface RowMapper<T> extends Function<Row, T> {
                         if (value instanceof String && !field.isEnumConstant()) {
                             Column column = field.getAnnotation(Column.class);//TODO 这一步需要优化, 因为有同步锁
                             if (column != null) {
-                                Class<? extends Converter> serializerClass = column.serializer();
-                                if (serializerClass != Converter.class) {
+                                Class<? extends Serializer> serializerClass = column.serializer();
+                                if (serializerClass != Serializer.class) {
                                     try {
-                                        //TODO 这一步需要优化, 如果是线程安全的则缓存
-                                        Converter converter = serializerClass.getDeclaredConstructor().newInstance();
-                                        value = converter.toObject((String) value);
+                                        Serializer serializer = (Serializer) cache.get(serializerClass.getName(), () -> {
+                                            try {
+                                                return serializerClass.getDeclaredConstructor().newInstance();
+                                            } catch (ReflectiveOperationException e) {
+                                                throw new RuntimeException(e);
+                                            }
+                                        });
+                                        value = serializer.decode((String) value);
                                     } catch (Exception e) {
                                         throw new RuntimeException(e);
                                     }
