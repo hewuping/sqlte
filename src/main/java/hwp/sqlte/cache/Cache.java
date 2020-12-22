@@ -14,18 +14,18 @@ import java.util.function.Supplier;
  * @author Zero
  * Created on 2019/9/6.
  */
-public interface Cache {
+public interface Cache<T> {
 
-    void put(Object key, Object value);
+    void put(Object key, T value);
 
-    Object get(Object key);
+    T get(Object key);
 
-    default Object get(Object key, Supplier<Object> supplier) {
+    default T get(Object key, Supplier<T> supplier) {
         return get(key, supplier, true);
     }
 
-    default Object get(Object key, Supplier<Object> supplier, boolean cache) {
-        Object o = get(key);
+    default T get(Object key, Supplier<T> supplier, boolean cache) {
+        T o = get(key);
         if (o == null) {
             o = supplier.get();
             if (cache) {

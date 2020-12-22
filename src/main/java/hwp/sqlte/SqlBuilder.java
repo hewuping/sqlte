@@ -36,6 +36,9 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     public SqlBuilder select(String table, String columns) {
+        if (columns == null || columns.isEmpty()) {
+            columns = "*";
+        }
         this.sql.append("SELECT ").append(columns).append(" FROM ").append(table);
         return this;
     }

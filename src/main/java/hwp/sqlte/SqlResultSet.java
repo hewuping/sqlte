@@ -48,19 +48,19 @@ public class SqlResultSet implements Iterable<Row> {
     }
 
     public Integer firstInt() {
-        return this.first(RowMapper.INTEGER).orElse(null);
+        return this.first(RowMapper.INTEGER);
     }
 
     public Integer firstInt(Integer def) {
-        return this.first(RowMapper.INTEGER).orElse(def);
+        return this.first(RowMapper.INTEGER);
     }
 
     public Long firstLong() {
-        return this.first(RowMapper.LONG).orElse(null);
+        return this.first(RowMapper.LONG);
     }
 
     public String firstString() {
-        return this.first(RowMapper.STRING).orElse(null);
+        return this.first(RowMapper.STRING);
     }
 
     public <T> List<T> list(RowMapper<T> mapper) {
@@ -71,9 +71,17 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> List<T> list(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
-        this.rows.forEach(row -> list.add(RowMapper.BeanMapper.convert(row, supplier)));
+        RowMapper.BeanMapper<T> mapper = new RowMapper.BeanMapper<>(supplier);
+        this.rows.forEach(row -> list.add(mapper.map(row)));
         return list;
     }
+/*
+    public <T> List<T> list(Class<T> clazz) {
+        List<T> list = new ArrayList<>(this.rows.size());
+        RowMapper.BeanMapper<T> mapper = new RowMapper.BeanMapper<>(clazz);
+        this.rows.forEach(row -> list.add(mapper.map(row)));
+        return list;
+    }*/
 
     protected void unmodifiableRows() {
         this.rows = Collections.unmodifiableList(this.rows);
@@ -98,12 +106,12 @@ public class SqlResultSet implements Iterable<Row> {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    public <T> Optional<T> first(RowMapper<T> mapper) throws UncheckedSQLException {
+    public <T> T first(RowMapper<T> mapper) throws UncheckedSQLException {
         Row row = first();
         if (row == null) {
-            return Optional.empty();
+            return null;
         }
-        return Optional.of(row.map(mapper));
+        return row.map(mapper);
     }
 
     public boolean isEmpty() {

@@ -176,8 +176,9 @@ public class SqlConnectionTest {
 
     @Test
     public void testQuery1() {
-        Optional<User> user = conn.query("select * from users where username=?", "Zero").first(User.MAPPER);
-        user.ifPresent(user1 -> conn.query("select * from orders where user_id=?", user1.id));
+        insertUser();
+        User user = conn.query("select * from users where username=?", "May").first(User.MAPPER);
+        Assert.assertNotNull(user);
     }
 
     @Test
@@ -204,8 +205,8 @@ public class SqlConnectionTest {
         Assert.assertTrue(users2.size() > 0);
 
         //select one
-        Optional<User> frank = conn.query(sql, "Frank").first(User.MAPPER);
-        frank.ifPresent(user -> Assert.assertEquals(user.password, "123456"));
+        User frank = conn.query(sql, "Frank").first(User.MAPPER);
+        Assert.assertNull(frank);
     }
 
     @Test
@@ -252,7 +253,7 @@ public class SqlConnectionTest {
         String username = "May";
         String email = null;
         String password = "123456";
-        Optional<User> user = conn.query(sql -> {
+        User user = conn.query(sql -> {
             sql.sql("select * from users");
             sql.where(where -> {
                 where.and(username != null, "username =?", username);//if username has value, use
@@ -262,9 +263,7 @@ public class SqlConnectionTest {
             });
             System.out.println(sql);
         }).first(User.MAPPER);
-        SqlResultSet rows = conn.query("select * from users");
-        User rs = user.orElse(null);
-        Assert.assertNotNull(rs);
+        Assert.assertNotNull(user);
     }
 
     @Test
@@ -529,8 +528,8 @@ public class SqlConnectionTest {
     ///////////////////////////////////////////Use Sql Provider////////////////////////////////////////////////////
     @Test
     public void testExecuteExternalSql() {
-        Optional<String> first = conn.query("#all").first(RowMapper.STRING);
-        first.ifPresent(System.out::println);
+        String first = conn.query("#all").first(RowMapper.STRING);
+        System.out.println(first);
     }
 
     @Test

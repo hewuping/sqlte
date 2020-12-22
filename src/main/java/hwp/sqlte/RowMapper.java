@@ -29,26 +29,27 @@ public interface RowMapper<T> extends Function<Row, T> {
     }
 
 
-    class BeanMapper<T extends Object> implements RowMapper<T> {
+    class BeanMapper<T> implements RowMapper<T> {
         private static final FifoCache cache = new FifoCache(1024);
 
         private Supplier<T> supplier;
+        private Class<T> clazz;
 
         public BeanMapper(Supplier<T> supplier) {
             this.supplier = supplier;
         }
 
-        @Override
-        public T map(Row row) {
-            return convert(row, supplier);
+        public BeanMapper(Class<T> clazz) {
+            this.clazz = clazz;
         }
 
-        static <T> T convert(Row from, Supplier<T> supplier) {
+        @Override
+        public T map(Row row) {
             try {
-                T obj = supplier.get();
+                T obj = supplier != null ? supplier.get() : clazz.getDeclaredConstructor().newInstance();
                 ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
                 for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                    Object value = from.getValue(entry.getKey());
+                    Object value = row.getValue(entry.getKey());
                     Field field = entry.getValue();
                     if (value != null) {
                         //toObject
@@ -86,11 +87,10 @@ public interface RowMapper<T> extends Function<Row, T> {
                     }
                 }
                 return obj;
-            } catch (IllegalAccessException e) {
+            } catch (ReflectiveOperationException e) {
                 throw new UncheckedException(e);
             }
         }
-
     }
 
     class DoubleMapper implements RowMapper<Double> {
