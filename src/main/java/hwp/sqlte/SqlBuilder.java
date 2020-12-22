@@ -49,21 +49,21 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     public SqlBuilder update(String table, String columns, Object... values) {
-        add("UPDATE ").add(table);
+        append("UPDATE ").append(table);
         String[] split = columns.split(",");
-        add(" SET ");
+        append(" SET ");
         for (int i = 0; i < split.length; i++) {
             String column = split[i];
             if (i > 0) {
-                add(", ");
+                append(", ");
             }
-            add(column + "=?", values[i]);
+            append(column + "=?", values[i]);
         }
         return this;
     }
 
     public SqlBuilder delete(String table) {
-        return add("DELETE FROM ").add(table);
+        return append("DELETE FROM ").append(table);
     }
 
     public SqlBuilder sql(CharSequence sql) {
@@ -110,7 +110,7 @@ public class SqlBuilder implements Builder, Sql {
 
 
     public SqlBuilder where(Where where) {
-        if (!where.isEmpty()) {
+        if (where != null && !where.isEmpty()) {
             this.sql.append(where);
             this.args.addAll(where.args());
         }
@@ -161,7 +161,7 @@ public class SqlBuilder implements Builder, Sql {
     public SqlBuilder groupBy(Consumer<Group> group, Consumer<Having> having) {
         Group g = new Group();
         group.accept(g);
-        add(g.sql());
+        append(g.sql());
         if (having != null) {
             Having h = new Having();
             having.accept(h);
@@ -178,12 +178,12 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
-    public SqlBuilder add(String sql) {
+    public SqlBuilder append(String sql) {
         this.sql.append(sql);
         return this;
     }
 
-    public SqlBuilder add(String sql, Object... args) {
+    public SqlBuilder append(String sql, Object... args) {
         this.sql.append(sql);
         this.addArgs(args);
         return this;

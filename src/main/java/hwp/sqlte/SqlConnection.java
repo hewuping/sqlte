@@ -66,9 +66,7 @@ public interface SqlConnection extends AutoCloseable {
         query(sb, rowHandler);
     }
 
-    default long count(String table, Consumer<Where> consumer) throws UncheckedSQLException {
-        Where where = new Where();
-        consumer.accept(where);
+    default long selectCount(String table, Where where) throws UncheckedSQLException {
         return query(sql -> sql.selectCount(table).where(where)).firstLong();
     }
 

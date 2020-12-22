@@ -3,12 +3,10 @@ package hwp.sqlte;
 
 import hwp.sqlte.RowMapper.BeanMapper;
 
-import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -85,23 +83,10 @@ public class Row extends HashMap<String, Object> {
 
     public <T> T copyTo(T bean) {
         try {
-            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-            ConversionService conversion = Config.getConfig().getConversionService();
-            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                Object value = getValue(entry.getKey());
-                Field field = entry.getValue();
-                if (value != null) {
-                    if (value.getClass() == field.getType()) {
-                        field.set(bean, value);
-                    } else {
-                        field.set(bean, conversion.convert(value, field.getType()));
-                    }
-                }
-            }
-        } catch (IllegalAccessException e) {
-            return bean;
+            return BeanMapper.copy(this, bean);
+        } catch (ReflectiveOperationException e) {
+            throw new UncheckedException(e);
         }
-        return bean;
     }
 
 }

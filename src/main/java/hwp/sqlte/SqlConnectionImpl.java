@@ -562,7 +562,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             String sql = Helper.makeUpdateSql(table, _columns);
             SqlBuilder builder = new SqlBuilder();
-            builder.add(sql, args);
+            builder.append(sql, args);
 
             Where where0 = new Where();
             if (where == null) {
@@ -744,7 +744,7 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("The class unspecified ID field: " + bean.getClass().getName());
             }
             SqlBuilder builder = new SqlBuilder();
-            builder.add("DELETE FROM ").add(table);
+            builder.append("DELETE FROM ").append(table);
 
             Where where = new Where();
             for (String pkColumn : pkColumns) {
@@ -764,13 +764,13 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException {
         SqlBuilder builder = new SqlBuilder();
-        builder.add("UPDATE ").add(table).add(" SET ");
+        builder.append("UPDATE ").append(table).append(" SET ");
         Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            builder.add(entry.getKey()).add("=?", entry.getValue());
+            builder.append(entry.getKey()).append("=?", entry.getValue());
             if (it.hasNext()) {
-                builder.add(", ");
+                builder.append(", ");
             }
         }
         builder.where(where);

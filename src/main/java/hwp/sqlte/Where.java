@@ -9,8 +9,9 @@ public class Where {
     private StringBuilder whereBuilder = new StringBuilder();
     private List<Object> whereArgs = new ArrayList<>(4);
 
-    public Where add(String sql) {
+    public Where append(String sql, Object... args) {
         whereBuilder.append(sql);
+        Collections.addAll(whereArgs, args);
         return this;
     }
 
@@ -23,14 +24,14 @@ public class Where {
     }
 
     public Where and(boolean filter, String sql, Object... args) {
-        return add("AND", filter, sql, args);
+        return append("AND", filter, sql, args);
     }
 
     public Where or(boolean filter, String sql, Object... args) {
-        return add("OR", filter, sql, args);
+        return append("OR", filter, sql, args);
     }
 
-    public Where add(String operator, boolean filter, String sql, Object... args) {
+    public Where append(String operator, boolean filter, String sql, Object... args) {
         if (filter) {
             if (whereBuilder.length() == 0) {
                 whereBuilder.append(" ").append(keyword());

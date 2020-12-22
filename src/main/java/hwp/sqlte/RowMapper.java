@@ -30,7 +30,7 @@ public interface RowMapper<T> extends Function<Row, T> {
 
 
     class BeanMapper<T> implements RowMapper<T> {
-        private static final FifoCache cache = new FifoCache(1024);
+        private static final FifoCache<Serializer> cache = new FifoCache<>(1024);
 
         private Supplier<T> supplier;
         private Class<T> clazz;
@@ -43,50 +43,54 @@ public interface RowMapper<T> extends Function<Row, T> {
             this.clazz = clazz;
         }
 
+        public static <T> T copy(Row row, T obj) throws ReflectiveOperationException {
+            ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
+            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
+                Object value = row.getValue(entry.getKey());
+                Field field = entry.getValue();
+                if (value != null) {
+                    //toObject
+                    if (value instanceof String && !field.isEnumConstant()) {
+                        Column column = field.getAnnotation(Column.class);
+                        if (column != null) {
+                            Class<? extends Serializer> serializerClass = column.serializer();
+                            if (serializerClass != Serializer.class) {
+                                try {
+                                    Serializer serializer = cache.get(serializerClass, () -> {
+                                        try {
+                                            return serializerClass.getDeclaredConstructor().newInstance();
+                                        } catch (ReflectiveOperationException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+                                    value = serializer.decode((String) value);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }
+                    }
+                    //
+                    if (value.getClass() == field.getType() || field.getType().isInstance(value)) {
+                        field.set(obj, value);
+                    } else if (field.getType() == String.class) {
+                        entry.getValue().set(obj, value.toString());
+                    } else {
+                        ConversionService conversionService = Config.getConfig().getConversionService();
+                        if (conversionService.canConvert(value.getClass(), field.getType())) {
+                            field.set(obj, conversionService.convert(value, field.getType()));
+                        }
+                    }
+                }
+            }
+            return obj;
+        }
+
         @Override
         public T map(Row row) {
             try {
                 T obj = supplier != null ? supplier.get() : clazz.getDeclaredConstructor().newInstance();
-                ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
-                for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                    Object value = row.getValue(entry.getKey());
-                    Field field = entry.getValue();
-                    if (value != null) {
-                        //toObject
-                        if (value instanceof String && !field.isEnumConstant()) {
-                            Column column = field.getAnnotation(Column.class);
-                            if (column != null) {
-                                Class<? extends Serializer> serializerClass = column.serializer();
-                                if (serializerClass != Serializer.class) {
-                                    try {
-                                        Serializer serializer = (Serializer) cache.get(serializerClass, () -> {
-                                            try {
-                                                return serializerClass.getDeclaredConstructor().newInstance();
-                                            } catch (ReflectiveOperationException e) {
-                                                throw new RuntimeException(e);
-                                            }
-                                        });
-                                        value = serializer.decode((String) value);
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                }
-                            }
-                        }
-                        //
-                        if (value.getClass() == field.getType() || field.getType().isInstance(value)) {
-                            field.set(obj, value);
-                        } else if (field.getType() == String.class) {
-                            entry.getValue().set(obj, value.toString());
-                        } else {
-                            ConversionService conversionService = Config.getConfig().getConversionService();
-                            if (conversionService.canConvert(value.getClass(), field.getType())) {
-                                field.set(obj, conversionService.convert(value, field.getType()));
-                            }
-                        }
-                    }
-                }
-                return obj;
+                return copy(row, obj);
             } catch (ReflectiveOperationException e) {
                 throw new UncheckedException(e);
             }
