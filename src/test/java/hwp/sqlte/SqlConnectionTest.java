@@ -564,5 +564,22 @@ public class SqlConnectionTest {
         Assert.assertFalse(conn.query("select * from users where updated_time BETWEEN ? AND ?", from, to).isEmpty());
     }
 
+    @Test
+    public void testTransaction() {
+        SqlConnection[] ss = new SqlConnection[1];
+        Sql.transaction(conn -> {
+            ss[0] = conn;
+            System.out.println(conn.connection().hashCode());
+            System.out.println(ss[0].getAutoCommit());
+            return true;
+        });
+        for (int i = 0; i < 5; i++) {
+            SqlConnection conn = Sql.open();
+            System.out.println(conn.connection().hashCode());
+            System.out.println(conn.getAutoCommit());
+            conn.close();
+        }
+    }
+
 
 }

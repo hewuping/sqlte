@@ -52,7 +52,7 @@ class ClassInfo {
         Field[] fields = clazz.getFields();
         Map<String, Field> columnFieldMap0 = new LinkedHashMap<>();
         for (Field field : fields) {
-            if (isPublicField(field)) {
+            if (isPersistent(field)) {
                 Column column = field.getAnnotation(Column.class);
                 String columnName;
                 if (column == null || column.name().isEmpty()) {
@@ -174,8 +174,11 @@ class ClassInfo {
         return autoGenerateColumns;
     }
 
-    private boolean isPublicField(Field field) {
-        return !Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers());
+    private boolean isPersistent(Field field) {
+        return !Modifier.isStatic(field.getModifiers())
+                && !Modifier.isFinal(field.getModifiers())
+                && !Modifier.isNative(field.getModifiers())
+                && !Modifier.isTransient(field.getModifiers());
     }
 
 
