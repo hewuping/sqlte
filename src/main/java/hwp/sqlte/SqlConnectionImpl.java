@@ -518,7 +518,7 @@ class SqlConnectionImpl implements SqlConnection {
             if (columns == null) {
                 _columns = info.getNonPkColumns();
             } else {
-                _columns = columns.split(",");
+                _columns = columns.trim().split("\\s*,\\s*");
             }
 
             if (_columns.length == 0) {

@@ -26,7 +26,7 @@ public class Condition {
 
 
     private Condition(String column, String rel, Object... args) {
-        this.sql =  column + rel + "?";
+        this.sql = column + rel + "?";
         this.args = args;
     }
 
@@ -80,23 +80,15 @@ public class Condition {
     }
 
     public static Condition in(String column, Object... values) {
-        return _in(false, column, Object.class, values);
-    }
-
-    public static <T> Condition in(String column, Class<T> tClass, T... values) {
-        return _in(false, column, tClass, values);
+        return _in(false, column, values);
     }
 
     public static Condition notIn(String column, Object... values) {
-        return _in(true, column, Object.class, values);
+        return _in(true, column, values);
     }
 
-    public static <T> Condition notIn(String column, Class<T> tClass, T... values) {
-        return _in(true, column, tClass, values);
-    }
-
-    private static <T> Condition _in(boolean notIn, String column, Class<T> tClass, T... values) {
-        StringBuilder builder = new StringBuilder();
+    private static <T> Condition _in(boolean notIn, String column, Object... values) {
+        StringBuilder builder = new StringBuilder(column);
         if (notIn) {
             builder.append(" NOT IN (");
         } else {
