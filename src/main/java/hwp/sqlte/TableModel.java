@@ -17,15 +17,15 @@ import java.util.List;
 public class TableModel<T> {
     private final List<T> data;
     private final long rowCount;
-    private Integer pageSize;
     private Integer page;
+    private Integer pageSize;
 
     public TableModel(List<T> data, long rowCount) {
         this.data = data;
         this.rowCount = rowCount;
     }
 
-    public TableModel(List<T> data, long rowCount, Integer pageSize, Integer page) {
+    public TableModel(List<T> data, long rowCount, Integer page, Integer pageSize) {
         this.data = data;
         this.rowCount = rowCount;
         this.pageSize = pageSize;

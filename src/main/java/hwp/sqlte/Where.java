@@ -6,8 +6,8 @@ import java.util.List;
 
 public class Where {
 
-    private StringBuilder whereBuilder = new StringBuilder();
-    private List<Object> whereArgs = new ArrayList<>(4);
+    private final StringBuilder whereBuilder = new StringBuilder();
+    private final List<Object> whereArgs = new ArrayList<>(4);
 
     public Where append(String sql, Object... args) {
         whereBuilder.append(sql);
@@ -54,11 +54,14 @@ public class Where {
 
 
     public void apply(Where where) {
-        this.whereBuilder = where.whereBuilder;
-        this.whereArgs = where.whereArgs;
+        // 避免修改参数
+        this.whereBuilder.setLength(0);
+        this.whereArgs.clear();
+        this.whereBuilder.append(where.whereBuilder);
+        this.whereArgs.addAll(where.args());
     }
 
-    protected List<Object> args() {
+    public List<Object> args() {
         return whereArgs;
     }
 
