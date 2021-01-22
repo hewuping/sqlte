@@ -70,9 +70,18 @@ public class SqlResultSet implements Iterable<Row> {
     }
 
     public <T> List<T> list(Supplier<T> supplier) {
+        return this.list(supplier, null);
+    }
+
+    public <T> List<T> list(Supplier<T> supplier, Consumer<T> consumer) {
         List<T> list = new ArrayList<>(this.rows.size());
         RowMapper.BeanMapper<T> mapper = new RowMapper.BeanMapper<>(supplier);
         this.rows.forEach(row -> list.add(mapper.map(row)));
+        if (consumer != null) {
+            for (T obj : list) {
+                consumer.accept(obj);
+            }
+        }
         return list;
     }
 /*

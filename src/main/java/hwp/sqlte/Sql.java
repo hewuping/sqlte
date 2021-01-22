@@ -91,17 +91,31 @@ public interface Sql {
     }
 
     static <R> R transaction(Function<SqlConnection, R> function) throws UncheckedSQLException {
-        SqlConnection connection = open();
+        SqlConnection conn = open();
         try {
-            connection.setAutoCommit(false);
-            R r = function.apply(connection);
-            connection.commit();
+            conn.setAutoCommit(false);
+            R r = function.apply(conn);
+            conn.commit();
             return r;
         } catch (Exception e) {
-            connection.rollback();
+            conn.rollback();
             throw e;
         } finally {
-            connection.close();
+            conn.close();
+        }
+    }
+
+    static void transaction(Consumer<SqlConnection> consumer) throws UncheckedSQLException {
+        SqlConnection conn = open();
+        try {
+            conn.setAutoCommit(false);
+            consumer.accept(conn);
+            conn.commit();
+        } catch (Exception e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.close();
         }
     }
 

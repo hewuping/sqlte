@@ -123,6 +123,10 @@ public class SqlBuilder implements Builder, Sql {
         return this.where(w);
     }
 
+    public SqlBuilder limitOfPage(int page, int size) {
+        return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
+    }
+
     public SqlBuilder limit(int first, int size) {
         this.sql.append(" LIMIT ").append(first).append(",").append(size);
         return this;

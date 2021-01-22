@@ -79,6 +79,12 @@ public class Condition {
         return like(column, "%" + value + "%");
     }
 
+    public static Condition in(String column, String[] values) {
+        Object[] args = new Object[values.length];
+        System.arraycopy(values, 0, args, 0, values.length);
+        return _in(false, column, args);
+    }
+
     public static Condition in(String column, Object... values) {
         return _in(false, column, values);
     }

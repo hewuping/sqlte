@@ -13,12 +13,12 @@ public interface Serializer {
 
         @Override
         public String toString(Map<String, Object> map) {
-            return JSON.toJson(map)
+            return JSON.toJson(map);
         }
 
         @Override
         public Map<String, String> toObject(String code) {
-            return JSON.fromJson(map)
+            return JSON.fromJson(map);
         }
 
     }*/
