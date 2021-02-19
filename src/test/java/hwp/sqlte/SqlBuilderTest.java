@@ -3,6 +3,8 @@ package hwp.sqlte;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  * @author Zero
  * Created on 2018/10/9.
@@ -40,12 +42,11 @@ public class SqlBuilderTest {
         SqlBuilder sql = new SqlBuilder();
         sql.from("users");
         sql.where(where -> {
-            where.and(Condition.in("age", new int[]{12, 13, 15, 17}));
+            where.and(Condition.in("age", new Integer[]{12, 13, 15, 17}, 6));
+            where.and(Condition.in("username", "Zero,Frank".split(",")));
         });
-
-//        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username, age DESC LIMIT 1, 20";
-//        Assert.assertEquals(expected, sql.sql());
-        System.out.println(sql);
+        Assert.assertEquals("SELECT * FROM users WHERE age IN (?, ?, ?, ?, ?) AND username IN (?, ?)", sql.sql());
+        Assert.assertEquals("[12, 13, 15, 17, 6, Zero, Frank]", Arrays.toString(sql.args()));
     }
 
     @Test
@@ -54,6 +55,7 @@ public class SqlBuilderTest {
         builder.update("users", "age,username", 12, "zero")
                 .where(where -> where.and(Condition.eq("id", 123456)));
         Assert.assertEquals("UPDATE users SET age=?, username=? WHERE id = ?", builder.sql());
+        System.out.println(builder);
         Assert.assertEquals(3, builder.args().length);
     }
 

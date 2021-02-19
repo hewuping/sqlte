@@ -8,6 +8,10 @@
 
 package hwp.sqlte;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * @author Zero
  * Created on 2018/12/4.
@@ -19,15 +23,14 @@ public class Condition {
     private Condition() {
     }
 
-    private Condition(String sql, Object... args) {
+    private Condition(String sql, Object[] args) {
         this.sql = sql;
         this.args = args;
     }
 
-
-    private Condition(String column, String rel, Object... args) {
-        this.sql = column + rel + "?";
-        this.args = args;
+    private Condition(String column, String operator, Object value) {
+        this.sql = column + operator + "?";
+        this.args = new Object[]{value};
     }
 
     public static Condition eq(String column, Object value) {
@@ -56,7 +59,7 @@ public class Condition {
     }
 
     public static Condition between(String column, Object from, Object to) {
-        return new Condition(column + " BETWEEN ? AND ?", from, to);
+        return new Condition(column + " BETWEEN ? AND ?", new Object[]{from, to});
     }
 
     public static Condition like(String column, String value) {
@@ -80,9 +83,9 @@ public class Condition {
     }
 
     public static Condition in(String column, String[] values) {
-        Object[] args = new Object[values.length];
-        System.arraycopy(values, 0, args, 0, values.length);
-        return _in(false, column, args);
+//        Object[] args = new Object[values.length];
+//        System.arraycopy(values, 0, args, 0, values.length);
+        return _in(false, column, (Object[]) values);
     }
 
     public static Condition in(String column, Object... values) {
@@ -94,20 +97,36 @@ public class Condition {
     }
 
     private static <T> Condition _in(boolean notIn, String column, Object... values) {
+        // 展开数组和集合
+        List<Object> args = new ArrayList<>(values.length);
+        for (Object value : values) {
+            if (value.getClass().isArray()) {
+                Object[] va = (Object[]) value;
+                for (Object o : va) {
+                    args.add(o);
+                }
+            } else if (value instanceof Collection) {
+                Collection<?> c = (Collection<?>) value;
+                args.addAll(c);
+            } else {
+                args.add(value);
+            }
+        }
+        // 构建sql
         StringBuilder builder = new StringBuilder(column);
         if (notIn) {
             builder.append(" NOT IN (");
         } else {
             builder.append(" IN (");
         }
-        for (int i = 0; i < values.length; i++) {
+        for (int i = 0; i < args.size(); i++) {
             if (i > 0) {
                 builder.append(", ");
             }
             builder.append('?');
         }
         builder.append(")");
-        return new Condition(builder.toString(), values);
+        return new Condition(builder.toString(), args.toArray());
     }
 
     public String sql() {
