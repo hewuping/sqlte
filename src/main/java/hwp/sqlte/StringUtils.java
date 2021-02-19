@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+ * Copyright (c) 2021. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
  *       Morbi non lorem porttitor neque feugiat blandit. Ut vitae ipsum eget quam lacinia accumsan.
  *       Etiam sed turpis ac ipsum condimentum fringilla. Maecenas magna.
  *       Proin dapibus sapien vel ante. Aliquam erat volutpat. Pellentesque sagittis ligula eget metus.
@@ -10,8 +10,14 @@ package hwp.sqlte;
 
 /**
  * @author Zero
- * Created on 2018/12/4.
+ * Created on 2021/2/9.
  */
-public class Having extends Where {
+class StringUtils {
+    public static boolean isEmpty(final CharSequence cs) {
+        return cs == null || cs.length() == 0;
+    }
 
+    public static boolean isNotEmpty(final CharSequence cs) {
+        return !isEmpty(cs);
+    }
 }

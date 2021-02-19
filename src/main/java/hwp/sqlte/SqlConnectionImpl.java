@@ -117,7 +117,7 @@ class SqlConnectionImpl implements SqlConnection {
             for (String k : pkColumns) {
                 where.and(k + "=?", info.getField(k).get(bean));
             }
-            Row first = query(sql -> sql.select(info.getTableName()).where(where)).first();
+            Row first = query(sql -> sql.from(info.getTableName()).where(where)).first();
             if (first == null) {
                 return null;
             }

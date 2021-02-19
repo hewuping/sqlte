@@ -1,10 +1,7 @@
 package hwp.sqlte;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -12,15 +9,24 @@ import java.util.function.Consumer;
  * Created on 2017/3/21.
  */
 public class SqlBuilder implements Builder, Sql {
+    private char separator = ' ';
+
     private final List<Object> args = new ArrayList<>();
     private final StringBuilder sql = new StringBuilder();
 
     public SqlBuilder() {
+    }
 
+    public SqlBuilder(char separator) {
+        this.separator = separator;
     }
 
     @Override
     public String sql() {
+        int last = sql.length() - 1;
+        if (Character.isSpaceChar(sql.charAt(last))) {
+            sql.deleteCharAt(last);
+        }
         return sql.toString();
     }
 
@@ -30,52 +36,72 @@ public class SqlBuilder implements Builder, Sql {
     }
 
 
-    public SqlBuilder select(String table) {
-        this.sql.append("SELECT * FROM ").append(table);
+    public SqlBuilder select(String columns) {
+        Objects.requireNonNull(columns);
+        this.sql.append("SELECT ").append(columns).append(separator);
         return this;
     }
 
-    public SqlBuilder select(String table, String columns) {
-        if (columns == null || columns.isEmpty()) {
-            columns = "*";
+/*    public SqlBuilder select(String columns, String table) {
+        return this.select(columns).from(table);
+    }*/
+
+    public SqlBuilder from(String from) {
+        Objects.requireNonNull(from);
+        if (sql.length() == 0) {
+            this.sql.append("SELECT *").append(separator);
         }
-        this.sql.append("SELECT ").append(columns).append(" FROM ").append(table);
+        this.sql.append("FROM ").append(from).append(separator);
         return this;
     }
 
-    public SqlBuilder selectCount(String table) {
-        this.sql.append("SELECT COUNT(*) AS _count FROM ").append(table);
+    public SqlBuilder selectCount(String from) {
+        Objects.requireNonNull(from);
+        sql.append("SELECT COUNT(*) AS _COUNT_ FROM ");
+        if (from.indexOf(' ') != -1) {
+            sql.append('(').append(from).append(") AS __TABLE__");
+        } else {
+            sql.append(from);
+        }
+        sql.append(separator);
         return this;
     }
 
     public SqlBuilder update(String table, String columns, Object... values) {
-        append("UPDATE ").append(table);
+        Objects.requireNonNull(table);
+        Objects.requireNonNull(columns);
+        sql.append("UPDATE ").append(table);
         String[] split = columns.split(",");
-        append(" SET ");
+        sql.append(" SET ");
         for (int i = 0; i < split.length; i++) {
             String column = split[i];
             if (i > 0) {
-                append(", ");
+                sql.append(", ");
             }
-            append(column + "=?", values[i]);
+            sql.append(column + "=?");
+            addArgs(values[i]);
         }
+        sql.append(separator);
         return this;
     }
 
     public SqlBuilder delete(String table) {
-        return append("DELETE FROM ").append(table);
+        sql.append("DELETE FROM ").append(table).append(separator);
+        return this;
     }
 
     public SqlBuilder sql(CharSequence sql) {
+        Objects.requireNonNull(sql);
         this.sql.append(sql);
         char lastChar = sql.charAt(sql.length() - 1);
         if (!Character.isSpaceChar(lastChar)) {
-            this.sql.append(" ");
+            this.sql.append(separator);
         }
         return this;
     }
 
     public SqlBuilder sql(CharSequence sql, Object... args) {
+        Objects.requireNonNull(sql);
         sql(sql).addArgs(args);
         return this;
     }
@@ -111,7 +137,7 @@ public class SqlBuilder implements Builder, Sql {
 
     public SqlBuilder where(Where where) {
         if (where != null && !where.isEmpty()) {
-            this.sql.append(where);
+            this.sql.append("WHERE ").append(where).append(separator);
             this.args.addAll(where.args());
         }
         return this;
@@ -123,27 +149,30 @@ public class SqlBuilder implements Builder, Sql {
         return this.where(w);
     }
 
-    public SqlBuilder limitOfPage(int page, int size) {
+    public SqlBuilder paging(int page, int size) {
         return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
     }
 
     public SqlBuilder limit(int first, int size) {
-        this.sql.append(" LIMIT ").append(first).append(",").append(size);
+        this.sql.append("LIMIT ").append(first).append(", ").append(size).append(separator);
         return this;
     }
 
     public SqlBuilder limit(int size) {
-        this.sql.append(" LIMIT ").append(size);
+        this.sql.append("LIMIT ").append(size).append(separator);
         return this;
     }
 
     public SqlBuilder orderBy(String orderSql) {
-        sql.append(" ORDER BY ").append(orderSql);
+        Objects.requireNonNull(orderSql);
+        sql.append("ORDER BY ").append(orderSql).append(separator);
         return this;
     }
 
     public SqlBuilder orderBy(Order order) {
-        sql.append(order);
+        if (order != null && !order.isEmpty()) {
+            sql.append("ORDER BY ").append(order).append(separator);
+        }
         return this;
     }
 
@@ -154,18 +183,14 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     public SqlBuilder groupBy(String groupSql) {
-        sql.append(" GROUP BY ").append(groupSql);
+        Objects.requireNonNull(groupSql);
+        sql.append("GROUP BY ").append(groupSql).append(separator);
         return this;
     }
 
-    public SqlBuilder groupBy(Consumer<Group> group) {
-        return groupBy(group, null);
-    }
-
-    public SqlBuilder groupBy(Consumer<Group> group, Consumer<Having> having) {
-        Group g = new Group();
-        group.accept(g);
-        append(g.sql());
+    public SqlBuilder groupBy(String groupSql, Consumer<Having> having) {
+        Objects.requireNonNull(groupSql);
+        sql.append("GROUP BY ").append(groupSql).append(separator);
         if (having != null) {
             Having h = new Having();
             having.accept(h);
@@ -174,21 +199,24 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
-    private SqlBuilder having(Where where) {
-        if (!where.isEmpty()) {
-            this.sql.append(where.sql());
-            this.args.addAll(where.args());
+    private SqlBuilder having(Having having) {
+        Objects.requireNonNull(having);
+        if (!having.isEmpty()) {
+            this.sql.append("HAVING ").append(having).append(separator);
+            this.args.addAll(having.args());
         }
         return this;
     }
 
     public SqlBuilder append(String sql) {
-        this.sql.append(sql);
+        Objects.requireNonNull(sql);
+        this.sql.append(sql).append(separator);
         return this;
     }
 
     public SqlBuilder append(String sql, Object... args) {
-        this.sql.append(sql);
+        Objects.requireNonNull(sql);
+        this.sql.append(sql).append(separator);
         this.addArgs(args);
         return this;
     }
@@ -205,6 +233,13 @@ public class SqlBuilder implements Builder, Sql {
     @Override
     public Sql build() {
         return new SimpleSql(sql(), args());
+    }
+
+
+    private void addSeparator() {
+        if (sql.length() > 0 && Character.isSpaceChar(sql.charAt(sql.length() - 1))) {
+            sql.append(separator);
+        }
     }
 
 }

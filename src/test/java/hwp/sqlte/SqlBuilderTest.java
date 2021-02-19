@@ -12,7 +12,7 @@ public class SqlBuilderTest {
     @Test
     public void testSelectSql() {
         SqlBuilder sql = new SqlBuilder();
-        sql.select("users");
+        sql.from("users");
         sql.where(where -> {
             if ("zero".startsWith("z")) {
                 where.and("username=?", "zero");
@@ -21,18 +21,30 @@ public class SqlBuilderTest {
             where.and("password=?", "123456");
             where.and(Condition.in("age", 12, 13, 15, 17));
         });
-        sql.groupBy(group -> {
-            group.by("age");
-        }, having -> {
+        sql.groupBy("age", having -> {
             having.and("age < ?", 18);
-            having.and(Condition.neq("username", "Zero"), Condition.neq("username", "Frank"));
+            having.andOr(Condition.eq("username", "Zero"), Condition.eq("username", "Frank"));
         });
         sql.orderBy(order -> {
-            order.by("username");//eq: order.asc("username"); order.asc("username","ASC")
+            order.asc("username");
             order.desc("age");
         });
         sql.limit(1, 20);
-//        Assert.assertEquals(sql.sql(), "SELECT * FROM users WHERE username=? AND  password=? AND  age in (?,?) ORDER BY username ASC, age DESC LIMIT 1,20");
+        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username, age DESC LIMIT 1, 20";
+        Assert.assertEquals(expected, sql.sql());
+//        System.out.println(sql);
+    }
+
+    @Test
+    public void testSelectSqlArray() {
+        SqlBuilder sql = new SqlBuilder();
+        sql.from("users");
+        sql.where(where -> {
+            where.and(Condition.in("age", new int[]{12, 13, 15, 17}));
+        });
+
+//        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username, age DESC LIMIT 1, 20";
+//        Assert.assertEquals(expected, sql.sql());
         System.out.println(sql);
     }
 
@@ -41,15 +53,15 @@ public class SqlBuilderTest {
         SqlBuilder builder = new SqlBuilder();
         builder.update("users", "age,username", 12, "zero")
                 .where(where -> where.and(Condition.eq("id", 123456)));
-        Assert.assertEquals(builder.sql(), "UPDATE users SET age=?, username=? WHERE id = ?");
-        Assert.assertEquals(builder.args().length, 3);
+        Assert.assertEquals("UPDATE users SET age=?, username=? WHERE id = ?", builder.sql());
+        Assert.assertEquals(3, builder.args().length);
     }
 
     @Test
     public void testDeleteSql() {
         SqlBuilder builder = new SqlBuilder();
         builder.delete("users").where(where -> where.and(Condition.eq("id", 123456)));
-        Assert.assertEquals(builder.sql(), "DELETE FROM users WHERE id = ?");
-        Assert.assertEquals(builder.args().length, 1);
+        Assert.assertEquals("DELETE FROM users WHERE id = ?", builder.sql());
+        Assert.assertEquals(1, builder.args().length);
     }
 }

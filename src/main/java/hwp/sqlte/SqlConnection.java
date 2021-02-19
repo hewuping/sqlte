@@ -22,7 +22,7 @@ public interface SqlConnection extends AutoCloseable {
 
     default <T> SqlResultSet query(Class<T> returnType, Consumer<Where> where) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(returnType);
-        return query(sql -> sql.select(info.getTableName()).where(where));
+        return query(sql -> sql.from(info.getTableName()).where(where));
     }
 
     default SqlResultSet query(String sql) throws UncheckedSQLException {

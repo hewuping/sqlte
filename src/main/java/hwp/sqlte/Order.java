@@ -1,51 +1,73 @@
 package hwp.sqlte;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Zero
  * Created on 2017/3/22.
  */
 public class Order {
-
-
-    private StringBuilder orderSql = new StringBuilder();
+    private List<String> columns;
+    private List<Boolean> descs;
 
     public Order() {
     }
 
-    public Order ifBy(boolean _if, String column, String desc) {
-        if (_if) {
-            this.by(column, desc);
+    public static Order by() {
+        return new Order();
+    }
+
+    public static Order from(String[] columns, boolean[] descs) {
+        return new Order().by(columns, descs);
+    }
+
+    public Order by(String[] columns, boolean[] descs) {
+        if (columns.length != descs.length) {
+            throw new IllegalArgumentException("columns的长度和descs的长度不一致");
         }
+        this.columns = new ArrayList<>(columns.length);
+        this.descs = new ArrayList<>(descs.length);
         return this;
     }
 
-    public Order by(String column) {
-        return this.asc(column);
+    public Order by(String column, boolean desc) {
+        if (columns == null) {
+            columns = new ArrayList<>(4);
+            descs = new ArrayList<>(4);
+        }
+        columns.add(column);
+        descs.add(desc);
+        return this;
     }
 
     public Order asc(String column) {
-        return this.by(column, "ASC");
+        return this.by(column, false);
     }
 
     public Order desc(String column) {
-        return this.by(column, "DESC");
-    }
-
-    public Order by(String column, String order) {
-        if (orderSql.length() == 0) {
-            orderSql.append(" ORDER BY");
-        }
-        orderSql.append(orderSql.length() == 9 ? " " : ", ");
-        if ("DESC".equalsIgnoreCase(order)) {
-            orderSql.append(column).append(" ").append(order);
-        } else {
-            orderSql.append(column).append(" ").append("ASC");
-        }
-        return this;
+        return this.by(column, true);
     }
 
     public String sql() {
-        return orderSql.toString();
+        if (columns == null) {
+            return "";
+        }
+        StringBuilder sql = new StringBuilder();
+        for (int i = 0; i < columns.size(); i++) {
+            if (sql.length() > 0) {
+                sql.append(", ");
+            }
+            sql.append(columns.get(i));
+            if (descs.get(i)) {
+                sql.append(" DESC");
+            }
+        }
+        return sql.toString();
+    }
+
+    public boolean isEmpty() {
+        return columns == null || columns.isEmpty();
     }
 
     @Override

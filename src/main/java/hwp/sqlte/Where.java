@@ -23,24 +23,21 @@ public class Where {
         return or(true, sql, args);
     }
 
-    public Where and(boolean filter, String sql, Object... args) {
-        return append("AND", filter, sql, args);
+    public Where and(boolean when, String sql, Object... args) {
+        return append("AND", when, sql, args);
     }
 
-    public Where or(boolean filter, String sql, Object... args) {
-        return append("OR", filter, sql, args);
+    public Where or(boolean when, String sql, Object... args) {
+        return append("OR", when, sql, args);
     }
 
-    public Where append(String operator, boolean filter, String sql, Object... args) {
-        if (filter) {
-            if (whereBuilder.length() == 0) {
-                whereBuilder.append(" ").append(keyword());
-            }
-            if (whereBuilder.length() > 8) {
+    public Where append(String operator, boolean when, String sql, Object... args) {
+        if (when) {
+            if (whereBuilder.length() > 0) {
                 whereBuilder.append(" ");
                 whereBuilder.append(operator);
+                whereBuilder.append(" ");
             }
-            whereBuilder.append(" ");
             String _sql = sql.toUpperCase();
             if (_sql.contains(" OR ") || _sql.contains(" AND ")) {
                 whereBuilder.append('(').append(sql).append(')');
@@ -69,52 +66,66 @@ public class Where {
         return whereBuilder.length() == 0;
     }
 
-    protected String keyword() {
-        return "WHERE";
-    }
 
+    /**
+     * AND (xxx AND xxx AND xxx)
+     *
+     * @param conditions
+     * @return
+     */
     public Where and(Condition... conditions) {
-        if (conditions.length == 1) {
-            return and(true, conditions[0].sql(), conditions[0].args());
-        } else if (conditions.length > 1) {
-            StringBuilder builder = new StringBuilder();
-            List<Object> args = new ArrayList<>();
-            builder.append('(');
-            for (int i = 0; i < conditions.length; i++) {
-                Condition condition = conditions[i];
-                if (i > 0) {
-                    builder.append(" AND ");
-                }
-                builder.append(condition.sql());
-                for (Object arg : condition.args()) {
-                    args.add(arg);
-                }
-            }
-            builder.append(')');
-            return and(true, builder.toString(), args.toArray());
-        }
-        return this;
+        return conditions("AND", "AND", conditions);
     }
 
+    /**
+     * OR (xxx OR xxx OR xxx)
+     *
+     * @param conditions
+     * @return
+     */
     public Where or(Condition... conditions) {
+        return conditions("OR", "OR", conditions);
+    }
+
+    /**
+     * AND (xxx OR xxx OR xxx)
+     *
+     * @param conditions
+     * @return
+     */
+    public Where andOr(Condition... conditions) {
+        return conditions("AND", "OR", conditions);
+    }
+
+    /**
+     * OR (xxx AND xxx AND xxx)
+     *
+     * @param conditions
+     * @return
+     */
+    public Where orAnd(Condition... conditions) {
+        return conditions("OR", "AND", conditions);
+    }
+
+    private Where conditions(String operator, String operator2, Condition... conditions) {
         if (conditions.length == 1) {
-            return and(true, conditions[0].sql(), conditions[0].args());
+            this.append(operator, true, conditions[0].sql(), conditions[0].args());
         } else if (conditions.length > 1) {
             StringBuilder builder = new StringBuilder();
-            builder.append('(');
             List<Object> args = new ArrayList<>();
             for (int i = 0; i < conditions.length; i++) {
                 Condition condition = conditions[i];
                 if (i > 0) {
-                    builder.append(" OR ");
+                    builder.append(' ');
+                    builder.append(operator2);
+                    builder.append(' ');
                 }
                 builder.append(condition.sql());
                 for (Object arg : condition.args()) {
                     args.add(arg);
                 }
             }
-            builder.append(')');
-            return or(true, builder.toString(), args.toArray());
+            this.append(operator, true, builder.toString(), args.toArray());
         }
         return this;
     }

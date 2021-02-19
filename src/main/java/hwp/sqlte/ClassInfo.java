@@ -9,11 +9,9 @@ import java.util.*;
  * Created on 2018/11/13.
  */
 class ClassInfo {
+    private static final Map<Class<?>, ClassInfo> map = new HashMap<>();
 
-    private static Map<Class<?>, ClassInfo> map = new HashMap<>();
-
-
-    private Class<?> clazz;
+    private final Class<?> clazz;
     private String tableName;
     private String schema;
     private String fullTableName;
@@ -25,9 +23,9 @@ class ClassInfo {
     private String[] nonAutoGenerateColumns;
     private Field[] nonAutoGenerateFields;
 
-    private Map<Field, String> fieldColumnMap = new HashMap<>();
-    private Map<String, Field> columnFieldMap = new HashMap<>();
-    private Map<String, Field> pks = new HashMap<>(4);
+    private final Map<Field, String> fieldColumnMap = new HashMap<>();
+    private final Map<String, Field> columnFieldMap = new HashMap<>();
+    private final Map<String, Field> pks = new HashMap<>(4);
 
 //    private Map<String, Class<?>> typeMap = new HashMap<>();
 
