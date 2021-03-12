@@ -3,11 +3,19 @@ package hwp.sqlte;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class Where {
 
     private final StringBuilder whereBuilder = new StringBuilder();
     private final List<Object> whereArgs = new ArrayList<>(4);
+
+    public Where() {
+    }
+
+    public Where(Consumer<Where> consumer) {
+        consumer.accept(this);
+    }
 
     public Where append(String sql, Object... args) {
         whereBuilder.append(sql);

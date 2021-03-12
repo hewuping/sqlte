@@ -9,7 +9,7 @@ import java.sql.*;
 
 class ScriptRunner {
 
-    private Logger logger = LoggerFactory.getLogger("sql");
+    private final Logger logger = LoggerFactory.getLogger(ScriptRunner.class);
     private static final String DEFAULT_DELIMITER = ";";
 
     private boolean stopOnError;

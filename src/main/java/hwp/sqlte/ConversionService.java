@@ -347,6 +347,7 @@ public interface ConversionService {
                 return (T) o;
             }
             if (toClass == Integer.TYPE || toClass == Integer.class) {
+//                return toClass.cast(o.intValue());
                 return (T) ((Integer) o.intValue());
             }
             if (toClass == Long.TYPE || toClass == Long.class) {

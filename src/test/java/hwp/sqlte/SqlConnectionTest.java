@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -30,7 +31,8 @@ public class SqlConnectionTest {
     public static void beforeClass() {
         HikariConfig config = new HikariConfig();
         config.setAutoCommit(true);
-        config.setMaximumPoolSize(2);
+        config.setMaximumPoolSize(2);//包括空闲链接和正在使用的连接, 也是程序可使用的最大连接数
+        config.setConnectionTimeout(5_000);// 当达到最大连接数时, getConnection()会阻塞, 该值是阻塞超时值
         config.setConnectionInitSql("select 1");
         config.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
 //        config.addDataSourceProperty("rewriteBatchedStatements",true);
@@ -581,5 +583,25 @@ public class SqlConnectionTest {
         }
     }
 
-
+//    @Test
+    public void testTransaction2() {
+        CompletableFuture.runAsync(() -> {
+            Sql.transaction(conn -> {
+                try {
+                    Thread.sleep(10_000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            });
+        });
+        for (int i = 0; i < 5; i++) {
+            System.out.println("正在获取连接: " + LocalDateTime.now());
+            try (SqlConnection conn = Sql.open()) {
+                System.out.println("获取连接: " + LocalDateTime.now());
+                System.out.println(conn.connection().hashCode());
+                System.out.println(conn.getAutoCommit());
+            }
+        }
+    }
 }

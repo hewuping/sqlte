@@ -38,6 +38,11 @@ public class QuerySql implements Sql {//QueryDsl
         return this;
     }
 
+    public QuerySql select(String columns, boolean distinct) {
+        this.select = "DISTINCT " + columns;
+        return this;
+    }
+
     public QuerySql from(String from) {
         this.from = from;
         return this;

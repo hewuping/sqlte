@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  */
 class SqlConnectionImpl implements SqlConnection {
 
-    private static final Logger logger = LoggerFactory.getLogger(SqlConnectionImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(SqlConnection.class);
 
     private final Connection conn;
 

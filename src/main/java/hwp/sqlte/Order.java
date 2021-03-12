@@ -61,6 +61,8 @@ public class Order {
             sql.append(columns.get(i));
             if (descs.get(i)) {
                 sql.append(" DESC");
+            } else {
+                sql.append(" ASC");
             }
         }
         return sql.toString();

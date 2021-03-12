@@ -18,7 +18,7 @@ class ClassInfo {
     private String[] columns;
     private Field[] fields;
     private String[] pkColumns;
-    private String[] nonPkColumns;
+    private String[] nonPkColumns;//updateableColumns
     private String[] autoGenerateColumns;
     private String[] nonAutoGenerateColumns;
     private Field[] nonAutoGenerateFields;
