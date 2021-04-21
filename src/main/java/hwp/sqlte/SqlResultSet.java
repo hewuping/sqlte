@@ -28,7 +28,7 @@ public class SqlResultSet implements Iterable<Row> {
         return columns;
     }
 
-    public List<Row> getRows() {
+    public List<Row> rows() {
         return rows;
     }
 
@@ -117,7 +117,11 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> T first(RowMapper<T> mapper) throws UncheckedSQLException {
         Row row = first();
-        if (row == null) {
+        if (row == null || row.values().isEmpty()) {
+            return null;
+        }
+        Object firstValue = row.values().iterator().next();
+        if (firstValue == null) {
             return null;
         }
         return row.map(mapper);

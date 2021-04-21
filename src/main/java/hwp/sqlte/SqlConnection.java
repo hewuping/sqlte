@@ -70,6 +70,16 @@ public interface SqlConnection extends AutoCloseable {
         return query(sql -> sql.selectCount(table).where(where)).firstLong();
     }
 
+    default boolean selectExists(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+        SqlBuilder sql = new SqlBuilder();
+        consumer.accept(sql);
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT EXISTS(");
+        builder.append(sql.sql());
+        builder.append(")");
+        return query(builder.toString(), sql.args()).firstLong() == 1;
+    }
+
 /*    default <T> List<T> queryList(Supplier<T> supplier, Consumer<SqlBuilder> consumer) {
         return this.query(consumer).list(supplier);
     }*/

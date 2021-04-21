@@ -125,7 +125,7 @@ public class TemplateSqlBuilder implements Builder {
             }
             return new SimpleSql(this.sqlBuilder.toString());
         } catch (ScriptException e) {
-            throw new UncheckedException("Script error: " + e.getMessage());
+            throw new SqlteException(e);
         }
     }
 

@@ -337,7 +337,7 @@ class SqlConnectionImpl implements SqlConnection {
                     }
                 }
             } catch (IllegalAccessException e) {
-                throw new UncheckedException(e);
+                throw new SqlteException(e);
             }
         } catch (SQLException e) {
 //            e.printStackTrace();
@@ -474,7 +474,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return uc;
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -489,7 +489,7 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, args);
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -505,7 +505,7 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -633,7 +633,7 @@ class SqlConnectionImpl implements SqlConnection {
         try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
             return batchUpdate(statement, batchSize, consumer, null);
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -685,7 +685,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return result;
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
 
     }
@@ -781,7 +781,7 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 

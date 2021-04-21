@@ -29,7 +29,7 @@ public class MySQL {
                     }
                 }
             } catch (SQLException e) {//如果不支持滚动会报异常
-                throw new UncheckedException(e);
+                throw new UncheckedSQLException(e);
             }
         };
     }

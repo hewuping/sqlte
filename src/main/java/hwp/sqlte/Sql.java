@@ -105,7 +105,7 @@ public interface Sql {
         }
     }
 
-    static void transaction(Consumer<SqlConnection> consumer) throws UncheckedSQLException {
+    static void transaction(EConsumer<SqlConnection> consumer) throws SqlteException {
         SqlConnection conn = open();
         try {
             conn.setAutoCommit(false);
@@ -113,7 +113,7 @@ public interface Sql {
             conn.commit();
         } catch (Exception e) {
             conn.rollback();
-            throw e;
+            throw new SqlteException(e);
         } finally {
             conn.close();
         }

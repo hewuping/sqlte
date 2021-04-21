@@ -85,7 +85,7 @@ public class Row extends HashMap<String, Object> {
         try {
             return BeanMapper.copy(this, bean);
         } catch (ReflectiveOperationException e) {
-            throw new UncheckedException(e);
+            throw new SqlteException(e);
         }
     }
 

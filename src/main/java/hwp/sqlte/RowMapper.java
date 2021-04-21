@@ -92,7 +92,7 @@ public interface RowMapper<T> extends Function<Row, T> {
                 T obj = supplier != null ? supplier.get() : clazz.getDeclaredConstructor().newInstance();
                 return copy(row, obj);
             } catch (ReflectiveOperationException e) {
-                throw new UncheckedException(e);
+                throw new SqlteException(e);
             }
         }
     }

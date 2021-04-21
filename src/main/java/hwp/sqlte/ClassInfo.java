@@ -118,7 +118,7 @@ class ClassInfo {
 
     String getSinglePKColumn() {
         if (pks.size() != 1) {
-            throw new UncheckedException("Undefined ID field: " + clazz.getName());
+            throw new SqlteException("Undefined ID field: " + clazz.getName());
         }
         return pks.keySet().iterator().next();
     }

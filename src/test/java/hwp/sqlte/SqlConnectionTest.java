@@ -369,7 +369,7 @@ public class SqlConnectionTest {
                     }
                 }
             } catch (SQLException e) {
-                throw new UncheckedException(e);
+                throw new SqlteException(e);
             }
         });
         ps.close();
