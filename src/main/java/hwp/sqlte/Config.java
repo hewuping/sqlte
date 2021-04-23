@@ -16,8 +16,9 @@ final public class Config {
     private static Config config = new Config();
     private final Cache DEFAULT_CACHE = new LruCache(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
+    private JsonSerializer jsonSerializer;
 
-    private  Cache cache;
+    private Cache cache;
 
 
     private Map<String, DataSource> dataSourceMap = new HashMap<>();
@@ -70,5 +71,16 @@ final public class Config {
 
     public void setCache(Cache cache) {
         this.cache = cache;
+    }
+
+    public void setJsonSerializer(JsonSerializer jsonSerializer) {
+        this.jsonSerializer = jsonSerializer;
+    }
+
+    public JsonSerializer getJsonSerializer() {
+        if (jsonSerializer == null) {
+            throw new ConfigException("请配置jsonSerializer");
+        }
+        return jsonSerializer;
     }
 }

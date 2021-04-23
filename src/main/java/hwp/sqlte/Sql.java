@@ -105,7 +105,7 @@ public interface Sql {
         }
     }
 
-    static void transaction(EConsumer<SqlConnection> consumer) throws SqlteException {
+    static void transaction(Consumer<SqlConnection> consumer) throws SqlteException {
         SqlConnection conn = open();
         try {
             conn.setAutoCommit(false);

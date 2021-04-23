@@ -276,8 +276,8 @@ class SqlConnectionImpl implements SqlConnection {
                     values.add(v);//enum->int
                 }
             }
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            //Never happen
+        } catch (Exception e) {
+            throw new SqlteException(e);
         }
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("The bean must contain public fields and value is not null");

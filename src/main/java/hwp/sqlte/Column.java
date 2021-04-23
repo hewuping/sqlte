@@ -18,7 +18,9 @@ public @interface Column {
 
     String name() default "";
 
-    Class<? extends Serializer> serializer() default Serializer.class;
+    boolean json() default false;
+
+//    Class<? extends Serializer> serializer() default Serializer.class;
 
 //    JDBCType jdbcType() default JDBCType.JAVA_OBJECT;//@jdbcType=Date.class NULL
 

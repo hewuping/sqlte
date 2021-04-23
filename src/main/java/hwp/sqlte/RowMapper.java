@@ -46,40 +46,37 @@ public interface RowMapper<T> extends Function<Row, T> {
         public static <T> T copy(Row row, T obj) throws ReflectiveOperationException {
             ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
             for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                Object value = row.getValue(entry.getKey());
+                Object dbValue = row.getValue(entry.getKey());
                 Field field = entry.getValue();
-                if (value != null) {
+                if (dbValue != null) {
                     //toObject
-                    if (value instanceof String && !field.isEnumConstant()) {
+                    if (dbValue instanceof String && !field.isEnumConstant()) {
                         Column column = field.getAnnotation(Column.class);
+                        String dbValueStr = (String) dbValue;
                         if (column != null) {
-                            Class<? extends Serializer> serializerClass = column.serializer();
-                            if (serializerClass != Serializer.class) {
-                                try {
-                                    Serializer serializer = cache.get(serializerClass, () -> {
-                                        try {
-                                            return serializerClass.getDeclaredConstructor().newInstance();
-                                        } catch (ReflectiveOperationException e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    });
-                                    value = serializer.decode((String) value);
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
+                            //JSON 转为对象
+                            if (column.json()) {
+                                JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
+                                Object decodeValue = jsonSerializer.fromJson(dbValueStr, field.getType());
+                                field.set(obj, decodeValue);
+                                continue;
                             }
                         }
                     }
-                    //
-                    if (value.getClass() == field.getType() || field.getType().isInstance(value)) {
-                        field.set(obj, value);
-                    } else if (field.getType() == String.class) {
-                        entry.getValue().set(obj, value.toString());
-                    } else {
-                        ConversionService conversionService = Config.getConfig().getConversionService();
-                        if (conversionService.canConvert(value.getClass(), field.getType())) {
-                            field.set(obj, conversionService.convert(value, field.getType()));
-                        }
+                    // JDBC返回的数据类型与类属性类型一致, 直接设置属性值
+                    if (dbValue.getClass() == field.getType() || field.getType().isInstance(dbValue)) {
+                        field.set(obj, dbValue);
+                        continue;
+                    }
+                    // JDBC返回的数据类型是String
+                    if (field.getType() == String.class) {
+                        entry.getValue().set(obj, dbValue.toString());
+                        continue;
+                    }
+                    // 否则转换
+                    ConversionService conversionService = Config.getConfig().getConversionService();
+                    if (conversionService.canConvert(dbValue.getClass(), field.getType())) {
+                        field.set(obj, conversionService.convert(dbValue, field.getType()));
                     }
                 }
             }

@@ -102,24 +102,34 @@ class Helper {
     }
 
     static Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
-        Object value = field.get(obj);
         try {
+            Object value = field.get(obj);
             Column column = field.getAnnotation(Column.class);
             if (column != null) {
+                // 转成JSON存储
+                if (column.json()) {
+                    JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
+                    return jsonSerializer.toJson(value);
+                }
+            }
+ /*           if (column != null) {
                 Class<? extends Serializer> serializerClass = column.serializer();
                 if (serializerClass != Serializer.class) {
                     Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
                     return serializer.encode(value);
                 }
+            }*/
+            // 枚举类型转成名称存储
+            if (value instanceof Enum) {
+                Enum<?> e = (Enum<?>) value;
+                return e.name();
             }
+            return value;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e.getCause());
+            throw new RuntimeException(e);
         }
-        if (value instanceof Enum) {
-            Enum e = (Enum) value;
-            return e.name();
-        }
-        return value;
     }
 
 }
