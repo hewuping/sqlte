@@ -132,4 +132,11 @@ class Helper {
         }
     }
 
+/*    static String[] columns(Field[] fields) {
+        List<String> columnNames = new ArrayList<>();
+        for (Field field : fields) {
+            field.getName()
+        }
+    }*/
+
 }

@@ -100,7 +100,7 @@ class SqlConnectionImpl implements SqlConnection {
     public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-        String pkColumn = info.getSinglePKColumn();
+        String pkColumn = info.getPKColumn();
         Row first = query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
         if (first == null) {
             return null;
@@ -382,12 +382,10 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
-        String[] columns = info.getNonAutoGenerateColumns();
-        Field[] fields = info.getNonAutoGenerateFields();
         if (table == null) {
             table = info.getTableName();
         }
-
+        String[] columns = info.getInsertColumns();
         String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
             return batchUpdate(stat, 500, executor -> {
@@ -396,7 +394,8 @@ class SqlConnectionImpl implements SqlConnection {
                     try {
                         Object[] args = new Object[columns.length];
                         for (int i = 0; i < columns.length; i++) {
-                            args[i] = fields[i].get(bean);
+                            Field field = info.getField(columns[i]);
+                            args[i] = field.get(bean);
                         }
                         executor.exec(args);
                     } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -516,7 +515,7 @@ class SqlConnectionImpl implements SqlConnection {
 
             String[] _columns;
             if (columns == null) {
-                _columns = info.getNonPkColumns();
+                _columns = info.getUpdateColumns();
             } else {
                 _columns = columns.trim().split("\\s*,\\s*");
             }

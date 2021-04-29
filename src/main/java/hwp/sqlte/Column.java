@@ -20,6 +20,8 @@ public @interface Column {
 
     boolean json() default false;
 
+    boolean update() default true;
+
 //    Class<? extends Serializer> serializer() default Serializer.class;
 
 //    JDBCType jdbcType() default JDBCType.JAVA_OBJECT;//@jdbcType=Date.class NULL

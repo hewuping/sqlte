@@ -12,20 +12,18 @@ class ClassInfo {
     private static final Map<Class<?>, ClassInfo> map = new HashMap<>();
 
     private final Class<?> clazz;
-    private String tableName;
     private String schema;
+    private String tableName;
     private String fullTableName;
-    private String[] columns;
     private Field[] fields;
+    private String[] columns;
     private String[] pkColumns;
-    private String[] nonPkColumns;//updateableColumns
     private String[] autoGenerateColumns;
-    private String[] nonAutoGenerateColumns;
-    private Field[] nonAutoGenerateFields;
+    private String[] insertColumns;//排除自动生成的列
+    private String[] updateColumns;
 
     private final Map<Field, String> fieldColumnMap = new HashMap<>();
-    private final Map<String, Field> columnFieldMap = new HashMap<>();
-    private final Map<String, Field> pks = new HashMap<>(4);
+    private final Map<String, Field> columnFieldMap = new LinkedHashMap<>();
 
 //    private Map<String, Class<?>> typeMap = new HashMap<>();
 
@@ -34,8 +32,10 @@ class ClassInfo {
         if (info != null) {
             return info;
         }
-        info = new ClassInfo(clazz);
-        map.put(clazz, info);
+        synchronized (map) {
+            info = new ClassInfo(clazz);
+            map.put(clazz, info);
+        }
         return info;
     }
 
@@ -46,68 +46,58 @@ class ClassInfo {
 
     private void init() {
         //fields
-        List<String> _autoGenerateColumns = new ArrayList<>(2);
+        List<String> pkColumnList = new ArrayList<>(4);
+        List<String> autoGenerateColumnList = new ArrayList<>(2);
+        List<String> updateColumnList = new ArrayList<>();
+        List<String> insertColumnList = new ArrayList<>();
         Field[] fields = clazz.getFields();
-        Map<String, Field> columnFieldMap0 = new LinkedHashMap<>();
         for (Field field : fields) {
-            if (isPersistent(field)) {
-                Column column = field.getAnnotation(Column.class);
-                String columnName;
-                if (column == null || column.name().isEmpty()) {
-                    String fieldName = field.getName();
-                    StringBuilder builder = new StringBuilder(fieldName.length());
-                    for (int i = 0, len = fieldName.length(); i < len; i++) {
-                        char c = fieldName.charAt(i);
-                        if (Character.isUpperCase(c)) {
-                            builder.append('_').append(Character.toLowerCase(c));
-                        } else {
-                            builder.append(c);
-                        }
-                    }
-                    columnName = builder.toString();
-                } else {
-                    columnName = column.name();
+            if (!isPersistent(field)) {
+                continue;
+            }
+            Column column = field.getAnnotation(Column.class);
+            String columnName;
+            if (column == null || column.name().isEmpty()) {
+                columnName = StringUtils.toUnderscore(field.getName());
+            } else {
+                columnName = column.name();
+            }
+            this.columnFieldMap.put(columnName, field);
+            this.fieldColumnMap.put(field, columnName);
+            Id id = field.getAnnotation(Id.class);
+            if (id != null) {
+                pkColumnList.add(columnName);
+                if (id.generate()) {
+                    autoGenerateColumnList.add(columnName);
                 }
-                columnFieldMap0.put(columnName, field);
-                this.fieldColumnMap.put(field, columnName);
-                Id id = field.getAnnotation(Id.class);
-                if (id != null) {
-                    this.pks.put(columnName, field);
-                    if (id.generate()) {
-                        _autoGenerateColumns.add(columnName);
-                    }
-                }
+            }
+            // ID 暂时设置为不可更新
+            if (id == null && (column == null || column.update())) {
+                updateColumnList.add(columnName);
+            }
+            if (id == null || !id.generate()) {
+                insertColumnList.add(columnName);
             }
         }
 
-        Table table = clazz.getAnnotation(Table.class);
-        this.tableName = table == null ? clazz.getSimpleName().toLowerCase() : table.name();
-        this.pkColumns = this.pks.keySet().toArray(new String[0]);
-        this.autoGenerateColumns = _autoGenerateColumns.toArray(new String[0]);
-
-
         //columns, fields
         UnsafeCount index = new UnsafeCount();
-        this.columns = new String[columnFieldMap0.size()];
-        this.fields = new Field[columnFieldMap0.size()];
-        columnFieldMap0.forEach((k, v) -> {
-            this.columns[index.get()] = k;
-            this.fields[index.get()] = v;
+        this.columns = new String[columnFieldMap.size()];
+        this.fields = new Field[columnFieldMap.size()];
+        columnFieldMap.forEach((column, field) -> {
+            this.columns[index.get()] = column;
+            this.fields[index.get()] = field;
             index.add(1);
         });
-        this.columnFieldMap.putAll(columnFieldMap0);
-        columnFieldMap0.clear();
-        //nonPkColumns
-        this.nonPkColumns = Arrays.stream(this.columns).filter(s -> !pks.containsKey(s)).toArray(String[]::new);
-        //nonAutoGenerateColumns
-        this.nonAutoGenerateColumns = Arrays.stream(this.columns).filter(s -> !_autoGenerateColumns.contains(s)).toArray(String[]::new);
-        //nonAutoGenerateFields
-        this.nonAutoGenerateFields = new Field[this.nonAutoGenerateColumns.length];
-        for (int i = 0; i < nonAutoGenerateColumns.length; i++) {
-            String column = nonAutoGenerateColumns[i];
-            this.nonAutoGenerateFields[i] = getField(column);
-        }
-        //fullTableName
+        this.pkColumns = pkColumnList.toArray(new String[0]);
+        this.autoGenerateColumns = autoGenerateColumnList.toArray(new String[0]);
+        //insert Columns
+        this.insertColumns = insertColumnList.toArray(new String[0]);
+        //Updateable Columns
+        this.updateColumns = updateColumnList.toArray(new String[0]);
+        //Table Name
+        Table table = clazz.getAnnotation(Table.class);
+        this.tableName = table != null ? table.name() : StringUtils.toUnderscore(clazz.getSimpleName());
         if (table != null && !table.schema().isEmpty()) {
             this.schema = table.schema();
             this.fullTableName = this.schema + "." + this.tableName;
@@ -116,15 +106,15 @@ class ClassInfo {
         }
     }
 
-    String getSinglePKColumn() {
-        if (pks.size() != 1) {
+    String getPKColumn() {// getPrimaryKeyColumn
+        if (pkColumns.length == 0) {
             throw new SqlteException("Undefined ID field: " + clazz.getName());
         }
-        return pks.keySet().iterator().next();
+        return pkColumns[0];
     }
 
     boolean hasIds() {
-        return !pks.isEmpty();
+        return pkColumns.length > 0;
     }
 
     String[] getPkColumns() {
@@ -151,17 +141,12 @@ class ClassInfo {
         return columns;
     }
 
-
-    public String[] getNonPkColumns() {
-        return nonPkColumns;
+    public String[] getInsertColumns() {
+        return insertColumns;
     }
 
-    public String[] getNonAutoGenerateColumns() {
-        return nonAutoGenerateColumns;
-    }
-
-    public Field[] getNonAutoGenerateFields() {
-        return nonAutoGenerateFields;
+    public String[] getUpdateColumns() {
+        return updateColumns;
     }
 
     String getTableName() {
