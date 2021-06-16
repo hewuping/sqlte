@@ -186,7 +186,7 @@ public interface SqlConnection extends AutoCloseable {
         if (where.isEmpty()) {
             throw new IllegalArgumentException("Dangerous deletion without cause is not supported");
         }
-        return this.executeUpdate("DELETE FROM " + table + " " + where.sql());
+        return this.executeUpdate("DELETE FROM " + table + " WHERE " + where.sql(), where.args().toArray());
     }
 
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
@@ -211,7 +211,7 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
-    BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
     BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 

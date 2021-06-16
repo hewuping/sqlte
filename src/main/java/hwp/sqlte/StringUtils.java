@@ -36,6 +36,10 @@ class StringUtils {
         return builder.toString();
     }
 
+    public static String[] splitToArray(String str) {
+        return split(str, ",", true).toArray(new String[0]);
+    }
+
     public static List<String> split(String stringToSplit) {
         return split(stringToSplit, ",", true);
     }

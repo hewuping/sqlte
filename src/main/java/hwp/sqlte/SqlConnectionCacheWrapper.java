@@ -267,8 +267,8 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        return delegate.batchUpdate(table, columns, consumer);
+    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+        return delegate.batchUpdate(table, columns, whereConsumer, consumer);
     }
 
     @Override

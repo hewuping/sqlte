@@ -609,9 +609,15 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<BatchExecutor> consumer)
+    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer)
             throws UncheckedSQLException {
-        String sql = Helper.makeUpdateSql(table, columns);
+        String sql = Helper.makeUpdateSql(table, StringUtils.splitToArray(columns));
+        Where where = new Where();
+        whereConsumer.accept(where);
+        if (where.isEmpty()) {
+            throw new SqlteException("必须设置更新条件");
+        }
+        sql = sql + " WHERE " + where.sql();
         return this.batchUpdate(sql, consumer);
     }
 
