@@ -1,6 +1,5 @@
 package hwp.sqlte;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
@@ -74,6 +73,13 @@ public interface ConversionService {
             register(Boolean.class, Float.TYPE, new BooleanToFloat());
             register(Boolean.class, Byte.class, new BooleanToByte());
             register(Boolean.class, Byte.TYPE, new BooleanToByte());
+
+            register(Short.class, Boolean.TYPE, new NumberToBoolean<Short>());
+            register(Short.class, Boolean.class, new NumberToBoolean<Short>());
+            register(Integer.class, Boolean.TYPE, new NumberToBoolean<Integer>());
+            register(Integer.class, Boolean.class, new NumberToBoolean<Integer>());
+            register(Long.class, Boolean.TYPE, new NumberToBoolean<Long>());
+            register(Long.class, Boolean.class, new NumberToBoolean<Long>());
 
 
             //int
@@ -169,8 +175,6 @@ public interface ConversionService {
             Map<Class<?>, TypeConverter<Object, Object>> map1 = map.computeIfAbsent(from, k -> new HashMap<>());
             map1.put(to, (TypeConverter<Object, Object>) converter);
         }
-
-
     }
 
     final class StringToCharacterConverter implements TypeConverter<String, Character> {
@@ -339,6 +343,12 @@ public interface ConversionService {
     final class BooleanToString implements TypeConverter<Boolean, String> {
         public String convert(Boolean source) {
             return source ? "true" : "false";
+        }
+    }
+
+    final class NumberToBoolean<T extends Number> implements TypeConverter<T, Boolean> {
+        public Boolean convert(T source) {
+            return source.intValue() == 0 ? Boolean.FALSE : Boolean.TRUE;
         }
     }
 
