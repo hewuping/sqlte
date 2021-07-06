@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
@@ -138,6 +139,13 @@ public interface ConversionService {
                 String _from = (String) from;
                 if (_from.isEmpty()) {
                     return null;
+                }
+                T[] items = to.getEnumConstants();
+                for (T item : items) {
+                    Enum e = (Enum) item;
+                    if (e.name().equalsIgnoreCase(_from)) {
+                        return item;
+                    }
                 }
                 return (T) Enum.valueOf((Class) to, _from.toUpperCase());
             }
