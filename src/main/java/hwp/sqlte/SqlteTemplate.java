@@ -89,6 +89,11 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public <T> DataList<T> query(Supplier<T> supplier, Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+        return run(conn -> conn.query(supplier, consumer));
+    }
+
+    @Override
     public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         return run(conn -> conn.load(supplier, id));
     }

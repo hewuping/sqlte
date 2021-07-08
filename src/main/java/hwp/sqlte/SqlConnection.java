@@ -39,6 +39,20 @@ public interface SqlConnection extends AutoCloseable {
         return query(sb.sql(), sb.args());
     }
 
+    default <T> DataList<T> query(Supplier<T> supplier, Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        String sql = sb.sql();
+        int form = sql.lastIndexOf("LIMIT ");
+        if (form == -1) {
+            throw new IllegalArgumentException("Limit clause not found: " + sql);
+        }
+        List<T> list = query(sql, sb.args()).list(supplier);
+        String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + ") AS _t";
+        Long count = query(countSql, sb.args()).firstLong();
+        return new DataList<>(list, count);
+    }
+
     /**
      * @param sql        sql
      * @param rowHandler return true if continue

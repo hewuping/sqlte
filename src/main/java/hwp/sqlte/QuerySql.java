@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -31,7 +32,7 @@ public class QuerySql implements Sql {//QueryDsl
     }
 
     public QuerySql select(String columns, boolean distinct) {
-        this.select = "DISTINCT " + columns;
+        this.select = distinct ? "DISTINCT " + columns : columns;
         return this;
     }
 
@@ -48,6 +49,11 @@ public class QuerySql implements Sql {//QueryDsl
         return this;
     }
 
+    public QuerySql where(String sql, Object... args) {
+        this.where = new Where();
+        this.where.append(sql, args);
+        return this;
+    }
 
     public QuerySql where(Where where) {
         this.where = where;
