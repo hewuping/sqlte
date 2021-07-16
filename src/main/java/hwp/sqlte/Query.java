@@ -6,13 +6,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * @author Zero
  * Created on 2020/12/21.
  */
-public class QuerySql implements Sql {//QueryDsl
+public class Query implements Sql {//QueryDsl
 
     private String select;
     private String from;
@@ -26,22 +25,22 @@ public class QuerySql implements Sql {//QueryDsl
     private Class<?> selectClass;
 
 
-    public QuerySql select(String columns) {
+    public Query select(String columns) {
         this.select = columns;
         return this;
     }
 
-    public QuerySql select(String columns, boolean distinct) {
+    public Query select(String columns, boolean distinct) {
         this.select = distinct ? "DISTINCT " + columns : columns;
         return this;
     }
 
-    public QuerySql from(String from) {
+    public Query from(String from) {
         this.from = from;
         return this;
     }
 
-    public <T> QuerySql select(Class<T> clazz) {
+    public <T> Query select(Class<T> clazz) {
         ClassInfo classInfo = ClassInfo.getClassInfo(clazz);
         this.select = "*";
         this.from = classInfo.getTableName();
@@ -49,66 +48,66 @@ public class QuerySql implements Sql {//QueryDsl
         return this;
     }
 
-    public QuerySql where(String sql, Object... args) {
+    public Query where(String sql, Object... args) {
         this.where = new Where();
         this.where.append(sql, args);
         return this;
     }
 
-    public QuerySql where(Where where) {
+    public Query where(Where where) {
         this.where = where;
         return this;
     }
 
-    public QuerySql where(Consumer<Where> consumer) {
+    public Query where(Consumer<Where> consumer) {
         this.where = new Where();
         consumer.accept(this.where);
         return this;
     }
 
-    public QuerySql groupBy(String groupBy) {
+    public Query groupBy(String groupBy) {
         Objects.requireNonNull(groupBy);
         this.groupBy = groupBy;
         return this;
     }
 
-    public QuerySql having(Having having) {
+    public Query having(Having having) {
         this.having = having;
         return this;
     }
 
-    public QuerySql having(Consumer<Having> consumer) {
+    public Query having(Consumer<Having> consumer) {
         this.having = new Having();
         consumer.accept(this.having);
         return this;
     }
 
-    public QuerySql orderBy(String orderBy) {
+    public Query orderBy(String orderBy) {
         Objects.requireNonNull(orderBy);
         this.orderBy = orderBy;
         return this;
     }
 
-    public QuerySql orderBy(Consumer<Order> consumer) {
+    public Query orderBy(Consumer<Order> consumer) {
         Order order = new Order();
         consumer.accept(order);
         return orderBy(order);
     }
 
-    public QuerySql orderBy(Order order) {
+    public Query orderBy(Order order) {
         if (order != null && !order.isEmpty()) {
             this.orderBy = order.sql();
         }
         return this;
     }
 
-    public QuerySql limit(int offset, int limit) {
+    public Query limit(int offset, int limit) {
         this.offset = offset;
         this.limit = limit;
         return this;
     }
 
-    public QuerySql paging(int page, int pageSize) {
+    public Query paging(int page, int pageSize) {
         this.offset = Math.max(0, page - 1) * pageSize;
         this.limit = Math.max(pageSize, 1);
         return this;
@@ -193,7 +192,7 @@ public class QuerySql implements Sql {//QueryDsl
     }
 
     public static void main(String[] args) {
-        QuerySql sql = new QuerySql();
+        Query sql = new Query();
         sql.select("*").from("user").where(where -> {
             where.and("creation_time > ?", new Date());
             where.and("uid > ?", 10);
