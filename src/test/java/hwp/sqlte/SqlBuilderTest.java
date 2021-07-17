@@ -32,7 +32,7 @@ public class SqlBuilderTest {
             order.desc("age");
         });
         sql.limit(1, 20);
-        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username, age DESC LIMIT 1, 20";
+        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username ASC, age DESC LIMIT 1, 20";
         Assert.assertEquals(expected, sql.sql());
 //        System.out.println(sql);
     }
