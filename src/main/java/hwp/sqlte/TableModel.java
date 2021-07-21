@@ -1,6 +1,8 @@
 package hwp.sqlte;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Zero
@@ -30,6 +32,19 @@ public class TableModel<T> {
 
     public long getRowCount() {
         return rowCount;
+    }
+
+    public Map<String, Object> asMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("data", data);
+        map.put("rowCount", rowCount);
+        if (page != null) {
+            map.put("page", page);
+        }
+        if (pageSize != null) {
+            map.put("pageSize", pageSize);
+        }
+        return map;
     }
 
 }
