@@ -3,27 +3,30 @@ package hwp.sqlte;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Zero
- * Created on 2021/1/12.
+ * Created on 2021/7/7.
  */
-public class TableModel<T> {
+public class Page<T> {
     private final List<T> data;
     private final long rowCount;
     private Integer page;
     private Integer pageSize;
 
-    public TableModel(List<T> data, long rowCount) {
+    public Page(List<T> data, long rowCount) {
         this.data = data;
         this.rowCount = rowCount;
     }
 
-    public TableModel(List<T> data, long rowCount, Integer page, Integer pageSize) {
+    public Page(List<T> data, long rowCount, Integer page, Integer pageSize) {
         this.data = data;
         this.rowCount = rowCount;
-        this.pageSize = pageSize;
         this.page = page;
+        this.pageSize = pageSize;
     }
 
     public List<T> getData() {
@@ -32,6 +35,23 @@ public class TableModel<T> {
 
     public long getRowCount() {
         return rowCount;
+    }
+
+    public void forEach(Consumer<? super T> consumer) {
+        if (data != null) {
+            data.forEach(consumer);
+        }
+    }
+
+    public Page<T> set(int page, int pageSize) {
+        this.page = page;
+        this.pageSize = pageSize;
+        return this;
+    }
+
+    public <R> Page<R> map(Function<? super T, ? extends R> mapper) {
+        List<R> list = this.data.stream().map(mapper).collect(Collectors.toList());
+        return new Page<R>(list, rowCount);
     }
 
     public Map<String, Object> asMap() {
@@ -46,5 +66,4 @@ public class TableModel<T> {
         }
         return map;
     }
-
 }

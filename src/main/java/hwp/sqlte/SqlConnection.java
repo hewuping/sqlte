@@ -39,7 +39,8 @@ public interface SqlConnection extends AutoCloseable {
         return query(sb.sql(), sb.args());
     }
 
-    default <T> DataList<T> query(Supplier<T> supplier, Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    // TODO   default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier)
+    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws UncheckedSQLException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         String sql = sb.sql();
@@ -50,7 +51,7 @@ public interface SqlConnection extends AutoCloseable {
         List<T> list = query(sql, sb.args()).list(supplier);
         String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + ") AS _t";
         Long count = query(countSql, sb.args()).firstLong();
-        return new DataList<>(list, count);
+        return new Page<>(list, count);
     }
 
     /**
