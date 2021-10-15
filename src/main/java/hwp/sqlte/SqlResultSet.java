@@ -47,20 +47,41 @@ public class SqlResultSet implements Iterable<Row> {
         return row.map(new RowMapper.BeanMapper<>(supplier));
     }
 
-    public Integer firstInt() {
-        return this.first(RowMapper.INTEGER);
+    public <T> T first(Class<T> clazz) {
+        return first(clazz, null);
     }
 
-    public Integer firstInt(Integer def) {
-        return this.first(RowMapper.INTEGER);
+    public <T> T first(Class<T> clazz, T def) {
+        Row row = first();
+        if (row == null || row.values().isEmpty()) {
+            return def;
+        }
+        if (row.keySet().size() == 1) {
+            ConversionService service = Config.getConfig().getConversionService();
+            Object v = row.values().iterator().next();
+            if (v == null) {
+                return def;
+            }
+            if (clazz.isAssignableFrom(v.getClass())) {
+                return (T) v;
+            }
+            if (service.canConvert(v.getClass(), clazz)) {
+                return service.convert(v, clazz);
+            }
+        }
+        return row.map(new RowMapper.BeanMapper<>(clazz));
     }
 
-    public Long firstLong() {
-        return this.first(RowMapper.LONG);
+    public Integer asInt() {
+        return this.first(Integer.class, 0);
     }
 
-    public String firstString() {
-        return this.first(RowMapper.STRING);
+    public Long asLong() {
+        return this.first(Long.class, 0L);
+    }
+
+    public String asString() {
+        return this.first(String.class);
     }
 
     public <T> List<T> list(RowMapper<T> mapper) {
@@ -71,6 +92,16 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> List<T> list(Supplier<T> supplier) {
         return this.list(supplier, null);
+    }
+
+    public <T> List<T> list(Class<T> clazz) {
+        return this.list(() -> {
+            try {
+                return clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new SqlteException(e);
+            }
+        }, null);
     }
 
     public <T> List<T> list(Supplier<T> supplier, Consumer<T> consumer) {

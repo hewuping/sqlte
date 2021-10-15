@@ -4,6 +4,7 @@ package hwp.sqlte;
 import hwp.sqlte.cache.FifoCache;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -17,9 +18,12 @@ public interface RowMapper<T> extends Function<Row, T> {
 
     StringMapper STRING = StringMapper.MAPPER;
     IntMapper INTEGER = IntMapper.MAPPER;
+    ShortMapper SHORT = ShortMapper.MAPPER;
     LongMapper LONG = LongMapper.MAPPER;
     DoubleMapper DOUBLE = DoubleMapper.MAPPER;
+    FloatMapper FLOAT = FloatMapper.MAPPER;
     NumberMapper NUMBER = NumberMapper.MAPPER;
+    BigDecimalMapper BIG_DECIMAL = BigDecimalMapper.MAPPER;
 
 
     T map(Row row);
@@ -32,15 +36,20 @@ public interface RowMapper<T> extends Function<Row, T> {
     class BeanMapper<T> implements RowMapper<T> {
         private static final FifoCache<Serializer> cache = new FifoCache<>(1024);
 
-        private Supplier<T> supplier;
-        private Class<T> clazz;
+        private final Supplier<T> supplier;
 
         public BeanMapper(Supplier<T> supplier) {
             this.supplier = supplier;
         }
 
         public BeanMapper(Class<T> clazz) {
-            this.clazz = clazz;
+            this.supplier = () -> {
+                try {
+                    return clazz.getDeclaredConstructor().newInstance();
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(e);
+                }
+            };
         }
 
         public static <T> T copy(Row row, T obj) throws ReflectiveOperationException {
@@ -86,11 +95,24 @@ public interface RowMapper<T> extends Function<Row, T> {
         @Override
         public T map(Row row) {
             try {
-                T obj = supplier != null ? supplier.get() : clazz.getDeclaredConstructor().newInstance();
-                return copy(row, obj);
+                return copy(row, supplier.get());
             } catch (ReflectiveOperationException e) {
                 throw new SqlteException(e);
             }
+        }
+    }
+
+    class FloatMapper implements RowMapper<Float> {
+        static final FloatMapper MAPPER = new FloatMapper();
+
+        @Override
+        public Float map(Row row) {
+            Object v = row.values().iterator().next();
+            if (v instanceof Float) {
+                return (Float) v;
+            }
+            Number number = (Number) v;
+            return number.floatValue();
         }
     }
 
@@ -125,6 +147,23 @@ public interface RowMapper<T> extends Function<Row, T> {
         }
     }
 
+    class ShortMapper implements RowMapper<Short> {
+        static final ShortMapper MAPPER = new ShortMapper();
+
+        private ShortMapper() {
+        }
+
+        @Override
+        public Short map(Row row) {
+            Object v = row.values().iterator().next();
+            if (v instanceof Short) {
+                return (Short) v;
+            }
+            Number number = (Number) v;
+            return number.shortValue();
+        }
+    }
+
     class LongMapper implements RowMapper<Long> {
 
         static final LongMapper MAPPER = new LongMapper();
@@ -149,6 +188,19 @@ public interface RowMapper<T> extends Function<Row, T> {
         @Override
         public Number map(Row row) {
             return (Number) row.values().iterator().next();
+        }
+    }
+
+    class BigDecimalMapper implements RowMapper<BigDecimal> {
+        static BigDecimalMapper MAPPER = new BigDecimalMapper();
+
+        @Override
+        public BigDecimal map(Row row) {
+            Object v = row.values().iterator().next();
+            if (v instanceof BigDecimal) {
+                return (BigDecimal) v;
+            }
+            return new BigDecimal(v.toString());
         }
     }
 

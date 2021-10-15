@@ -50,7 +50,7 @@ public interface SqlConnection extends AutoCloseable {
         }
         List<T> list = query(sql, sb.args()).list(supplier);
         String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + ") AS _t";
-        Long count = query(countSql, sb.args()).firstLong();
+        Long count = query(countSql, sb.args()).first(Long.class);
         return new Page<>(list, count);
     }
 
@@ -82,7 +82,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     default long selectCount(String table, Where where) throws UncheckedSQLException {
-        return query(sql -> sql.selectCount(table).where(where)).firstLong();
+        return query(sql -> sql.selectCount(table).where(where)).first(Long.class);
     }
 
     default boolean selectExists(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
@@ -92,7 +92,7 @@ public interface SqlConnection extends AutoCloseable {
         builder.append("SELECT EXISTS(");
         builder.append(sql.sql());
         builder.append(")");
-        return query(builder.toString(), sql.args()).firstLong() == 1;
+        return query(builder.toString(), sql.args()).first(Long.class) == 1;
     }
 
 /*    default <T> List<T> queryList(Supplier<T> supplier, Consumer<SqlBuilder> consumer) {

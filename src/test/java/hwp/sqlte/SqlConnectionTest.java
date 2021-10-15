@@ -250,6 +250,11 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testQueryFirstInt() {
+
+    }
+
+    @Test
     public void testSqlBuilder() {
         insertUser();
         String username = "May";
