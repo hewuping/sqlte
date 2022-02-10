@@ -1,6 +1,9 @@
 package hwp.sqlte;
 
 
+import hwp.sqlte.cache.FifoCache;
+
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.ArrayList;
@@ -12,6 +15,20 @@ import java.util.List;
  * Created on 2017/3/20.
  */
 class Helper {
+    private static final FifoCache<Converter> cache = new FifoCache<>(1024);
+
+    static Converter getConverter(Class<? extends Converter> clazz) {
+        try {
+            Converter converter = cache.get(clazz);
+            if (converter == null) {
+                converter = (Converter) clazz.getDeclaredConstructor().newInstance();
+                cache.put(clazz, converter);
+            }
+            return converter;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();
@@ -101,7 +118,7 @@ class Helper {
         return builder.toString();
     }
 
-    static Object getFieldValue(Object obj, Field field) throws IllegalAccessException {
+    static Object getSerializedValue(Object obj, Field field) throws IllegalAccessException {
         try {
             Object value = field.get(obj);
             Column column = field.getAnnotation(Column.class);
@@ -111,14 +128,11 @@ class Helper {
                     JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
                     return jsonSerializer.toJson(value);
                 }
-            }
- /*           if (column != null) {
-                Class<? extends Serializer> serializerClass = column.serializer();
-                if (serializerClass != Serializer.class) {
-                    Serializer serializer = serializerClass.getDeclaredConstructor().newInstance();
-                    return serializer.encode(value);
+                if (column.converter() != null) {
+                    Converter converter = Helper.getConverter(column.converter());
+                    return converter.convert(value);
                 }
-            }*/
+            }
             // 枚举类型转成名称存储
             if (value instanceof Enum) {
                 Enum<?> e = (Enum<?>) value;

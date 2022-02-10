@@ -270,7 +270,7 @@ class SqlConnectionImpl implements SqlConnection {
         try {
             for (Map.Entry<String, Field> entry : columnFieldMap.entrySet()) {
                 Field field = entry.getValue();
-                Object v = Helper.getFieldValue(bean, field);
+                Object v = Helper.getSerializedValue(bean, field);
                 if (v != null) {
                     columns.add(entry.getKey());
                     values.add(v);//enum->int
@@ -532,7 +532,7 @@ class SqlConnectionImpl implements SqlConnection {
                 if (field == null) {
                     throw new IllegalArgumentException("No field mapping: " + column);
                 }
-                args[i] = Helper.getFieldValue(bean, field);
+                args[i] = Helper.getSerializedValue(bean, field);
                 if (args[i] == null) {
                     nullCount++;
                 }
@@ -754,7 +754,7 @@ class SqlConnectionImpl implements SqlConnection {
             Where where = new Where();
             for (String pkColumn : pkColumns) {
                 Field field = info.getField(pkColumn);
-                Object value = Helper.getFieldValue(bean, field);
+                Object value = Helper.getSerializedValue(bean, field);
                 Objects.requireNonNull(value, "ID field value is NULL: " + bean.getClass().getName() + "." + field.getName());
                 where.and(pkColumn + "=?", value);
             }

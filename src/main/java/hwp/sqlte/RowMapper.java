@@ -1,8 +1,6 @@
 package hwp.sqlte;
 
 
-import hwp.sqlte.cache.FifoCache;
-
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -34,7 +32,6 @@ public interface RowMapper<T> extends Function<Row, T> {
 
 
     class BeanMapper<T> implements RowMapper<T> {
-        private static final FifoCache<Serializer> cache = new FifoCache<>(1024);
 
         private final Supplier<T> supplier;
 
@@ -68,6 +65,12 @@ public interface RowMapper<T> extends Function<Row, T> {
                                 JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
                                 Object decodeValue = jsonSerializer.fromJson(dbValueStr, field.getType());
                                 field.set(obj, decodeValue);
+                                continue;
+                            }
+                            // 自定义转换器
+                            if (column.converter() != null) {
+                                Converter converter = Helper.getConverter(column.converter());
+                                field.set(obj, converter.convert(dbValue));
                                 continue;
                             }
                         }

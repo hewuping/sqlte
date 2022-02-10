@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import java.io.Serializable;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -22,8 +23,6 @@ public @interface Column {
 
     boolean update() default true;
 
-//    Class<? extends Serializer> serializer() default Serializer.class;
-
-//    JDBCType jdbcType() default JDBCType.JAVA_OBJECT;//@jdbcType=Date.class NULL
+    Class<? extends Converter<?, ? extends Serializable>> converter();
 
 }
