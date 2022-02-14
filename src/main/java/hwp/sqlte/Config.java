@@ -16,7 +16,7 @@ final public class Config {
     private static Config config = new Config();
     private final Cache DEFAULT_CACHE = new LruCache(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
-    private JsonSerializer jsonSerializer;
+    private JsonSerializer jsonSerializer = new GsonSerializer();
 
     private Cache cache;
 

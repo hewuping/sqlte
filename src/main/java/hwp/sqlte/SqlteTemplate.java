@@ -11,25 +11,25 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * <pre>
- *     for Spring:
- *     @Bean
- *     public SqlteTemplate getSqlteTemplate(DataSource dataSource) {
- *         Sql.config().setDataSource(dataSource)
- *         SqlteTemplate template = new SqlteTemplate() {
- *             @Override
- *             protected Connection open(DataSource dataSource) {
- *                 return DataSourceUtils.getConnection(dataSource);
- *             }
+ * for Spring:
+ * <blockquote><pre>
+ * &#64;Bean
+ * public SqlteTemplate getSqlteTemplate(DataSource dataSource) {
+ *     Sql.config().setDataSource(dataSource)
+ *     SqlteTemplate template = new SqlteTemplate() {
+ *        &#64;Override
+ *        protected Connection open(DataSource dataSource) {
+ *            return DataSourceUtils.getConnection(dataSource);
+ *        }
  *
- *             @Override
- *             protected void close(Connection connection) {
- *                 DataSourceUtils.releaseConnection(connection, dataSource);
- *             }
- *         };
- *         return template;
- *     }
- * </pre>
+ *        &#64;Override
+ *         protected void close(Connection connection) {
+ *            DataSourceUtils.releaseConnection(connection, dataSource);
+ *        }
+ *    };
+ *    return template;
+ * }
+ * </pre></blockquote>
  *
  * @author Zero
  * Created on 2018/11/5.

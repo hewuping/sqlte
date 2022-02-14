@@ -46,6 +46,10 @@ public interface Sql {
         return Config.getConfig();
     }
 
+    static void config(Consumer<Config> consumer) {
+        consumer.accept(Config.getConfig());
+    }
+
     static SqlConnection open() throws UncheckedSQLException {
         try {
             return SqlConnectionImpl.use(config().getDataSource().getConnection());
