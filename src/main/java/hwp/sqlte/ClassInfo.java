@@ -52,7 +52,7 @@ class ClassInfo {
         List<String> insertColumnList = new ArrayList<>();
         Field[] fields = clazz.getFields();
         for (Field field : fields) {
-            if (!isPersistent(field)) {
+            if (isIgnore(field)) {
                 continue;
             }
             Column column = field.getAnnotation(Column.class);
@@ -157,11 +157,12 @@ class ClassInfo {
         return autoGenerateColumns;
     }
 
-    private boolean isPersistent(Field field) {
-        return !Modifier.isStatic(field.getModifiers())
-                && !Modifier.isFinal(field.getModifiers())
-                && !Modifier.isNative(field.getModifiers())
-                && !Modifier.isTransient(field.getModifiers());
+    private boolean isIgnore(Field field) {
+        return Modifier.isStatic(field.getModifiers())
+                || Modifier.isFinal(field.getModifiers())
+                || Modifier.isNative(field.getModifiers())
+                || Modifier.isTransient(field.getModifiers())
+                || field.getAnnotation(Ignore.class) != null;
     }
 
 
