@@ -52,13 +52,19 @@ artifacts {
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/hewuping/sqlte")
+            credentials {
+                username = "zero4he"
+                password = System.getenv("PACKAGES_TOKEN")
+            }
+        }
+    }
     publications {
-        maven(MavenPublication) {
-            groupId = group
-            artifactId = archivesBaseName
-            version = version
-
-            from components.java
+        gpr(MavenPublication) {
+            from(components.java)
         }
     }
 }
