@@ -52,6 +52,7 @@ artifacts {
 }
 
 publishing {
+    print("GITHUB_TOKEN --> "+System.getenv("GITHUB_TOKEN"))
     repositories {
         maven {
             name = "GitHubPackages"
