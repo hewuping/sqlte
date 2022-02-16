@@ -44,3 +44,4 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        GITHUB_ABC: ${{ secrets.abc }}
