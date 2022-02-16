@@ -59,20 +59,19 @@ public interface RowMapper<T> extends Function<Row, T> {
                     if (dbValue instanceof String && !field.isEnumConstant()) {
                         Column column = field.getAnnotation(Column.class);
                         String dbValueStr = (String) dbValue;
-                        if (column != null) {
-                            //JSON 转为对象
-                            if (column.json()) {
-                                JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
-                                Object decodeValue = jsonSerializer.fromJson(dbValueStr, field.getType());
-                                field.set(obj, decodeValue);
-                                continue;
-                            }
-                            // 自定义转换器
-                            if (column.converter() != null) {
-                                Converter converter = Helper.getConverter(column.converter());
-                                field.set(obj, converter.convert(dbValue));
-                                continue;
-                            }
+                        //内置 JSON 转为对象
+                        if (column != null && column.json()) {
+                            JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
+                            Object decodeValue = jsonSerializer.fromJson(dbValueStr, field.getType());
+                            field.set(obj, decodeValue);
+                            continue;
+                        }
+                        // 自定义转换器
+                        Convert convert = field.getAnnotation(Convert.class);
+                        if (convert != null) {
+                            Converter converter = Helper.getConverter(convert.converter());
+                            field.set(obj, converter.convert(dbValue));
+                            continue;
                         }
                     }
                     // JDBC返回的数据类型与类属性类型一致, 直接设置属性值

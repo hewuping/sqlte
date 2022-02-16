@@ -3,7 +3,6 @@ package hwp.sqlte;
 
 import hwp.sqlte.cache.FifoCache;
 
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.ArrayList;
@@ -122,16 +121,15 @@ class Helper {
         try {
             Object value = field.get(obj);
             Column column = field.getAnnotation(Column.class);
-            if (column != null) {
-                // 转成JSON存储
-                if (column.json()) {
-                    JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
-                    return jsonSerializer.toJson(value);
-                }
-                if (column.converter() != null) {
-                    Converter converter = Helper.getConverter(column.converter());
-                    return converter.convert(value);
-                }
+            // 转成JSON存储
+            if (column != null && column.json()) {
+                JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
+                return jsonSerializer.toJson(value);
+            }
+            Convert convert = field.getAnnotation(Convert.class);
+            if (convert != null) {
+                Converter converter = Helper.getConverter(convert.converter());
+                return converter.convert(value);
             }
             // 枚举类型转成名称存储
             if (value instanceof Enum) {
