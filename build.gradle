@@ -52,11 +52,6 @@ artifacts {
 }
 
 publishing {
-    print("GITHUB_TOKEN --> "+System.getenv("GITHUB_TOKEN"))
-
-    for (Map.Entry entry: System.getenv().entrySet()) {
-        println("ENV --> " + entry.getKey() + " = " + entry.getValue())
-    }
     repositories {
         maven {
             name = "GitHubPackages"
