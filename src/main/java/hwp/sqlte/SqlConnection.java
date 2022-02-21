@@ -147,7 +147,17 @@ public interface SqlConnection extends AutoCloseable {
     ////////////////////////////////////////Simple ORM//////////////////////////////////////////////////////////
 //    <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql);
 
-    <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException;
+    <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException;
+
+    <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException;
+
+    default <T> T mustGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+        T obj = tryGet(clazz, id);
+        if (obj == null) {
+            throw new NotFoundException("Can't found " + clazz.getSimpleName() + " by ID : " + id);
+        }
+        return obj;
+    }
 
     <T> T reload(T bean) throws UncheckedSQLException;
 

@@ -120,7 +120,7 @@ public class SqlConnectionTest {
         user.passwordSalt = "***";
         user.id = 123456;
         conn.insert(user, "users");
-        User2 _user = conn.load(User2::new, 123456);
+        User2 _user = conn.tryGet(User2::new, 123456);
         Assert.assertNotNull(_user);
         Assert.assertNotNull(_user.passwordSalt);
     }
@@ -521,7 +521,7 @@ public class SqlConnectionTest {
         user.username = "My new name";
         user.email = null;
         conn.update(user, "username", true);
-        OrmUser _user = conn.load(OrmUser::new, user.id);
+        OrmUser _user = conn.tryGet(OrmUser::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
     }

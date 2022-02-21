@@ -97,7 +97,7 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+    public <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         String pkColumn = info.getPKColumn();
@@ -106,6 +106,22 @@ class SqlConnectionImpl implements SqlConnection {
             return null;
         }
         return first.copyTo(bean);
+    }
+
+    @Override
+    public <T> T tryGet(Class<T> clazz, Object id) throws SqlteException {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        String pkColumn = info.getPKColumn();
+        Row first = query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
+        if (first == null) {
+            return null;
+        }
+        try {
+            T obj = clazz.getDeclaredConstructor().newInstance();
+            return first.copyTo(obj);
+        } catch (ReflectiveOperationException e) {
+            throw new SqlteException(e);
+        }
     }
 
     @Override

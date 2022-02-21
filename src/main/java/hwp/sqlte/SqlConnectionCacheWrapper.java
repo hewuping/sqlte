@@ -147,8 +147,18 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public <T> T load(Supplier<T> supplier, Object id) throws UncheckedSQLException {
-        return delegate.load(supplier, id);
+    public <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+        return delegate.tryGet(supplier, id);
+    }
+
+    @Override
+    public <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+        return delegate.tryGet(clazz, id);
+    }
+
+    @Override
+    public <T> T mustGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+        return delegate.mustGet(clazz, id);
     }
 
     @Override
