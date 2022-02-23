@@ -12,8 +12,8 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
 
 ```
-gradle build
-gradle publishToMavenLocal
+./gradlew build
+./gradlew publishToMavenLocal
 
 ```
 
