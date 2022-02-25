@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
 
 /**
  * @author Zero
@@ -17,6 +18,7 @@ final public class Config {
     private final Cache DEFAULT_CACHE = new LruCache(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
     private JsonSerializer jsonSerializer = new GsonSerializer();
+    private TimeZone databaseTimeZone = TimeZone.getDefault();//TODO from DB
 
     private Cache cache;
 
@@ -49,6 +51,14 @@ final public class Config {
 
     public DataSource getDataSource(String name) {
         return dataSourceMap.get(name);
+    }
+
+    public TimeZone getDatabaseTimeZone() {
+        return databaseTimeZone;
+    }
+
+    public void setDatabaseTimeZone(TimeZone databaseTimeZone) {
+        this.databaseTimeZone = databaseTimeZone;
     }
 
     public SqlProvider getSqlProvider() {

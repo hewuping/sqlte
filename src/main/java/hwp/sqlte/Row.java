@@ -1,8 +1,6 @@
 package hwp.sqlte;
 
 
-import hwp.sqlte.RowMapper.BeanMapper;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;

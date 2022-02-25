@@ -44,7 +44,7 @@ public class SqlResultSet implements Iterable<Row> {
         if (row == null) {
             return null;
         }
-        return row.map(new RowMapper.BeanMapper<>(supplier));
+        return row.map(new BeanMapper<>(supplier));
     }
 
     public <T> T first(Class<T> clazz) {
@@ -69,7 +69,7 @@ public class SqlResultSet implements Iterable<Row> {
                 return service.convert(v, clazz);
             }
         }
-        return row.map(new RowMapper.BeanMapper<>(clazz));
+        return row.map(new BeanMapper<>(clazz));
     }
 
     public Integer asInt() {
@@ -106,7 +106,7 @@ public class SqlResultSet implements Iterable<Row> {
 
     public <T> List<T> list(Supplier<T> supplier, Consumer<T> consumer) {
         List<T> list = new ArrayList<>(this.rows.size());
-        RowMapper.BeanMapper<T> mapper = new RowMapper.BeanMapper<>(supplier);
+        BeanMapper<T> mapper = new BeanMapper<>(supplier);
         this.rows.forEach(row -> list.add(mapper.map(row)));
         if (consumer != null) {
             for (T obj : list) {

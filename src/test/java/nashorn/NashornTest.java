@@ -2,6 +2,7 @@ package nashorn;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.script.*;
@@ -11,13 +12,14 @@ import java.util.stream.IntStream;
  * @author Zero
  * Created on 2017/3/22.
  */
+@Ignore
 public class NashornTest {
 
 
     ScriptEngine engine;
 
     @Before
-    public void bf() {
+    public void before() {
         ScriptEngineManager factory = new ScriptEngineManager();
         engine = factory.getEngineByName("JavaScript");
     }

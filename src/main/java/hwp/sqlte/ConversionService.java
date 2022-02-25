@@ -7,10 +7,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.Currency;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public interface ConversionService {
 
@@ -92,7 +89,7 @@ public interface ConversionService {
                     register(f, t, new NumberToNumberConverter(t));
                 }
             }
-
+            TimeZone timeZone = Config.getConfig().getDatabaseTimeZone();
             //time
             register(Time.class, Long.class, new TimeToLongConverter());
             register(Time.class, LocalTime.class, new TimeToLocalTimeConverter());
@@ -102,6 +99,41 @@ public interface ConversionService {
             register(Timestamp.class, java.util.Date.class, new TimestampToDateTimeConverter());
             register(Date.class, Long.class, new DateToLongConverter());
             register(Date.class, LocalDate.class, new DateToLocalDateConverter());
+
+            register(LocalDateTime.class, java.util.Date.class, dateTime -> {
+                Instant instant = dateTime.atZone(timeZone.toZoneId()).toInstant();
+                return java.util.Date.from(instant);
+            });
+            register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
+//          register(LocalDateTime.class, Timestamp.class, dateTime -> Timestamp.valueOf(dateTime));
+            register(LocalDateTime.class, Long.class, dateTime -> dateTime.atOffset(ZoneOffset.UTC).getSecond() * 1000L);
+            register(LocalDateTime.class, String.class, LocalDateTime::toString);
+
+            register(LocalDate.class, java.util.Date.class, date -> {
+                Instant instant = LocalDate.now().atStartOfDay(timeZone.toZoneId()).toInstant();
+                return java.util.Date.from(instant);
+            });
+            register(LocalDate.class, String.class, LocalDate::toString);
+            register(LocalDate.class, Long.class, date -> {
+                return date.atStartOfDay(timeZone.toZoneId()).getSecond() * 1000L;
+            });
+            register(LocalDate.class, Integer.class, date -> {
+                return date.atStartOfDay(timeZone.toZoneId()).getSecond();
+            });
+
+            register(OffsetDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
+            register(OffsetDateTime.class, java.util.Date.class,
+                    dateTime -> java.util.Date.from(dateTime.toZonedDateTime().toInstant()));
+            register(OffsetDateTime.class, Long.class,
+                    dateTime -> dateTime.toZonedDateTime().toInstant().getEpochSecond() * 1000L);
+
+            register(ZonedDateTime.class, Date.class, dateTime -> new Date(dateTime.toEpochSecond() * 1000L));
+            register(ZonedDateTime.class, java.util.Date.class,
+                    dateTime -> java.util.Date.from(dateTime.toInstant()));
+            register(ZonedDateTime.class, Long.class,
+                    dateTime -> dateTime.toEpochSecond() * 1000L);
+
+
             //
 //            register(Integer.class, Enum.class, new IntegerToEnumConverter());
         }
