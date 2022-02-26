@@ -11,6 +11,11 @@ package hwp.sqlte;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+
 /**
  * @author Zero
  * Created on 2018/11/27.
@@ -53,4 +58,13 @@ public class ConversionServiceTest {
         Byte aByte2 = service.convert(Boolean.TRUE, Byte.class);
         Assert.assertEquals((byte) 1, (byte) aByte2);
     }
+
+    @Test
+    public void testLocalDateTime2UtilDate() {
+        LocalDateTime now = LocalDateTime.now();
+        Date date1 = new Date();
+        Date date2 = service.convert(now, Date.class);
+        Assert.assertEquals(date1, date2);
+    }
+
 }

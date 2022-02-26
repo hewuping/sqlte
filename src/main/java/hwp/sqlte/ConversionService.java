@@ -50,10 +50,7 @@ public interface ConversionService {
             register(String.class, Boolean.TYPE, new StringToBooleanConverter());
 
             //to String
-            register(Object.class, String.class, new ObjectToStringConverter());
-            register(Timestamp.class, String.class, new TimestampToStringConverter());
-            register(Time.class, String.class, new TimeToStringConverter());
-            register(Date.class, String.class, new DateToStringConverter());
+            register(Object.class, String.class, Object::toString);
 
             // Boolean
             register(Boolean.class, Boolean.class, new BooleanToBoolean());
@@ -78,8 +75,7 @@ public interface ConversionService {
             register(Long.class, Boolean.TYPE, new NumberToBoolean<Long>());
             register(Long.class, Boolean.class, new NumberToBoolean<Long>());
 
-
-            //int
+            // number
             Class<?>[] numbers = new Class<?>[]{
                     Byte.TYPE, Short.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE,
                     Byte.class, Short.class, Integer.class, Long.class, Float.class, Double.class, BigDecimal.class
@@ -89,53 +85,54 @@ public interface ConversionService {
                     register(f, t, new NumberToNumberConverter(t));
                 }
             }
-            TimeZone timeZone = Config.getConfig().getDatabaseTimeZone();
-            //time
-            register(Time.class, Long.class, new TimeToLongConverter());
-            register(Time.class, LocalTime.class, new TimeToLocalTimeConverter());
-            register(Timestamp.class, Long.class, new TimestampToLongConverter());
-            register(Timestamp.class, LocalDateTime.class, new TimestampToLocalDateTimeConverter());
-            register(Timestamp.class, LocalDate.class, new TimestampToLocalDateConverter());
-            register(Timestamp.class, java.util.Date.class, new TimestampToDateTimeConverter());
-            register(Date.class, Long.class, new DateToLongConverter());
-            register(Date.class, LocalDate.class, new DateToLocalDateConverter());
 
+            // date & time
+            TimeZone timeZone = Config.getConfig().getDatabaseTimeZone();
+//            ZoneOffset zoneOffset = OffsetDateTime.now().getOffset();
+
+            register(Timestamp.class, String.class, timestamp -> timestamp.toInstant().toString());
+            register(Timestamp.class, Long.class, Timestamp::getTime);
+            register(Timestamp.class, LocalDateTime.class, Timestamp::toLocalDateTime);
+            register(Timestamp.class, LocalDate.class, timestamp -> timestamp.toLocalDateTime().toLocalDate());
+            register(Timestamp.class, java.util.Date.class, timestamp -> timestamp);
+
+            register(Date.class, String.class, Date::toString);
+            register(Date.class, Instant.class, Date::toInstant);
+            register(Date.class, Long.class, java.util.Date::getTime);
+            register(Date.class, LocalDate.class, Date::toLocalDate);
+            register(Date.class, LocalDateTime.class, date -> date.toLocalDate().atTime(LocalTime.MIN));
+
+            register(Time.class, String.class, Time::toString);
+            register(Time.class, LocalTime.class, Time::toLocalTime);
+            register(Time.class, Instant.class, Time::toInstant);
+
+            register(LocalDateTime.class, Timestamp.class, Timestamp::valueOf);
+            register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
+            register(LocalDateTime.class, Long.class, dateTime -> dateTime.toEpochSecond(ZoneOffset.UTC) * 1000L);
+            register(LocalDateTime.class, String.class, LocalDateTime::toString);
             register(LocalDateTime.class, java.util.Date.class, dateTime -> {
                 Instant instant = dateTime.atZone(timeZone.toZoneId()).toInstant();
                 return java.util.Date.from(instant);
             });
-            register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
-//          register(LocalDateTime.class, Timestamp.class, dateTime -> Timestamp.valueOf(dateTime));
-            register(LocalDateTime.class, Long.class, dateTime -> dateTime.atOffset(ZoneOffset.UTC).getSecond() * 1000L);
-            register(LocalDateTime.class, String.class, LocalDateTime::toString);
 
+            register(LocalDate.class, String.class, LocalDate::toString);
+            register(LocalDate.class, Long.class, date -> date.atStartOfDay(timeZone.toZoneId()).getSecond() * 1000L);
+            register(LocalDate.class, Integer.class, date -> date.atStartOfDay(timeZone.toZoneId()).getSecond());
             register(LocalDate.class, java.util.Date.class, date -> {
-                Instant instant = LocalDate.now().atStartOfDay(timeZone.toZoneId()).toInstant();
+                Instant instant = date.atStartOfDay(timeZone.toZoneId()).toInstant();
                 return java.util.Date.from(instant);
             });
-            register(LocalDate.class, String.class, LocalDate::toString);
-            register(LocalDate.class, Long.class, date -> {
-                return date.atStartOfDay(timeZone.toZoneId()).getSecond() * 1000L;
-            });
-            register(LocalDate.class, Integer.class, date -> {
-                return date.atStartOfDay(timeZone.toZoneId()).getSecond();
-            });
 
+            register(OffsetDateTime.class, String.class, OffsetDateTime::toString);
             register(OffsetDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
-            register(OffsetDateTime.class, java.util.Date.class,
-                    dateTime -> java.util.Date.from(dateTime.toZonedDateTime().toInstant()));
-            register(OffsetDateTime.class, Long.class,
-                    dateTime -> dateTime.toZonedDateTime().toInstant().getEpochSecond() * 1000L);
+            register(OffsetDateTime.class, java.util.Date.class, dateTime -> java.util.Date.from(dateTime.toZonedDateTime().toInstant()));
+            register(OffsetDateTime.class, Long.class, dateTime -> dateTime.toZonedDateTime().toInstant().getEpochSecond() * 1000L);
 
+            register(ZonedDateTime.class, String.class, ZonedDateTime::toString);
             register(ZonedDateTime.class, Date.class, dateTime -> new Date(dateTime.toEpochSecond() * 1000L));
-            register(ZonedDateTime.class, java.util.Date.class,
-                    dateTime -> java.util.Date.from(dateTime.toInstant()));
-            register(ZonedDateTime.class, Long.class,
-                    dateTime -> dateTime.toEpochSecond() * 1000L);
+            register(ZonedDateTime.class, java.util.Date.class, dateTime -> java.util.Date.from(dateTime.toInstant()));
+            register(ZonedDateTime.class, Long.class, dateTime -> dateTime.toEpochSecond() * 1000L);
 
-
-            //
-//            register(Integer.class, Enum.class, new IntegerToEnumConverter());
         }
 
         @Override
@@ -299,36 +296,6 @@ public interface ConversionService {
         }
     }
 
-    final class ObjectToStringConverter implements TypeConverter<Object, String> {
-        public String convert(Object source) {
-            return source.toString();
-        }
-    }
-
-    final class TimestampToStringConverter implements TypeConverter<Timestamp, String> {
-        public String convert(Timestamp source) {
-            return ZonedDateTime.of(source.toLocalDateTime(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);//2018-11-30T16:08:37.734Z
-        }
-    }
-
-    final class DateToStringConverter implements TypeConverter<Date, String> {
-        public String convert(Date source) {
-//            return ZonedDateTime.of(source.toLocalDate().atStartOfDay(), ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE);
-            return DateTimeFormatter.ofPattern("yyyy-MM-dd").format(source.toLocalDate());
-        }
-    }
-
-    final class TimeToStringConverter implements TypeConverter<Time, String> {
-        public String convert(Time source) {
-            return DateTimeFormatter.ofPattern("HH:mm:ss").format(source.toLocalTime());
-        }
-    }
-
-    final class TimeToLocalTimeConverter implements TypeConverter<Time, LocalTime> {
-        public LocalTime convert(Time source) {
-            return source.toLocalTime();
-        }
-    }
 
     final class BooleanToBoolean implements TypeConverter<Boolean, Boolean> {
         public Boolean convert(Boolean source) {
@@ -420,47 +387,11 @@ public interface ConversionService {
     }
 
 
-    final class TimeToLongConverter implements TypeConverter<Time, Long> {
-        public Long convert(Time source) {
-            return source.getTime();
-        }
-    }
-
-    final class TimestampToLongConverter implements TypeConverter<Timestamp, Long> {
-        public Long convert(Timestamp source) {
-            return source.getTime();
-        }
-    }
-
-    final class DateToLongConverter implements TypeConverter<Date, Long> {
-        public Long convert(Date source) {
-            return source.getTime();
-        }
-    }
-
-
-    final class TimestampToLocalDateConverter implements TypeConverter<Timestamp, LocalDate> {
-        public LocalDate convert(Timestamp source) {
-            return source.toLocalDateTime().toLocalDate();
-        }
-    }
-
-    final class TimestampToLocalDateTimeConverter implements TypeConverter<Timestamp, LocalDateTime> {
-        public LocalDateTime convert(Timestamp source) {
-            return source.toLocalDateTime();
-        }
-    }
-
     final class TimestampToDateTimeConverter implements TypeConverter<Timestamp, java.util.Date> {
         public java.util.Date convert(Timestamp source) {
             return new java.util.Date(source.getTime());
         }
     }
 
-    final class DateToLocalDateConverter implements TypeConverter<Date, LocalDate> {
-        public LocalDate convert(Date source) {
-            return source.toLocalDate();
-        }
-    }
 
 }
