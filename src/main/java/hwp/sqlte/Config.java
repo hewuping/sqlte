@@ -66,7 +66,7 @@ final public class Config {
     }
 
     public ConversionService getConversionService() {
-        return ConversionService.DEFAULT;
+        return DefaultConversionService.INSTANCE;
     }
 
     public Config setSqlProvider(SqlProvider sqlProvider) {
