@@ -125,6 +125,32 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
+    public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
+        Objects.requireNonNull(clazz);
+        Objects.requireNonNull(consumer);
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        String pkColumn = info.getPKColumn();
+        Map<String, Object> map = new HashMap<>();
+        if (map.isEmpty()) {
+            throw new IllegalArgumentException("query conditions are required");
+        }
+        List<T> list = query(sql -> {
+            sql.from(info.getTableName()).where(where -> {
+                map.forEach((name, value) -> {
+                    where.and(name + " =?", value);
+                });
+            }).limit(2);
+        }).list(clazz);
+        if (list.isEmpty()) {
+            return null;
+        }
+        if (list.size() == 1) {
+            return list.get(0);
+        }
+        throw new UncheckedSQLException("Only one record was expected to be returned, but multiple records were returned");
+    }
+
+    @Override
     public <T> T reload(T bean) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());

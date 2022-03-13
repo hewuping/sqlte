@@ -151,12 +151,18 @@ public interface SqlConnection extends AutoCloseable {
 
     <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException;
 
+    <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException;
+
     default <T> T mustGet(Class<T> clazz, Object id) throws UncheckedSQLException {
         T obj = tryGet(clazz, id);
         if (obj == null) {
             throw new NotFoundException("Can't found " + clazz.getSimpleName() + " by ID : " + id);
         }
         return obj;
+    }
+
+    default <T> T mustGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
+        return tryGet(clazz, consumer);
     }
 
     <T> T reload(T bean) throws UncheckedSQLException;

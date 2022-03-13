@@ -120,6 +120,9 @@ class Helper {
     static Object getSerializedValue(Object obj, Field field) throws IllegalAccessException {
         try {
             Object value = field.get(obj);
+            if (value == null) {
+                return null;
+            }
             Column column = field.getAnnotation(Column.class);
             // 转成JSON存储
             if (column != null && column.json()) {
