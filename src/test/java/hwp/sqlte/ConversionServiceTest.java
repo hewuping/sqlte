@@ -11,24 +11,37 @@ package hwp.sqlte;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * @author Zero
  * Created on 2018/11/27.
  */
 public class ConversionServiceTest {
 
-    ConversionService service = ConversionService.DEFAULT;
+    ConversionService service = DefaultConversionService.INSTANCE;
 
     @Test
     public void testInteger2Int() {
         Integer integer = service.convert(Integer.valueOf(10), Integer.TYPE);
         Assert.assertNotNull(integer);
-
     }
 
     @Test
     public void testBoolean() {
         Boolean b = service.convert(Boolean.TRUE, Boolean.TYPE);
+        Assert.assertTrue(b);
+    }
+
+    @Test
+    public void testBoolean2Boolean() {
+        Boolean b = service.convert(Boolean.TRUE, Boolean.class);
         Assert.assertTrue(b);
     }
 
@@ -53,4 +66,68 @@ public class ConversionServiceTest {
         Byte aByte2 = service.convert(Boolean.TRUE, Byte.class);
         Assert.assertEquals((byte) 1, (byte) aByte2);
     }
+
+    @Test
+    public void testLocalDateTime2UtilDate() {
+        LocalDateTime now = LocalDateTime.now();
+        Date date1 = new Date();
+        Date date2 = service.convert(now, Date.class);
+        Assert.assertEquals(date1, date2);
+    }
+
+
+    @Test
+    public void testNumbers() {
+        int i = service.convert(10, Integer.TYPE);
+        Assert.assertEquals(10, i);
+        short s = service.convert((short) 10, Short.TYPE);
+        Assert.assertEquals(10, s);
+        double d = service.convert(10D, Double.TYPE);
+        Assert.assertEquals(10D, d, 0.0);
+    }
+
+    @Test
+    public void testInt2Number() {
+        Number value = service.convert(10, Number.class);
+        Assert.assertEquals(10, value.intValue());
+    }
+
+    @Test
+    public void testInt2Long() {
+        Long t1 = service.convert(10, Long.class);
+        Assert.assertEquals(10L, t1.longValue());
+        Integer t2 = service.convert(987, Integer.class);
+        Assert.assertEquals(987L, t2.longValue());
+    }
+
+    @Test
+    public void testDouble2BigDecimal() {
+        BigDecimal value = service.convert(10.02D, BigDecimal.class);
+        Assert.assertEquals("10.02", value.toString());
+    }
+
+    @Test
+    public void testInt2BigDecimal() {
+        BigDecimal value = service.convert(10, BigDecimal.class);
+        Assert.assertEquals("10", value.toString());
+    }
+
+    @Test
+    public void testLong2BigInteger() {
+        BigInteger value = service.convert(100000000L, BigInteger.class);
+        Assert.assertEquals("100000000", value.toString());
+    }
+
+    @Test
+    public void testLong2AtomicInteger() {
+        AtomicInteger value = service.convert(100000000L, AtomicInteger.class);
+        Assert.assertEquals("100000000", value.toString());
+    }
+
+    @Test
+    public void testBigDecimal2AtomicInteger() {
+        AtomicInteger value = service.convert(BigDecimal.valueOf(2.34), AtomicInteger.class);
+        Assert.assertEquals(2, value.intValue());
+    }
+
 }
