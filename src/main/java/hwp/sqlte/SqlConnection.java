@@ -124,6 +124,12 @@ public interface SqlConnection extends AutoCloseable {
 
     int executeUpdate(String sql, Object... args) throws UncheckedSQLException;//execute
 
+    default int executeUpdate(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+        SqlBuilder builder = new SqlBuilder();
+        consumer.accept(builder);
+        return this.executeUpdate(builder.sql(), builder.args());
+    }
+
     int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
 
     int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException;
