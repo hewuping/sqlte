@@ -131,8 +131,9 @@ class SqlConnectionImpl implements SqlConnection {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         String pkColumn = info.getPKColumn();
         Map<String, Object> map = new HashMap<>();
+        consumer.accept(map);
         if (map.isEmpty()) {
-            throw new IllegalArgumentException("query conditions are required");
+            throw new IllegalArgumentException("map is empty");
         }
         List<T> list = query(sql -> {
             sql.from(info.getTableName()).where(where -> {
