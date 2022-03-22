@@ -56,8 +56,11 @@ final class DefaultConversionService implements ConversionService {
         // number
         register(Byte.class, String.class, Object::toString);
         register(Short.class, String.class, Object::toString);
+        register(Short.class, Boolean.class, v -> v > 0);
         register(Integer.class, String.class, Object::toString);
+        register(Integer.class, Boolean.class, v -> v > 0);
         register(Long.class, String.class, Object::toString);
+        register(Long.class, Boolean.class, v -> v > 0);
         register(Float.class, String.class, Object::toString);
         register(Double.class, String.class, Object::toString);
 
