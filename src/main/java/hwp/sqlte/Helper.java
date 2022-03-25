@@ -5,6 +5,7 @@ import hwp.sqlte.cache.FifoCache;
 
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -57,6 +58,8 @@ class Helper {
                     statement.setString(i + 1, ((Enum) value).name());
                 } else if (value instanceof Date) {//MySQL treatUtilDateAsTimestamp=true
                     statement.setTimestamp(i + 1, new Timestamp(((Date) value).getTime()));
+                } else if (value instanceof Instant) {
+                    statement.setTimestamp(i + 1, new Timestamp(((Instant) value).toEpochMilli()));
                 } else {
                     statement.setObject(i + 1, value);
                 }
