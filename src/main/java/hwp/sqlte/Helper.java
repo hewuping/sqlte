@@ -59,7 +59,7 @@ class Helper {
                 } else if (value instanceof Date) {//MySQL treatUtilDateAsTimestamp=true
                     statement.setTimestamp(i + 1, new Timestamp(((Date) value).getTime()));
                 } else if (value instanceof Instant) {
-                    statement.setTimestamp(i + 1, new Timestamp(((Instant) value).toEpochMilli()));
+                    statement.setTimestamp(i + 1, Timestamp.from((Instant) value));
                 } else {
                     statement.setObject(i + 1, value);
                 }

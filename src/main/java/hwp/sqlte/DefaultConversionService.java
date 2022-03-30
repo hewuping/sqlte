@@ -84,6 +84,9 @@ final class DefaultConversionService implements ConversionService {
         register(Timestamp.class, LocalDateTime.class, Timestamp::toLocalDateTime);
         register(Timestamp.class, LocalDate.class, timestamp -> timestamp.toLocalDateTime().toLocalDate());
         register(Timestamp.class, java.util.Date.class, timestamp -> timestamp);
+        register(Timestamp.class, Instant.class, timestamp -> Instant.ofEpochMilli(timestamp.getTime()));
+
+        register(Instant.class, Timestamp.class, Timestamp::from);
 
         register(Date.class, String.class, Date::toString);
         register(Date.class, Instant.class, Date::toInstant);
