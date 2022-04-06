@@ -4,7 +4,7 @@ package hwp.sqlte;
  * @author Zero
  * Created on 2018/4/4.
  */
-class UnsafeCount {
+class Counter {
     private int count;
 
     public int add(int v) {

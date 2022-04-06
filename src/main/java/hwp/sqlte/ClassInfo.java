@@ -81,7 +81,7 @@ class ClassInfo {
         }
 
         //columns, fields
-        UnsafeCount index = new UnsafeCount();
+        Counter index = new Counter();
         this.columns = new String[columnFieldMap.size()];
         this.fields = new Field[columnFieldMap.size()];
         columnFieldMap.forEach((column, field) -> {

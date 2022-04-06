@@ -695,7 +695,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             Savepoint savepoint = conn.setSavepoint("batchUpdate");
             BatchUpdateResult result = new BatchUpdateResult();
-            UnsafeCount count = new UnsafeCount();
+            Counter count = new Counter();
             BatchExecutor executor = args -> {
                 try {
                     Helper.fillStatement(statement, args);

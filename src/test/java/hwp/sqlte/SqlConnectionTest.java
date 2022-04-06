@@ -349,7 +349,7 @@ public class SqlConnectionTest {
         for (int i = 0; i < size; i++) {
             users.add(new User("zero" + i, "zero@xxx.com", "123456"));
         }
-        UnsafeCount count = new UnsafeCount();
+        Counter count = new Counter();
         PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
                 Statement.RETURN_GENERATED_KEYS);
 //        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",

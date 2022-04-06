@@ -14,8 +14,6 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,7 +70,7 @@ public class ConversionServiceTest {
         LocalDateTime now = LocalDateTime.now();
         Date date1 = new Date();
         Date date2 = service.convert(now, Date.class);
-        Assert.assertEquals(date1, date2);
+        Assert.assertTrue(date1.getTime() == date2.getTime());
     }
 
 
