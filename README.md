@@ -10,7 +10,7 @@ H2|1.4.197
 
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
-
+## install
 ```
 ./gradlew build
 ./gradlew publishToMavenLocal
@@ -19,6 +19,35 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
 ```
  compile group: 'hwp.sqlte', name: 'sqlte', version: 'x.x.x'
+```
+
+**use jitpack**
+
+Maven
+```
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+<dependencies>
+    <dependency>
+        <groupId>com.github.hewuping</groupId>
+        <artifactId>sqlte</artifactId>
+        <version>0.2.8</version>
+    </dependency>
+</dependencies>
+```
+Gradle
+```
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+dependencies {
+    implementation 'com.github.hewuping:sqlte:0.2.8'
+}
 ```
 
 ## SqlConnection
