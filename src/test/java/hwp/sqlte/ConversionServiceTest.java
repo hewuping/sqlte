@@ -70,7 +70,8 @@ public class ConversionServiceTest {
         LocalDateTime now = LocalDateTime.now();
         Date date1 = new Date();
         Date date2 = service.convert(now, Date.class);
-        Assert.assertTrue(date1.getTime() == date2.getTime());
+        long d = date1.getTime() - date2.getTime();
+        Assert.assertTrue(d >= 0 && d < 1000);
     }
 
 

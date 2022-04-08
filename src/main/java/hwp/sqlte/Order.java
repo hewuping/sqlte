@@ -1,15 +1,15 @@
 package hwp.sqlte;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * @author Zero
  * Created on 2017/3/22.
  */
 public class Order {
-    private List<String> columns;
-    private List<Boolean> descs;
+
+    private final Map<String, Direction> items = new LinkedHashMap<>();
 
     public Order() {
     }
@@ -18,58 +18,45 @@ public class Order {
         return new Order();
     }
 
-    public static Order from(String[] columns, boolean[] descs) {
-        return new Order().by(columns, descs);
+    public Order by(LinkedHashMap<String, Direction> sort) {
+        items.putAll(sort);
+        return this;
     }
 
-    public Order by(String[] columns, boolean[] descs) {
-        if (columns.length != descs.length) {
-            throw new IllegalArgumentException("columns的长度和descs的长度不一致");
-        }
-        this.columns = new ArrayList<>(columns.length);
-        this.descs = new ArrayList<>(descs.length);
+    public Order by(String column, Direction direction) {
+        items.put(column, direction);
         return this;
     }
 
     public Order by(String column, boolean desc) {
-        if (columns == null) {
-            columns = new ArrayList<>(4);
-            descs = new ArrayList<>(4);
-        }
-        columns.add(column);
-        descs.add(desc);
+        items.put(column, desc ? Direction.DESC : Direction.ASC);
         return this;
     }
 
     public Order asc(String column) {
-        return this.by(column, false);
+        return this.by(column, Direction.ASC);
     }
 
     public Order desc(String column) {
-        return this.by(column, true);
+        return this.by(column, Direction.DESC);
     }
 
     public String sql() {
-        if (columns == null) {
+        if (items.isEmpty()) {
             return "";
         }
         StringBuilder sql = new StringBuilder();
-        for (int i = 0; i < columns.size(); i++) {
+        items.entrySet().forEach(entry -> {
             if (sql.length() > 0) {
                 sql.append(", ");
             }
-            sql.append(columns.get(i));
-            if (descs.get(i)) {
-                sql.append(" DESC");
-            } else {
-                sql.append(" ASC");
-            }
-        }
+            sql.append(entry.getKey()).append(" ").append(entry.getValue());
+        });
         return sql.toString();
     }
 
     public boolean isEmpty() {
-        return columns == null || columns.isEmpty();
+        return items.isEmpty();
     }
 
     @Override
