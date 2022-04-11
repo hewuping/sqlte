@@ -1,7 +1,9 @@
 package hwp.sqlte;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * @author Zero
@@ -57,6 +59,41 @@ public class Order {
 
     public boolean isEmpty() {
         return items.isEmpty();
+    }
+
+
+    /**
+     * @param sortStr  eg: field:desc,name:asc
+     * @param consumer fieldName -> columnName
+     * @return
+     */
+    protected static Order fromString(String sortStr, Consumer<Map<String, String>> consumer) {
+        Map<String, String> map = new LinkedHashMap<>();
+        if (consumer != null) {
+            consumer.accept(map);
+        }
+        Order order = new Order();
+        if (sortStr == null || sortStr.isEmpty()) {
+            return order;
+        }
+        List<String> fields = StringUtils.split(sortStr, ",", true);
+        for (String field : fields) {
+            List<String> ss = StringUtils.split(field, ":", true);
+            if (ss.size() != 2) {
+                continue;
+            }
+            String name = ss.get(0);
+            Direction direction = Direction.find(ss.get(1));
+            if (name == null || direction == null) {
+                continue;
+            }
+            //避免修改URL导致SQL异常, 这里必须明确指定映射, 基本名称一样
+            String columnName = map.get(name);
+            if (columnName != null) {
+                order.by(columnName, direction);
+            }
+        }
+        return order;
     }
 
     @Override
