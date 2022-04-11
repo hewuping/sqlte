@@ -4,9 +4,9 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'hwp.sqlte'
+group = 'com.github.hewuping'
 archivesBaseName = 'sqlte'
-version = '0.2.8'
+version = '0.2.9'
 
 sourceCompatibility = 1.8
 

@@ -18,7 +18,7 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
 ```
 
 ```
- compile group: 'hwp.sqlte', name: 'sqlte', version: 'x.x.x'
+ compile group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
 ```
 
 **use jitpack**
@@ -35,7 +35,7 @@ Maven
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.8</version>
+        <version>0.2.9</version>
     </dependency>
 </dependencies>
 ```
@@ -46,7 +46,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.8'
+    implementation 'com.github.hewuping:sqlte:0.2.9'
 }
 ```
 
