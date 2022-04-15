@@ -182,14 +182,6 @@ public class SqlBuilder implements Builder, Sql {
         return orderBy(order);
     }
 
-    /**
-     * @param sortStr  eg: field:desc,name:asc
-     * @param consumer fieldName -> columnName
-     * @return
-     */
-    public SqlBuilder orderBy(String sortStr, Consumer<Map<String, String>> consumer) {
-        return orderBy(Order.fromString(sortStr, consumer));
-    }
 
     public SqlBuilder groupBy(String groupSql) {
         Objects.requireNonNull(groupSql);

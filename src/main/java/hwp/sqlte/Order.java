@@ -67,14 +67,13 @@ public class Order {
      * @param consumer fieldName -> columnName
      * @return
      */
-    protected static Order fromString(String sortStr, Consumer<Map<String, String>> consumer) {
+    public Order apply(String sortStr, Consumer<Map<String, String>> consumer) {
         Map<String, String> map = new LinkedHashMap<>();
         if (consumer != null) {
             consumer.accept(map);
         }
-        Order order = new Order();
         if (sortStr == null || sortStr.isEmpty()) {
-            return order;
+            return this;
         }
         List<String> fields = StringUtils.split(sortStr, ",", true);
         for (String field : fields) {
@@ -90,10 +89,10 @@ public class Order {
             //避免修改URL导致SQL异常, 这里必须明确指定映射, 基本名称一样
             String columnName = map.get(name);
             if (columnName != null) {
-                order.by(columnName, direction);
+                this.by(columnName, direction);
             }
         }
-        return order;
+        return this;
     }
 
     @Override
