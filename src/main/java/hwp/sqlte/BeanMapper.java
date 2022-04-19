@@ -3,6 +3,7 @@ package hwp.sqlte;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -32,24 +33,25 @@ class BeanMapper<T> implements RowMapper<T> {
             Object dbValue = row.getValue(entry.getKey());
             Field field = entry.getValue();
             if (dbValue != null) {
-                //toObject
+                // JSON对象转换
                 if (dbValue instanceof String && !field.isEnumConstant()) {
                     Column column = field.getAnnotation(Column.class);
-                    String dbValueStr = (String) dbValue;
+                    String _dbValue = (String) dbValue;
                     //内置 JSON 转为对象
                     if (column != null && column.json()) {
                         JsonSerializer jsonSerializer = Config.getConfig().getJsonSerializer();
-                        Object decodeValue = jsonSerializer.fromJson(dbValueStr, field.getType());
+                        Object decodeValue = jsonSerializer.fromJson(_dbValue, field.getType());
                         field.set(obj, decodeValue);
                         continue;
                     }
-                    // 自定义转换器
-                    Convert convert = field.getAnnotation(Convert.class);
-                    if (convert != null) {
-                        Converter converter = Helper.getConverter(convert.converter());
-                        field.set(obj, converter.convert(dbValue));
-                        continue;
-                    }
+                }
+                // 自定义转换器
+                Convert convert = field.getAnnotation(Convert.class);
+                if (convert != null && dbValue instanceof Serializable) {
+                    Serializable _dbValue = (Serializable) dbValue;
+                    Converter<?, Serializable> converter = Helper.getConverter(convert.converter());
+                    field.set(obj, converter.recover(_dbValue));
+                    continue;
                 }
                 // JDBC返回的数据类型与类属性类型一致, 直接设置属性值
                 if (dbValue.getClass() == field.getType() || field.getType().isInstance(dbValue)) {

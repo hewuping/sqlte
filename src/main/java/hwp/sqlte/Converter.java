@@ -8,6 +8,11 @@ import java.io.Serializable;
  */
 public interface Converter<T, D extends Serializable> {
 
+    /**
+     *
+     * @param value
+     * @return
+     */
     public D convert(T value);
 
     public T recover(D dbValue);
