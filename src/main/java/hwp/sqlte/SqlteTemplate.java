@@ -105,7 +105,7 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
-        return  run(conn -> conn.tryGet(clazz, consumer));
+        return run(conn -> conn.tryGet(clazz, consumer));
     }
 
     @Override
@@ -294,6 +294,14 @@ public class SqlteTemplate implements SqlConnection {//sql
     @Override
     public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, psConsumer));
+    }
+
+    @Override
+    public void batchUpdate(List<?> beans) throws UncheckedSQLException {
+        run(conn -> {
+            conn.batchUpdate(beans);
+            return null;
+        });
     }
 
     @Override

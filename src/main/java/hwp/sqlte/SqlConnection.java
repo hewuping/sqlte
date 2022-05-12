@@ -4,6 +4,7 @@ import java.io.Reader;
 import java.sql.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -95,9 +96,14 @@ public interface SqlConnection extends AutoCloseable {
         return query(builder.toString(), sql.args()).first(Long.class) == 1;
     }
 
-/*    default <T> List<T> queryList(Supplier<T> supplier, Consumer<SqlBuilder> consumer) {
-        return this.query(consumer).list(supplier);
-    }*/
+    default <T> List<T> listAll(Class<T> clazz) {
+        return list(clazz, null);
+    }
+
+    default <T> List<T> list(Class<T> clazz, Consumer<Where> consumer) {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        return query(sql -> sql.from(info.getTableName()).where(consumer)).list(clazz);
+    }
 
     int insert(String table, String columns, Object... args) throws UncheckedSQLException;
 
@@ -209,6 +215,38 @@ public interface SqlConnection extends AutoCloseable {
         return update(bean, null, false);
     }
 
+    /**
+     * 插入或更新
+     *
+     * @param bean 数据对象
+     * @param fn   自定义函数, 返回 true 表示插入, 返回 false 表示更新
+     * @param <T>
+     */
+    default <T> void save(T bean, Function<T, Boolean> fn) {
+        Objects.requireNonNull(bean);
+        Objects.requireNonNull(fn);
+        if (fn.apply(bean)) {
+            this.insert(bean);
+        } else {
+            this.update(bean);
+        }
+    }
+
+    /**
+     * 插入或更新, 如果明确是插入/更新, 请使用 batchInsert()/batchUpdate() 方法
+     *
+     * @param beans
+     * @param fn
+     * @param <T>
+     */
+    default <T> void save(List<T> beans, Function<T, Boolean> fn) {
+        Objects.requireNonNull(beans);
+        Objects.requireNonNull(fn);
+        for (T bean : beans) {
+            this.save(bean, fn);
+        }
+    }
+
     //  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
 
     default boolean delete(Object bean) throws UncheckedSQLException {
@@ -230,6 +268,12 @@ public interface SqlConnection extends AutoCloseable {
 
     <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
+    /**
+     * @param beans
+     * @param table 如果为 null, 会区 list 中的第一个对象映射的表名
+     * @return
+     * @throws UncheckedSQLException
+     */
     BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException;
 
     BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
@@ -256,6 +300,7 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
+    void batchUpdate(List<?> beans) throws UncheckedSQLException;
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 //    void setQueryCache(boolean b);

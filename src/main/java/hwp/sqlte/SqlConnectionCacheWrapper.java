@@ -302,6 +302,11 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
+    public void batchUpdate(List<?> beans) throws UncheckedSQLException {
+        delegate.batchUpdate(beans);
+    }
+
+    @Override
     public void executeSqlScript(Reader reader, boolean ignoreError) {
         delegate.executeSqlScript(reader, ignoreError);
     }

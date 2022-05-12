@@ -143,10 +143,13 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
-    public SqlBuilder where(Consumer<Where> where) {
-        Where w = new Where();
-        where.accept(w);
-        return this.where(w);
+    public SqlBuilder where(Consumer<Where> consumer) {
+        if (consumer == null) {
+            return this;
+        }
+        Where where = new Where();
+        consumer.accept(where);
+        return this.where(where);
     }
 
     public SqlBuilder paging(int page, int size) {

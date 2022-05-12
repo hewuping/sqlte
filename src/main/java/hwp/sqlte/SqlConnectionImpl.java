@@ -738,6 +738,13 @@ class SqlConnectionImpl implements SqlConnection {
 
     }
 
+    @Override
+    public void batchUpdate(List<?> beans) throws UncheckedSQLException {
+        for (Object bean : beans) {
+            this.update(bean, null, false);
+        }
+    }
+
     private void updateBatchUpdateResult(BatchUpdateResult result, int[] rs) {
         for (int r : rs) {
             if (r > 0) {
