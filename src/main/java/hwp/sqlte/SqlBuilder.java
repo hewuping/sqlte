@@ -1,6 +1,7 @@
 package hwp.sqlte;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -149,6 +150,28 @@ public class SqlBuilder implements Builder, Sql {
         }
         Where where = new Where();
         consumer.accept(where);
+        return this.where(where);
+    }
+
+    public SqlBuilder where(Object example) {
+        Class<?> clazz = example.getClass();
+        Field[] fields = clazz.getFields();
+        Where where = new Where();
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        try {
+            for (Field field : fields) {
+                Object value = Helper.getSerializedValue(example, field);
+                if (value != null) {
+                    if (value instanceof String && ((String) value).trim().isEmpty()) {
+                        continue;
+                    }
+                    String column = info.getColumn(field);
+                    where.and(column + " = ?", value);
+                }
+            }
+        } catch (IllegalAccessException e) {
+            //
+        }
         return this.where(where);
     }
 

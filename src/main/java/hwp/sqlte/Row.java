@@ -56,8 +56,19 @@ public class Row extends HashMap<String, Object> {
 
 
     public <T> T map(Supplier<T> supplier) {
-        BeanMapper<T> mapper = new BeanMapper<>(supplier);
-        return mapper.map(this);
+        return copyTo(supplier.get());
+    }
+
+    public <T> T map(Class<T> clazz) {
+        try {
+            return copyTo(clazz.getDeclaredConstructor().newInstance());
+        } catch (Exception e) {
+            throw new SqlteException(e);
+        }
+    }
+
+    public <T> T copyTo(T bean) {
+        return BeanMapper.copy(this, bean);
     }
 
     public Row set(String name, Object val) {
@@ -79,12 +90,5 @@ public class Row extends HashMap<String, Object> {
         }
     }
 
-    public <T> T copyTo(T bean) {
-        try {
-            return BeanMapper.copy(this, bean);
-        } catch (ReflectiveOperationException e) {
-            throw new SqlteException(e);
-        }
-    }
 
 }

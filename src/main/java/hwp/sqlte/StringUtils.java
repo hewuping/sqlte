@@ -19,6 +19,10 @@ class StringUtils {
         return !isEmpty(cs);
     }
 
+    public static boolean isBlank(final String cs) {
+        return cs == null || cs.trim().isEmpty();
+    }
+
     //UPPER_CAMEL -> LOWER_UNDERSCORE
     public static String toUnderscore(String upperCamel) {
         StringBuilder builder = new StringBuilder();

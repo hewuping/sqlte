@@ -40,7 +40,6 @@ public interface SqlConnection extends AutoCloseable {
         return query(sb.sql(), sb.args());
     }
 
-    // TODO   default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier)
     default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws UncheckedSQLException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
@@ -103,6 +102,12 @@ public interface SqlConnection extends AutoCloseable {
     default <T> List<T> list(Class<T> clazz, Consumer<Where> consumer) {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         return query(sql -> sql.from(info.getTableName()).where(consumer)).list(clazz);
+    }
+
+    default <T> T firstExample(T example) {
+        Class<T> clazz = (Class<T>) example.getClass();
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(clazz);
     }
 
     int insert(String table, String columns, Object... args) throws UncheckedSQLException;

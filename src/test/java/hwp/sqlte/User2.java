@@ -32,6 +32,9 @@ public class User2 {
     public User2() {
     }
 
+    public User2(Integer id) {
+        this.id = id;
+    }
 
     public User2(String username, String email, String password) {
         this.username = username;

@@ -438,7 +438,7 @@ class SqlConnectionImpl implements SqlConnection {
                         Object[] args = new Object[columns.length];
                         for (int i = 0; i < columns.length; i++) {
                             Field field = info.getField(columns[i]);
-                            args[i] = field.get(bean);
+                            args[i] = Helper.getSerializedValue(bean, field);
                         }
                         executor.exec(args);
                     } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -866,6 +866,28 @@ class SqlConnectionImpl implements SqlConnection {
             }
         });
     }
+
+    /*
+    <T> void update2(Class<T> clazz, Sql sql, EFunction<T, Boolean> function) throws Exception {
+        String _sql = toSql(sql.sql());
+        try (PreparedStatement stat = createQueryStatement(_sql)) {
+            if (sql.args().length > 0) {
+                Helper.fillStatement(stat, sql.args());
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
+            }
+            try (java.sql.ResultSet rs = stat.executeQuery()) {
+                while (rs.next()) {
+                    T obj = Row.from(rs).map(clazz);
+                    // 如果对象被修改了, 则更新对象
+                    if (function.apply(obj)) {
+                        update(obj);
+                    }
+                }
+            }
+        }
+    }*/
 
 
     ///////////////////////////////////////////////////////////////////////////

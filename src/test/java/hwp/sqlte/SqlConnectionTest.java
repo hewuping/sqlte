@@ -148,7 +148,7 @@ public class SqlConnectionTest {
         String newPassword = ThreadLocalRandom.current().nextInt() + "@";
         user.password = newPassword;
         conn.update(user, "password");
-        User2 user2 = conn.query("select * from users where password=?", newPassword).first(User2::new);
+        User2 user2 = conn.query("select * from users where password=?", newPassword).first(User2.class);
         Assert.assertNotNull(user2);
     }
 
@@ -250,8 +250,20 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testQueryFirstInt() {
-
+    public void testFirstExample() {
+        User2 user = new User2("Zero", "zero@xxx.com", "123456");
+        user.id = 1;
+        conn.insert(user);
+        User2 t1 = conn.firstExample(user);
+        Assert.assertNotNull(t1);
+        User2 t2 = conn.firstExample(new User2("Zero", null, null));
+        Assert.assertNotNull(t2);
+        User2 t3 = conn.firstExample(new User2(null, "zero@xxx.com", null));
+        Assert.assertNotNull(t3);
+        User2 t4 = conn.firstExample(new User2(null, null, "123456"));
+        Assert.assertNotNull(t4);
+        User2 t5 = conn.firstExample(new User2(1));
+        Assert.assertNotNull(t5);
     }
 
     @Test
@@ -588,7 +600,7 @@ public class SqlConnectionTest {
         }
     }
 
-//    @Test
+    //    @Test
     public void testTransaction2() {
         CompletableFuture.runAsync(() -> {
             Sql.transaction(conn -> {
