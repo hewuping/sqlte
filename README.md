@@ -35,7 +35,7 @@ Maven
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.11</version>
+        <version>0.2.12</version>
     </dependency>
 </dependencies>
 ```
@@ -46,7 +46,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.11'
+    implementation 'com.github.hewuping:sqlte:0.2.12'
 }
 ```
 

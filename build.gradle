@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.github.hewuping'
 archivesBaseName = 'sqlte'
-version = '0.2.11'
+version = '0.2.12'
 
 sourceCompatibility = 1.8
 
