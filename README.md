@@ -35,7 +35,7 @@ Maven
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.12</version>
+        <version>0.2.13</version>
     </dependency>
 </dependencies>
 ```
@@ -46,11 +46,11 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.12'
+    implementation 'com.github.hewuping:sqlte:0.2.13'
 }
 ```
 
-## SqlConnection
+## Example
 
 ```
 @Table(name = "users")
@@ -111,6 +111,36 @@ SqlConnection conn = Sql.open();
 User user = conn.query("select * from users where email=? limit 1", "xxx@xxx.com").first(User::new);
 conn.close();
 ```
+**Query by Example**
+```
+class User {
+    public Integer id;
+    public String name;
+    public Integer deposit;
+    public Integet age;
+    public String status;
+    
+    //...
+}
+
+class UserQuery {
+    public Range<Integer> id = new Range<>(10, 30);// id BETWEEN 10 AND 30
+    @StartWith
+    public String name = "z";// name LIKE "z%"
+    @Lte
+    public Integer deposit = 1000;// deposit <= 1000
+    public Integer[] age = new Integer[]{16, 18, 20}; // age IN (16, 18, 20)
+    public String status = "Active"; // status = "Active"
+}
+
+User user = conn.query(sql->sql.select(User.class)).where(new UserQuery());
+
+// sql:  SELECT * FROM user WHERE (id BETWEEN ? AND ?) AND name LIKE ? AND deposit <= ? AND age IN (?, ?, ?) AND status = ?
+// args: [10, 30, z%, 1000, 16, 18, 20, Active]
+
+User user = conn.query(sql->sql.select(User.class)).where(new User("Active"));
+```
+
 
 **Delete**
 
@@ -168,4 +198,27 @@ sql.select("*").from("user").where(where -> {
     where.and("created_at > ?", new Date());
     where.and("age > ?", 10);
 }).groupBy("uid").orderBy("name desc");
+```
+
+## Spring
+
+```
+@Bean
+public SqlteTemplate sqlteTemplate(DataSource dataSource) {
+    var config = Sql.config();
+    // config.setJsonSerializer(new JacksonSerializer());
+    config.setDataSource(dataSource);
+
+    return new SqlteTemplate() {
+        @Override
+        protected Connection open(DataSource dataSource) {
+            return DataSourceUtils.getConnection(dataSource);
+        }
+
+        @Override
+        protected void close(Connection connection) {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
+    };
+}
 ```

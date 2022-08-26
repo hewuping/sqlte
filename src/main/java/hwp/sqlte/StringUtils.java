@@ -23,6 +23,18 @@ class StringUtils {
         return cs == null || cs.trim().isEmpty();
     }
 
+    public static boolean isNumber(String s) {
+        if (s.length() == 0) {
+            return false;
+        }
+        for (char c : s.toCharArray()) {
+            if (!Character.isDigit(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     //UPPER_CAMEL -> LOWER_UNDERSCORE
     public static String toUnderscore(String upperCamel) {
         StringBuilder builder = new StringBuilder();

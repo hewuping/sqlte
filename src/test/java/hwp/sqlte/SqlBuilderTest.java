@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import com.google.gson.Gson;
+import hwp.sqlte.example.*;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -66,4 +68,23 @@ public class SqlBuilderTest {
         Assert.assertEquals("DELETE FROM users WHERE id = ?", builder.sql());
         Assert.assertEquals(1, builder.args().length);
     }
+
+    @Test
+    public void testByExample() {
+        SqlBuilder builder = new SqlBuilder();
+        builder.select(User.class).where(new UserQuery());
+        System.out.println(builder);
+        QueryRequest.fromQueryString("name=Frank&age=18~20&sort=name:desc,age:asc&from=5&size=20");
+    }
+
+    private static class UserQuery {
+        public Range<Integer> id = new Range<>(10, 30);// id BETWEEN 10 AND 30
+        @StartWith
+        public String name = "z";// name LIKE "z%"
+        @Lte
+        public Integer deposit = 1000;// deposit <= 1000
+        public Integer[] age = new Integer[]{16, 18, 20}; // age IN (16, 18, 20)
+        public String status = "Active"; // status = "Active"
+    }
+
 }

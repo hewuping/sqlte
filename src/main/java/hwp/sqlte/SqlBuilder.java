@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import hwp.sqlte.example.*;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -40,6 +42,13 @@ public class SqlBuilder implements Builder, Sql {
     public SqlBuilder select(String columns) {
         Objects.requireNonNull(columns);
         this.sql.append("SELECT ").append(columns).append(separator);
+        return this;
+    }
+
+    public SqlBuilder select(Class<?> clazz) {
+        Objects.requireNonNull(clazz);
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        this.sql.append("SELECT * FROM ").append(info.getTableName()).append(separator);
         return this;
     }
 
@@ -153,6 +162,12 @@ public class SqlBuilder implements Builder, Sql {
         return this.where(where);
     }
 
+    /**
+     * 更具给定的 Example 对象生成查询条件
+     *
+     * @param example
+     * @return
+     */
     public SqlBuilder where(Object example) {
         Class<?> clazz = example.getClass();
         Field[] fields = clazz.getFields();
@@ -166,12 +181,53 @@ public class SqlBuilder implements Builder, Sql {
                         continue;
                     }
                     String column = info.getColumn(field);
+                    if (Range.class.isInstance(value)) {
+                        Range<?> range = (Range<?>) value;
+                        Objects.requireNonNull(range.getStart(), field.getName() + ".start 不能为NULL");
+                        Objects.requireNonNull(range.getEnd(), field.getName() + ".end 不能为NULL");
+                        where.and(Condition.between(column, range.getStart(), range.getEnd()));
+                        continue;
+                    }
+                    if (value.getClass().isArray()) {
+                        where.and(Condition.in(column, value));
+                        continue;
+                    }
+                    if (field.getAnnotation(StartWith.class) != null) {
+                        where.and(Condition.startWith(column, value.toString()));
+                        continue;
+                    }
+                    if (field.getAnnotation(EndWith.class) != null) {
+                        where.and(Condition.endWith(column, value.toString()));
+                        continue;
+                    }
+                    if (field.getAnnotation(Like.class) != null) {
+                        where.and(Condition.like(column, value.toString()));
+                        continue;
+                    }
+                    if (field.getAnnotation(Gte.class) != null) {
+                        where.and(Condition.gte(column, value));
+                        continue;
+                    }
+                    if (field.getAnnotation(Lte.class) != null) {
+                        where.and(Condition.lte(column, value));
+                        continue;
+                    }
                     where.and(column + " = ?", value);
                 }
             }
         } catch (IllegalAccessException e) {
-            //
+            log.error("构建 Where 错误", e);
         }
+        return this.where(where);
+    }
+
+    public SqlBuilder where(Map<String, Object> andMap) {
+        Where where = new Where();
+        andMap.forEach((column, value) -> {
+            if (column != null && value != null) {
+                where.and(column + " =?", value);
+            }
+        });
         return this.where(where);
     }
 
