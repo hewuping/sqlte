@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -185,8 +186,12 @@ public class QueryRequest {
                 values = new LinkedList<>();
                 queryPairs.put(key, values);
             }
-            String value = kv.length == 1 ? null : URLDecoder.decode(kv[1], charset);
-            values.add(value);
+            try {
+                String value = kv.length == 1 ? null : URLDecoder.decode(kv[1], charset.name());//兼容Java8
+                values.add(value);
+            } catch (UnsupportedEncodingException e) {
+                //ignore
+            }
         }
         return queryPairs;
     }
