@@ -167,6 +167,7 @@ public class SqlBuilder implements Builder, Sql {
      *
      * @param example
      * @return
+     * @since 0.2.13
      */
     public SqlBuilder where(Object example) {
         Class<?> clazz = example.getClass();

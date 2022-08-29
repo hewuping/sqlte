@@ -28,6 +28,7 @@ class ClassInfo {
 //    private Map<String, Class<?>> typeMap = new HashMap<>();
 
     static ClassInfo getClassInfo(Class<?> clazz) {
+        Objects.requireNonNull(clazz);
         ClassInfo info = map.get(clazz);
         if (info != null) {
             return info;

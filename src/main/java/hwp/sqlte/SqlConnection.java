@@ -1,14 +1,13 @@
 package hwp.sqlte;
 
 import java.io.Reader;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 /**
  * @author Zero
@@ -16,7 +15,6 @@ import java.util.function.Supplier;
  */
 public interface SqlConnection extends AutoCloseable {
 
-    //    Query query() throws UncheckedSQLException;
     SqlConnection cacheable();
 
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
@@ -38,6 +36,16 @@ public interface SqlConnection extends AutoCloseable {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         return query(sb.sql(), sb.args());
+    }
+
+    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> clazz) throws UncheckedSQLException {
+        return queryPage(consumer, () -> {
+            try {
+                return clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws UncheckedSQLException {
@@ -105,6 +113,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     default <T> T firstExample(T example) {
+        Objects.requireNonNull(example, "example can't be null");
         Class<T> clazz = (Class<T>) example.getClass();
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(clazz);
@@ -275,6 +284,15 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * @param beans
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default BatchUpdateResult batchInsert(List<?> beans) throws UncheckedSQLException {
+        return batchInsert(beans, null);
+    }
+
+    /**
+     * @param beans
      * @param table 如果为 null, 会区 list 中的第一个对象映射的表名
      * @return
      * @throws UncheckedSQLException
@@ -306,6 +324,29 @@ public interface SqlConnection extends AutoCloseable {
     BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
     void batchUpdate(List<?> beans) throws UncheckedSQLException;
+
+    /**
+     * @param clazz
+     * @param sqlConsumer
+     * @param fun
+     * @param <T>
+     * @throws UncheckedSQLException
+     * @since 0.2.14
+     */
+    default <T> void batchUpdate(Class<T> clazz, Consumer<SqlBuilder> sqlConsumer, Predicate<T> fun) throws UncheckedSQLException {
+        BatchAction<T> action = new BatchAction<>(100, batch -> {
+            batchUpdate(batch);
+        });
+        query(sqlConsumer, (RowHandler) row -> {
+            T obj = row.map(clazz);
+            if (fun.test(obj)) {
+                action.add(obj);
+            }
+            return true;
+        });
+        action.end();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 //    void setQueryCache(boolean b);
