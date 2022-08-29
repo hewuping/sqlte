@@ -179,14 +179,14 @@ public class QueryRequest {
         Map<String, LinkedList<String>> queryPairs = new LinkedHashMap<>();
         String[] pairs = query.split("&");
         for (String pair : pairs) {
-            String[] kv = pair.split("=", 2);
-            String key = URLDecoder.decode(kv[0], charset);
-            LinkedList<String> values = queryPairs.get(key);
-            if (values == null) {
-                values = new LinkedList<>();
-                queryPairs.put(key, values);
-            }
             try {
+                String[] kv = pair.split("=", 2);
+                String key = URLDecoder.decode(kv[0], charset.name());//兼容Java8
+                LinkedList<String> values = queryPairs.get(key);
+                if (values == null) {
+                    values = new LinkedList<>();
+                    queryPairs.put(key, values);
+                }
                 String value = kv.length == 1 ? null : URLDecoder.decode(kv[1], charset.name());//兼容Java8
                 values.add(value);
             } catch (UnsupportedEncodingException e) {
