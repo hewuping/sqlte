@@ -13,10 +13,10 @@ import java.util.function.Function;
  */
 public class MySQL {
 
-    public static final Function<String, String> TO_INSERT_IGNORE_INTO =
+    public static final SqlHandler TO_INSERT_IGNORE_INTO =
             sql -> sql.replace("INSERT INTO", "INSERT IGNORE INTO");
 
-    public static final Function<String, String> TO_REPLACE_INTO =
+    public static final SqlHandler TO_REPLACE_INTO =
             sql -> sql.replace("INSERT INTO", "REPLACE INTO");
 
     public static BiConsumer<PreparedStatement, int[]> newGKAdder(LongAdder adder) {

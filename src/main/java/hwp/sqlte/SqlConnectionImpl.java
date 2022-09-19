@@ -396,7 +396,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     @SuppressWarnings("unchecked")
-    public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+    public BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
@@ -406,34 +406,34 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-        return batchInsert(consumer -> beans.forEach(consumer::accept), (Class) first.getClass(), table, sqlProcessor);
+        return batchInsert(consumer -> beans.forEach(consumer::accept), (Class) first.getClass(), table, sqlHandler);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
-        return this.batchInsert(consumer, clazz, table, null);
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+        return this.batchInsert(loader, clazz, table, null);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
 //        ClassInfo info = ClassInfo.getClassInfo(clazz);
 //        boolean hasGks = info.getAutoGenerateColumns().length > 0;
         //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
-        return batchInsert(consumer, clazz, table, sqlProcessor, null);
+        return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
         }
         String[] columns = info.getInsertColumns();
-        String sql = sqlProcessor == null ? Helper.makeInsertSql(table, columns) : sqlProcessor.apply(Helper.makeInsertSql(table, columns));
+        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.apply(Helper.makeInsertSql(table, columns));
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
             return batchUpdate(stat, 500, executor -> {
                 AtomicBoolean b = new AtomicBoolean(true);
-                consumer.accept(bean -> {
+                loader.accept(bean -> {
                     try {
                         Object[] args = new Object[columns.length];
                         for (int i = 0; i < columns.length; i++) {

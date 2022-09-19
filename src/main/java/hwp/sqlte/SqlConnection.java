@@ -299,36 +299,36 @@ public interface SqlConnection extends AutoCloseable {
      */
     BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException;
 
-    BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
+    BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException;
 
     /**
      * <blockquote><pre>
-     * conn.batchInsert(db -> {
+     * conn.batchInsert(it -> {
      *      for (int i = 0; i < size; i++) {
      *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
      *          user.id = i;
      *          user.updated_time = new Date();
-     *          db.accept(user);
+     *          it.accept(user);
      *      }
      * }, User.class, "users");
      * </pre></blockquote>
      *
-     * @param consumer
+     * @param loader
      * @param clazz
      * @param table
      * @param <T>
      * @return
      * @throws UncheckedSQLException
      */
-    default <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
-        return batchInsert(consumer, clazz, table, null, null);
+    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+        return batchInsert(loader, clazz, table, null, null);
     }
 
-    default <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
-        return batchInsert(consumer, clazz, table, sqlProcessor, null);
+    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+        return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
-    <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 

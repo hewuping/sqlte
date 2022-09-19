@@ -252,23 +252,23 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
-        return delegate.batchInsert(beans, table, sqlProcessor);
+    public BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+        return delegate.batchInsert(beans, table, sqlHandler);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
-        return delegate.batchInsert(consumer, clazz, table);
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+        return delegate.batchInsert(loader, clazz, table);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException {
-        return delegate.batchInsert(consumer, clazz, table, sqlProcessor);
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+        return delegate.batchInsert(loader, clazz, table, sqlHandler);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table, Function<String, String> sqlProcessor, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
-        return delegate.batchInsert(consumer, clazz, table, sqlProcessor, psConsumer);
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+        return delegate.batchInsert(loader, clazz, table, sqlHandler, psConsumer);
     }
 
     @Override
