@@ -2,6 +2,11 @@ package hwp.sqlte;
 
 import java.util.function.Function;
 
-public interface SqlHandler extends Function<String, String> {
+/**
+ * 对 SQL 进行修改操作
+ */
+public interface SqlHandler {
+
+    String handle(String sql);
 
 }

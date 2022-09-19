@@ -429,7 +429,7 @@ class SqlConnectionImpl implements SqlConnection {
             table = info.getTableName();
         }
         String[] columns = info.getInsertColumns();
-        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.apply(Helper.makeInsertSql(table, columns));
+        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
             return batchUpdate(stat, 500, executor -> {
                 AtomicBoolean b = new AtomicBoolean(true);
