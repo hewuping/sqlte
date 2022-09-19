@@ -301,6 +301,25 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchInsert(List<?> beans, String table, Function<String, String> sqlProcessor) throws UncheckedSQLException;
 
+    /**
+     * <blockquote><pre>
+     * conn.batchInsert(db -> {
+     *      for (int i = 0; i < size; i++) {
+     *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
+     *          user.id = i;
+     *          user.updated_time = new Date();
+     *          db.accept(user);
+     *      }
+     * }, User.class, "users");
+     * </pre></blockquote>
+     *
+     * @param consumer
+     * @param clazz
+     * @param table
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
     default <T> BatchUpdateResult batchInsert(Consumer<Consumer<T>> consumer, Class<T> clazz, String table) throws UncheckedSQLException {
         return batchInsert(consumer, clazz, table, null, null);
     }
@@ -317,6 +336,21 @@ public interface SqlConnection extends AutoCloseable {
 
     BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
+    /**
+     * 批量插入, 例如:
+     * <blockquote><pre>
+     * conn.batchInsert("users", "email, username", executor -> {
+     *      executor.exec("bb@example.com", "bb");
+     *      executor.exec("aa@example.com", "aa");
+     * });
+     * </pre></blockquote>
+     *
+     * @param table
+     * @param columns
+     * @param consumer
+     * @return
+     * @throws UncheckedSQLException
+     */
     BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
     BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;

@@ -3,7 +3,9 @@ package hwp.sqlte;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class Where {
 
@@ -17,24 +19,121 @@ public class Where {
         consumer.accept(this);
     }
 
+    /**
+     * 拼接 SQL
+     *
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param args 参数值, 数量与占位符保持一致
+     * @return
+     */
     public Where append(String sql, Object... args) {
         whereBuilder.append(sql);
         Collections.addAll(whereArgs, args);
         return this;
     }
 
+    /**
+     * 使用 AND 操作符拼接 SQL
+     *
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param args 参数值, 数量与占位符保持一致
+     * @return
+     */
     public Where and(String sql, Object... args) {
         return and(true, sql, args);
     }
 
+    /**
+     * 使用 AND 操作符拼接 SQL
+     *
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param arg  如果参数值为  null 或 空字符串, 该 SQL片段 会被丢弃
+     * @param test 如果返回 false 则忽略 SQL 片段
+     * @return
+     */
+    public <T> Where andIf(String sql, T arg, Predicate<T> test) {
+        return and(test.test(arg), sql, arg);
+    }
+
+    /**
+     * 使用 AND 操作符拼接 SQL
+     *
+     * @param sql SQL 片段, 有且仅有一个占位符
+     * @param arg 如果参数值为  null 或 空字符串, 该 SQL 片段会被丢弃
+     * @return
+     */
+    public Where andIf(String sql, Object arg) {
+        return this.andIf(sql, arg, it -> {
+            if (arg == null) {
+                return false;
+            }
+            if (it instanceof String && it.toString().isEmpty()) {
+                return false;
+            }
+            return true;
+        });
+    }
+
+    /**
+     * 使用 OR 操作符拼接 SQL
+     *
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param args 参数值, 数量与占位符保持一致
+     * @return
+     */
     public Where or(String sql, Object... args) {
         return or(true, sql, args);
     }
 
+    /**
+     * 使用 OR 操作符拼接 SQL
+     *
+     * @param sql  SQL 片段, 有且仅有一个占位符
+     * @param arg  如果参数值为  null 或 空字符串, 该 SQL 片段会被丢弃
+     * @param test 如果返回 false 则忽略 SQL 片段
+     * @return
+     */
+    public <T> Where orIf(String sql, T arg, Predicate<T> test) {
+        return or(test.test(arg), sql, arg);
+    }
+
+    /**
+     * 使用 OR 操作符拼接 SQL
+     *
+     * @param sql SQL 片段, 有且仅有一个占位符
+     * @param arg 如果参数值为  null 或 空字符串, 该 SQL 片段 会被丢弃
+     * @return
+     */
+    public Where orIf(String sql, Object arg) {
+        if (arg == null) {
+            return this;
+        }
+        if (arg instanceof String && arg.toString().isEmpty()) {
+            return this;
+        }
+        return or(true, sql, arg);
+    }
+
+    /**
+     * 使用 AND 操作符拼接 SQL
+     *
+     * @param when 当条件为 true 时才拼接 SQL, 否则丢弃该 SQL 片段
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param args 参数值, 数量与占位符保持一致
+     * @return
+     */
     public Where and(boolean when, String sql, Object... args) {
         return append("AND", when, sql, args);
     }
 
+    /**
+     * 使用 OR 操作符拼接 SQL
+     *
+     * @param when 当条件为 true 时才拼接 SQL, 否则丢弃该 SQL 片段
+     * @param sql  SQL 片段, 任意占位符数量
+     * @param args 参数值, 数量与占位符保持一致
+     * @return
+     */
     public Where or(boolean when, String sql, Object... args) {
         return append("OR", when, sql, args);
     }
@@ -57,7 +156,11 @@ public class Where {
         return this;
     }
 
-
+    /**
+     * 使用 指定的 where 对象代替本身
+     *
+     * @param where
+     */
     public void apply(Where where) {
         // 避免修改参数
         this.whereBuilder.setLength(0);
@@ -66,10 +169,24 @@ public class Where {
         this.whereArgs.addAll(where.args());
     }
 
+    /**
+     * 参数值列表
+     *
+     * @return
+     */
     public List<Object> args() {
         return whereArgs;
     }
 
+    public Object args(int index) {
+        return whereArgs.get(index);
+    }
+
+    /**
+     * SQL 是否为空
+     *
+     * @return
+     */
     protected boolean isEmpty() {
         return whereBuilder.length() == 0;
     }
@@ -138,6 +255,15 @@ public class Where {
         return this;
     }
 
+    /**
+     * 返回带占位符的 SQL
+     *
+     * @return
+     */
+    public String sql() {
+        return whereBuilder.toString();
+    }
+
     //apply(where)
     //limit()
     //orderBy
@@ -146,10 +272,6 @@ public class Where {
     @Override
     public String toString() {
         return sql();
-    }
-
-    public String sql() {
-        return whereBuilder.toString();
     }
 
 }
