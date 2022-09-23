@@ -3,6 +3,11 @@ package hwp.sqlte.example;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * 范围查找: <code>BETWEEN ? AND ?</code>
+ *
+ * @param <T>
+ */
 public final class Range<T> implements Serializable {
 
     private T start;

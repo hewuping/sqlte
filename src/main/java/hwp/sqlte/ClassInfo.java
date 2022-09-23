@@ -163,6 +163,8 @@ class ClassInfo {
                 || Modifier.isFinal(field.getModifiers())
                 || Modifier.isNative(field.getModifiers())
                 || Modifier.isTransient(field.getModifiers())
+                || Modifier.isPrivate(field.getModifiers())
+                || Modifier.isProtected(field.getModifiers())
                 || field.getAnnotation(Ignore.class) != null;
     }
 

@@ -1,9 +1,6 @@
 package hwp.sqlte;
 
-import hwp.sqlte.example.*;
-
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -170,56 +167,7 @@ public class SqlBuilder implements Builder, Sql {
      * @since 0.2.13
      */
     public SqlBuilder where(Object example) {
-        Class<?> clazz = example.getClass();
-        Field[] fields = clazz.getFields();
-        Where where = new Where();
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        try {
-            for (Field field : fields) {
-                Object value = Helper.getSerializedValue(example, field);
-                if (value != null) {
-                    if (value instanceof String && ((String) value).trim().isEmpty()) {
-                        continue;
-                    }
-                    String column = info.getColumn(field);
-                    if (Range.class.isInstance(value)) {
-                        Range<?> range = (Range<?>) value;
-                        Objects.requireNonNull(range.getStart(), field.getName() + ".start 不能为NULL");
-                        Objects.requireNonNull(range.getEnd(), field.getName() + ".end 不能为NULL");
-                        where.and(Condition.between(column, range.getStart(), range.getEnd()));
-                        continue;
-                    }
-                    if (value.getClass().isArray()) {
-                        where.and(Condition.in(column, value));
-                        continue;
-                    }
-                    if (field.getAnnotation(StartWith.class) != null) {
-                        where.and(Condition.startWith(column, value.toString()));
-                        continue;
-                    }
-                    if (field.getAnnotation(EndWith.class) != null) {
-                        where.and(Condition.endWith(column, value.toString()));
-                        continue;
-                    }
-                    if (field.getAnnotation(Like.class) != null) {
-                        where.and(Condition.like(column, value.toString()));
-                        continue;
-                    }
-                    if (field.getAnnotation(Gte.class) != null) {
-                        where.and(Condition.gte(column, value));
-                        continue;
-                    }
-                    if (field.getAnnotation(Lte.class) != null) {
-                        where.and(Condition.lte(column, value));
-                        continue;
-                    }
-                    where.and(column + " = ?", value);
-                }
-            }
-        } catch (IllegalAccessException e) {
-            log.error("构建 Where 错误", e);
-        }
-        return this.where(where);
+        return this.where(Where.ofExample(example));
     }
 
     public SqlBuilder where(Map<String, Object> andMap) {

@@ -7,6 +7,9 @@ import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.FIELD;
 
+/**
+ * 模糊查询: query%
+ */
 @Documented
 @Target({FIELD})
 @Retention(RetentionPolicy.RUNTIME)

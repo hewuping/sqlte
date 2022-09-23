@@ -8,10 +8,8 @@ import java.io.Reader;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -432,21 +430,13 @@ class SqlConnectionImpl implements SqlConnection {
         String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
             return batchUpdate(stat, 500, executor -> {
-                AtomicBoolean b = new AtomicBoolean(true);
                 loader.accept(bean -> {
-                    try {
-                        Object[] args = new Object[columns.length];
-                        for (int i = 0; i < columns.length; i++) {
-                            Field field = info.getField(columns[i]);
-                            args[i] = Helper.getSerializedValue(bean, field);
-                        }
-                        executor.exec(args);
-                    } catch (IllegalArgumentException | IllegalAccessException e) {
-                        if (b.get()) {
-                            logger.error("batchUpdate error: {} \t sql: {}", e.getMessage(), sql);
-                            b.set(false);
-                        }
+                    Object[] args = new Object[columns.length];
+                    for (int i = 0; i < columns.length; i++) {
+                        Field field = info.getField(columns[i]);
+                        args[i] = Helper.getSerializedValue(bean, field);
                     }
+                    executor.exec(args);
                 });
             }, psConsumer);
         } catch (SQLException e) {
@@ -810,7 +800,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             builder.where(where);
             return executeUpdate(builder.sql(), builder.args()) == 1;
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             throw new UncheckedSQLException(e);
         }
     }

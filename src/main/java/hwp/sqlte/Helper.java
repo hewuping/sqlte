@@ -6,9 +6,9 @@ import hwp.sqlte.cache.FifoCache;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * @author Zero
@@ -120,7 +120,7 @@ class Helper {
         return builder.toString();
     }
 
-    static Object getSerializedValue(Object obj, Field field) throws IllegalAccessException {
+    static Object getSerializedValue(Object obj, Field field) {
         try {
             Object value = field.get(obj);
             if (value == null) {
@@ -148,6 +148,25 @@ class Helper {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static final Map<Class<?>, Supplier<?>> map = new HashMap<>();
+
+    public static <T> Supplier<T> toSupplier(Class<T> clazz) {
+        Supplier<?> supplier = map.get(clazz);
+        if (supplier == null) {
+            synchronized (map) {
+                supplier = () -> {
+                    try {
+                        return clazz.getDeclaredConstructor().newInstance();
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                };
+                map.put(clazz, supplier);
+            }
+        }
+        return (Supplier<T>) supplier;
     }
 
 /*    static String[] columns(Field[] fields) {

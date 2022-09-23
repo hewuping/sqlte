@@ -1,9 +1,12 @@
 package hwp.sqlte;
 
+import hwp.sqlte.example.*;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -178,6 +181,12 @@ public class Where {
         return whereArgs;
     }
 
+    /**
+     * 获取参数值 (基于0)
+     *
+     * @param index
+     * @return
+     */
     public Object args(int index) {
         return whereArgs.get(index);
     }
@@ -262,6 +271,62 @@ public class Where {
      */
     public String sql() {
         return whereBuilder.toString();
+    }
+
+    /**
+     * 根据对象构造查询条件
+     *
+     * @param example
+     * @return
+     * @since 0.2.15
+     */
+    public static Where ofExample(Object example) {
+        Where where = new Where();
+        Class<?> clazz = example.getClass();
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        Field[] fields = info.getFields();
+        for (Field field : fields) {
+            Object value = Helper.getSerializedValue(example, field);
+            if (value != null) {
+                if (value instanceof String && ((String) value).trim().isEmpty()) {
+                    continue;
+                }
+                String column = info.getColumn(field);
+                if (Range.class.isInstance(value)) {
+                    Range<?> range = (Range<?>) value;
+                    Objects.requireNonNull(range.getStart(), field.getName() + ".start 不能为NULL");
+                    Objects.requireNonNull(range.getEnd(), field.getName() + ".end 不能为NULL");
+                    where.and(Condition.between(column, range.getStart(), range.getEnd()));
+                    continue;
+                }
+                if (value.getClass().isArray()) {
+                    where.and(Condition.in(column, value));
+                    continue;
+                }
+                if (field.getAnnotation(StartWith.class) != null) {
+                    where.and(Condition.startWith(column, value.toString()));
+                    continue;
+                }
+                if (field.getAnnotation(EndWith.class) != null) {
+                    where.and(Condition.endWith(column, value.toString()));
+                    continue;
+                }
+                if (field.getAnnotation(Like.class) != null) {
+                    where.and(Condition.like(column, value.toString()));
+                    continue;
+                }
+                if (field.getAnnotation(Gte.class) != null) {
+                    where.and(Condition.gte(column, value));
+                    continue;
+                }
+                if (field.getAnnotation(Lte.class) != null) {
+                    where.and(Condition.lte(column, value));
+                    continue;
+                }
+                where.and(column + " = ?", value);
+            }
+        }
+        return where;
     }
 
     //apply(where)
