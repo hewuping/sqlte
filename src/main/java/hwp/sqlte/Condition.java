@@ -21,6 +21,9 @@ public class Condition {
     }
 
     private Condition(String column, String operator, Object value) {
+        if (column == null || column.isEmpty()) {
+            throw new IllegalArgumentException("'column' cannot both be null or empty");
+        }
         this.sql = column + operator + "?";
         this.args = new Object[]{value};
     }
@@ -50,8 +53,32 @@ public class Condition {
         return new Condition(column, " >= ", value);
     }
 
-    public static Condition between(String column, Object from, Object to) {
-        return new Condition(column + " BETWEEN ? AND ?", new Object[]{from, to});
+    /**
+     * begin and end values are included.
+     *
+     * @param column
+     * @param begin
+     * @param end
+     * @return
+     */
+    public static Condition between(String column, Object begin, Object end) {
+        if (column == null || column.isEmpty()) {
+            throw new IllegalArgumentException("'column' cannot be null or empty");
+        }
+        if (begin == null && end == null) {//begin, end
+            throw new IllegalArgumentException("'begin' and 'end' cannot both be null");
+        }
+        if (begin == null) {
+            return new Condition(column + " <= ?", new Object[]{end});
+        }
+        if (end == null) {
+            return new Condition(column + " >= ?", new Object[]{begin});
+        }
+        return new Condition(column + " BETWEEN ? AND ?", new Object[]{begin, end});
+    }
+
+    public static Condition between(String column, Range<?> range) {
+        return between(column, range.getStart(), range.getEnd());
     }
 
     public static Condition like(String column, String value) {

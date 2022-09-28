@@ -1,7 +1,7 @@
 package hwp.sqlte;
 
-import com.google.gson.Gson;
-import hwp.sqlte.example.*;
+import hwp.sqlte.example.Lte;
+import hwp.sqlte.example.StartWith;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,6 +52,33 @@ public class SqlBuilderTest {
     }
 
     @Test
+    public void testBetween1() {
+        SqlBuilder sql = new SqlBuilder();
+        sql.where(where -> {
+            where.and(Condition.between("age", Range.of(18, 22)));
+        });
+        Assert.assertEquals("WHERE (age BETWEEN ? AND ?)", sql.sql());
+    }
+
+    @Test
+    public void testBetween2() {
+        SqlBuilder sql = new SqlBuilder();
+        sql.where(where -> {
+            where.and(Condition.between("age", Range.of(null, 22)));
+        });
+        Assert.assertEquals("WHERE age <= ?", sql.sql());
+    }
+
+    @Test
+    public void testBetween3() {
+        SqlBuilder sql = new SqlBuilder();
+        sql.where(where -> {
+            where.and(Condition.between("age", Range.of(18, null)));
+        });
+        Assert.assertEquals("WHERE age >= ?", sql.sql());
+    }
+
+    @Test
     public void testUpdateSql() {
         SqlBuilder builder = new SqlBuilder();
         builder.update("users", "age,username", 12, "zero")
@@ -74,7 +101,6 @@ public class SqlBuilderTest {
         SqlBuilder builder = new SqlBuilder();
         builder.select(User.class).where(new UserQuery());
         System.out.println(builder);
-        QueryRequest.fromQueryString("name=Frank&age=18~20&sort=name:desc,age:asc&from=5&size=20");
     }
 
     private static class UserQuery {

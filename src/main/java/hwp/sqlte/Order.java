@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.StringUtils;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,10 @@ public class Order {
     public static Order by() {
         return new Order();
     }
+/*
+    public static Order of(Sort sort) {
+        return new Order().by(sort);
+    }*/
 
     public Order by(LinkedHashMap<String, Direction> sort) {
         items.putAll(sort);

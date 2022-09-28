@@ -1,4 +1,4 @@
-package hwp.sqlte;
+package hwp.sqlte.util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +10,7 @@ import java.util.stream.Stream;
  * @author Zero
  * Created on 2021/2/9.
  */
-class StringUtils {
+public class StringUtils {
     public static boolean isEmpty(final CharSequence cs) {
         return cs == null || cs.length() == 0;
     }

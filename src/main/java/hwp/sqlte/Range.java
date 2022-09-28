@@ -1,4 +1,4 @@
-package hwp.sqlte.example;
+package hwp.sqlte;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -20,6 +20,10 @@ public final class Range<T> implements Serializable {
     public Range(T start, T to) {
         this.start = start;
         this.end = to;
+    }
+
+    public static <T> Range<T> of(T start, T end) {
+        return new Range<>(start, end);
     }
 
 
@@ -49,4 +53,8 @@ public final class Range<T> implements Serializable {
         this.end = end;
     }
 
+    @Override
+    public String toString() {
+        return "{start=" + start + ", end=" + end + '}';
+    }
 }

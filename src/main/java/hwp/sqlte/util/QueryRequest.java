@@ -1,41 +1,52 @@
-package hwp.sqlte;
+package hwp.sqlte.util;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import hwp.sqlte.Direction;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Consumer;
 
 /**
- * <pre>
- * 请求:
- *
+ * 这是一个结合前端请求与查询的工具类(依赖 Gson).
+ * 比如前端请求如下:
+ * <blockquote><pre>
  *  {
- *      "query": {
- *          "name": "",
+ *     "query": {
+ *          "name": "user name",
  *          "age": 12
+ *          "group": "group name"
  *      },
- *    "sort": {
+ *     "sort": {
  *          "name": "DESC",
- *          "age": "ASC"
- *  },
- *  "from": 5,
- *  "size": 20
- * }
+ *          "group": "ASC"
+ *      },
+ *     "from": 5,
+ *     "size": 20
+ *  }
+ * </pre></blockquote>
+ * <p>
+ * 查询:
+ * <blockquote><pre>
  *
- * 处理:
- *
- * db.query(sql -> {
+ * conn.query(sql -> {
  *   sql.orderBy(order -> {
- *      request.onSort("name", direction -> order.by("name", direction));
+ *      sort.on("name", direction -> order.by("user.name", direction));
+ *      sort.on("group", direction -> order.by("group.name", direction));
+ *      ...
  *   });
+ *   // 或者
+ *   sql.orderBy(sort.asOrder(mapper -> {
+ *        mapper.put("name", "user.name");
+ *        mapper.put("group", "group.name");
+ *        ...
+ *   }));
  * });
- * </pre>
+ * </pre></blockquote>
  *
  * @author Zero
  * Created on 2021/2/19.
@@ -44,33 +55,13 @@ public class QueryRequest {
     private static Gson gson = new Gson();
 
     private JsonObject query;
-    private LinkedHashMap<String, Direction> sort;
+    private Sort sort;
     private int from = 0;
     private int size = 10;
 
     public static void setGson(Gson _gson) {
         gson = _gson;
     }
-
-
-    /**
-     * 当存在指定的排序名称时, 执行后续操作
-     *
-     * @param name
-     * @param consumer
-     */
-    public void onSort(String name, Consumer<Direction> consumer) {
-        Objects.requireNonNull(name);
-        Objects.requireNonNull(consumer);
-        if (sort == null) {
-            return;
-        }
-        Direction direction = sort.get(name);
-        if (direction != null) {
-            consumer.accept(direction);
-        }
-    }
-
 
     public <T> T getQueryAs(Class<T> clazz) {
         Objects.requireNonNull(query, "query is null");
@@ -91,7 +82,7 @@ public class QueryRequest {
         return sort;
     }
 
-    public void setSort(LinkedHashMap<String, Direction> sort) {
+    public void setSort(Sort sort) {
         this.sort = sort;
     }
 
@@ -128,7 +119,7 @@ public class QueryRequest {
         LinkedList<String> list = map.remove("sort");
         if (list != null && list.peek() != null) {
             String sortValue = list.peek();
-            request.sort = new LinkedHashMap<>();
+            request.sort = new Sort();
             String[] pairs = sortValue.split(",");
             for (String pair : pairs) {
                 String[] kv = pair.split(":", 2);
