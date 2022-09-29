@@ -104,7 +104,7 @@ public class SqlBuilderTest {
     }
 
     private static class UserQuery {
-        public Range<Integer> id = new Range<>(10, 30);// id BETWEEN 10 AND 30
+        public Range<Integer> id = Range.of(10, 30);// id BETWEEN 10 AND 30
         @StartWith
         public String name = "z";// name LIKE "z%"
         @Lte

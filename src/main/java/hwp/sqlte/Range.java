@@ -4,11 +4,13 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * 范围查找: <code>BETWEEN ? AND ?</code>
+ * 值范围包括 start 和 end , 意思等同 SQL BETWEEN 中的 begin 和 end.
+ * <p>
+ * 转换为SQL时如: <code>BETWEEN ? AND ?</code>
  *
  * @param <T>
  */
-public final class Range<T> implements Serializable {
+public class Range<T> implements Serializable {
 
     private T start;
     private T end;
@@ -17,7 +19,7 @@ public final class Range<T> implements Serializable {
     public Range() {
     }
 
-    public Range(T start, T to) {
+    private Range(T start, T to) {
         this.start = start;
         this.end = to;
     }
@@ -31,8 +33,8 @@ public final class Range<T> implements Serializable {
         return start;
     }
 
-    public T getStartDefault(T def) {
-        Objects.requireNonNull(def, "默认值不能为NULL");
+    public T getStart(T def) {
+        Objects.requireNonNull(def, "默认值不能为 NULL");
         return start == null ? def : start;
     }
 
@@ -44,8 +46,8 @@ public final class Range<T> implements Serializable {
         return end;
     }
 
-    public T getEndDefault(T def) {
-        Objects.requireNonNull(def, "默认值不能为NULL");
+    public T getEnd(T def) {
+        Objects.requireNonNull(def, "默认值不能为 NULL");
         return end == null ? def : end;
     }
 
