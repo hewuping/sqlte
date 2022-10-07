@@ -10,7 +10,7 @@ import java.util.Objects;
  *
  * @param <T>
  */
-public class Range<T> implements Serializable {
+public final class Range<T> implements Serializable {
 
     private T start;
     private T end;
@@ -53,6 +53,14 @@ public class Range<T> implements Serializable {
 
     public void setEnd(T end) {
         this.end = end;
+    }
+
+    public boolean isEmpty() {
+        return (start == null || "".equals(start)) && (end == null || "".equals(end));
+    }
+
+    public boolean isNotEmpty() {
+        return !isEmpty();
     }
 
     @Override

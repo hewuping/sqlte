@@ -3,10 +3,7 @@ package hwp.sqlte;
 import java.io.Reader;
 import java.io.Serializable;
 import java.sql.*;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.*;
 
 /**
@@ -182,15 +179,18 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 查询表数据并返回 List
+     * 根据 ID 列表查询表数据并返回 List
      *
-     * @param clazz
+     * @param clazz 该类必须有且仅有一个属性使用 <code>@Id</code> 注解
      * @param ids
      * @param <T>
      * @return
      * @since 0.2.16
      */
     default <T> List<T> list(Class<T> clazz, Collection<Serializable> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         String pkColumn = info.getPKColumn();
         return list(clazz, where -> {

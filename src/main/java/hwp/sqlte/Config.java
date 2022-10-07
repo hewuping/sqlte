@@ -14,24 +14,28 @@ import java.util.TimeZone;
  * Created on 2018/4/13.
  */
 final public class Config {
-    private static Config config = new Config();
-    private final Cache DEFAULT_CACHE = new LruCache(1024);
+    private static final Config INSTANCE = new Config();
+    private final Cache<?> DEFAULT_CACHE = new LruCache<>(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
     private JsonSerializer jsonSerializer = new GsonSerializer();
     private TimeZone databaseTimeZone = TimeZone.getDefault();//TODO from DB
 
-    private Cache cache;
+    private Cache<?> cache;
 
 
-    private Map<String, DataSource> dataSourceMap = new HashMap<>();
+    private final Map<String, DataSource> dataSourceMap = new HashMap<>();
 
     private Config() {
 
     }
 
     public static Config getConfig() {
-        return config;
+        return INSTANCE;
     }
+/*
+    public static Config getInstance() {
+        return INSTANCE;
+    }*/
 
     private DataSource def;
 
@@ -75,11 +79,11 @@ final public class Config {
         return this;
     }
 
-    public Cache getCache() {
+    public Cache<?> getCache() {
         return cache == null ? DEFAULT_CACHE : cache;
     }
 
-    public void setCache(Cache cache) {
+    public void setCache(Cache<?> cache) {
         this.cache = cache;
     }
 
@@ -89,7 +93,7 @@ final public class Config {
 
     public JsonSerializer getJsonSerializer() {
         if (jsonSerializer == null) {
-            throw new ConfigException("请配置jsonSerializer");
+            throw new ConfigException("请配置 jsonSerializer");
         }
         return jsonSerializer;
     }

@@ -9,6 +9,9 @@ import java.util.List;
  * Created on 2018/12/4.
  */
 public class Condition {
+
+//    public static final Condition EMPTY = new Condition("", new Object[0]);
+
     private String sql;
     private Object[] args;
 
@@ -56,9 +59,9 @@ public class Condition {
     /**
      * begin and end values are included.
      *
-     * @param column
-     * @param begin
-     * @param end
+     * @param column 列名
+     * @param begin  开始值(包含), 如果为 null 或 空 则变为 <= end
+     * @param end    结束值(包含), 如果为 null 或 空 则变为 <= begin
      * @return
      */
     public static Condition between(String column, Object begin, Object end) {
@@ -83,12 +86,48 @@ public class Condition {
         return new Condition(column + " BETWEEN ? AND ?", new Object[]{begin, end});
     }
 
+    /**
+     * range.start and range.end values are included.
+     *
+     * @param column 列名
+     * @param range  如果 {@code range.start = null} 则变为 {@code column <= end};
+     *               如果 {@code range.end = null}  则变为 {@code column <= begin}
+     * @return
+     */
     public static Condition between(String column, Range<?> range) {
         return between(column, range.getStart(), range.getEnd());
     }
 
+    /**
+     * 基于通配符的 LIKE 搜索
+     * <p>
+     * 通配符(wildcards)说明:
+     * <ul>
+     *     <li> %  - 替换零个或多个字符, 例如: wild% </li>
+     *     <li> _  - 替换单个字符, 例如: wildca_d </li>
+     *     <li> [] - 表示括号内的任何单个字符, 例如: wildca[r]d (SQLite 不支持)</li>
+     *     <li> [^] - 表示不在括号中的任何字符 , 例如: wildca[^abc]d (SQLite 不支持)</li>
+     *     <li> [-] - 表示指定范围内的任何单个字符 , 例如: wildca[a-z]d (SQLite 不支持)</li>
+     * </ul>
+     * 如果希望搜索: %_[]^- 字符, 需要转义, 例如: \_
+     *
+     * @param column 列名
+     * @param value  可使用通配符的字符串
+     * @return
+     */
     public static Condition like(String column, String value) {
         return new Condition(column, " LIKE ", value);
+    }
+
+    /**
+     * 基于正则表达式的搜索 ( MySQL )
+     *
+     * @param column
+     * @param regex
+     * @return
+     */
+    public static Condition rlike(String column, String regex) {
+        return new Condition(column, " RLIKE ", regex);
     }
 
     public static Condition notLike(String column, String value) {
@@ -104,7 +143,31 @@ public class Condition {
     }
 
     public static Condition contains(String column, String value) {
+        // SQL Server 可以使用函数: CONTAINS(column, value)
+        // MySQL InnoDB 不支持 CONTAINS 函数, 可以使用 INSTR
+        // 无法(搜索\字符会有问题)
         return like(column, "%" + value + "%");
+    }
+
+
+    private static String escapeWildcard(String text) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\\') {
+                continue;
+            }
+            if (c == '_') {
+                builder.append("\\_");
+                continue;
+            }
+            if (c == '%') {
+                builder.append("\\%");
+                continue;
+            }
+            builder.append(c);
+        }
+        return builder.toString();
     }
 
     public static Condition in(String column, String[] values) {

@@ -42,6 +42,12 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 生成 SQL: SELECT * FROM <i>table_name</i>
+     *
+     * @param clazz 用于获取表名
+     * @return
+     */
     public SqlBuilder select(Class<?> clazz) {
         Objects.requireNonNull(clazz);
         ClassInfo info = ClassInfo.getClassInfo(clazz);
@@ -53,12 +59,18 @@ public class SqlBuilder implements Builder, Sql {
         return this.select(columns).from(table);
     }*/
 
-    public SqlBuilder from(String from) {
-        Objects.requireNonNull(from);
+    /**
+     * 生成SQL : SELECT * FROM <i>table_name</i>
+     *
+     * @param table 表名
+     * @return
+     */
+    public SqlBuilder from(String table) {
+        Objects.requireNonNull(table);
         if (sql.length() == 0) {
             this.sql.append("SELECT *").append(separator);
         }
-        this.sql.append("FROM ").append(from).append(separator);
+        this.sql.append("FROM ").append(table).append(separator);
         return this;
     }
 
@@ -74,6 +86,14 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 生成更新 SQL
+     *
+     * @param table   表名
+     * @param columns 列名, 多列使用英文逗号分隔
+     * @param values  新值, 值顺序更列名保持顺序一致
+     * @return
+     */
     public SqlBuilder update(String table, String columns, Object... values) {
         Objects.requireNonNull(table);
         Objects.requireNonNull(columns);
@@ -85,13 +105,19 @@ public class SqlBuilder implements Builder, Sql {
             if (i > 0) {
                 sql.append(", ");
             }
-            sql.append(column + "=?");
+            sql.append(column.trim() + "=?");
             addArgs(values[i]);
         }
         sql.append(separator);
         return this;
     }
 
+    /**
+     * 生成删除 SQL:  DELETE FROM <i>table_name</i>
+     *
+     * @param table 表名
+     * @return
+     */
     public SqlBuilder delete(String table) {
         sql.append("DELETE FROM ").append(table).append(separator);
         return this;
@@ -107,12 +133,25 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 追加 SQL 片段, 确保占位符数量和值数量保持一致
+     *
+     * @param sql  SQL 片段
+     * @param args SQL 片段中占位符对应的值
+     * @return
+     */
     public SqlBuilder sql(CharSequence sql, Object... args) {
         Objects.requireNonNull(sql);
         sql(sql).addArgs(args);
         return this;
     }
 
+    /**
+     * 使用新的参数值替换原来的值
+     *
+     * @param args
+     * @return
+     */
     public SqlBuilder args(Object... args) {
         if (this.args.size() > 0) {
             this.args.clear();
@@ -150,6 +189,16 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * <pre>{@code
+     *  sql.from("table_name").where(where -> {
+     *      where.and(" column_name=?", value);
+     *   });
+     * } </pre>
+     *
+     * @param consumer
+     * @return
+     */
     public SqlBuilder where(Consumer<Where> consumer) {
         if (consumer == null) {
             return this;
@@ -160,7 +209,7 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     /**
-     * 更具给定的 Example 对象生成查询条件
+     * 根据给定的 Example 对象生成查询条件
      *
      * @param example
      * @return
@@ -170,6 +219,15 @@ public class SqlBuilder implements Builder, Sql {
         return this.where(Where.ofExample(example));
     }
 
+    /**
+     * 根据 Map 生成查询添加, 使用 AND 操作符连接
+     * <pre> {@code
+     * conn.where(Map.of("foo", "bar"))
+     * } </pre>
+     *
+     * @param andMap
+     * @return
+     */
     public SqlBuilder where(Map<String, Object> andMap) {
         Where where = new Where();
         andMap.forEach((column, value) -> {
@@ -180,6 +238,33 @@ public class SqlBuilder implements Builder, Sql {
         return this.where(where);
     }
 
+    /**
+     * 例子1 :
+     * <pre>
+     *     {@code sql.where("id=?", 1000) }
+     * </pre>
+     * <p>
+     * 例子2 :
+     * <pre>
+     *     {@code sql.where("column1=? AND column2=?", "foo", "bar") }
+     * </pre>
+     *
+     * @param sql
+     * @param args
+     * @return
+     */
+    public SqlBuilder where(String sql, Object... args) {
+//      return this.where(where -> where.and(sql, args));
+        return this.sql("WHERE " + sql, args);
+    }
+
+    /**
+     * 分页
+     *
+     * @param page
+     * @param size
+     * @return
+     */
     public SqlBuilder paging(int page, int size) {
         return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
     }
@@ -194,12 +279,30 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 排序, 例子:
+     * <pre>
+     *     {@code orderBy("amount DESC") }
+     * </pre>
+     *
+     * @param orderSql
+     * @return
+     */
     public SqlBuilder orderBy(String orderSql) {
         Objects.requireNonNull(orderSql);
         sql.append("ORDER BY ").append(orderSql).append(separator);
         return this;
     }
 
+    /**
+     * 排序, 例子:
+     * <pre>
+     *     {@code orderBy(Order.of("amount", Direction.DESC)) }
+     * </pre>
+     *
+     * @param order
+     * @return
+     */
     public SqlBuilder orderBy(Order order) {
         if (order != null && !order.isEmpty()) {
             sql.append("ORDER BY ").append(order).append(separator);
@@ -207,6 +310,17 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * <pre>{@code
+     *  sql.orderBy(order -> {
+     *     order.asc("username");
+     *     order.desc("age");
+     *   });
+     * } </pre>
+     *
+     * @param consumer
+     * @return
+     */
     public SqlBuilder orderBy(Consumer<Order> consumer) {
         Order order = new Order();
         consumer.accept(order);

@@ -18,9 +18,16 @@ public class Order {
     public Order() {
     }
 
-    public static Order by() {
+    public static Order of() {
         return new Order();
     }
+
+    public static Order of(String column, Direction direction) {
+        Order order = new Order();
+        order.by(column, direction);
+        return order;
+    }
+
 /*
     public static Order of(Sort sort) {
         return new Order().by(sort);
