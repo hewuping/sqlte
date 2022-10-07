@@ -94,6 +94,12 @@ public class SqlConnectionTest {
         return user;
     }
 
+    private OrmUser insertUser2() {
+        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
+        conn.insert(user);
+        return user;
+    }
+
     private void deleteAllUsers() {
         conn.executeUpdate("delete from users");
     }
@@ -233,8 +239,12 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testQuery5() {
+    public void testListClassIds() {
 //        conn.query(sql -> sql.select(""));
+        OrmUser user1 = insertUser2();
+        OrmUser user2 = insertUser2();
+        List<OrmUser> list = conn.list(OrmUser.class, Arrays.asList(user1.id, user2.id));
+        Assert.assertEquals(2, list.size());
     }
 
     @Test

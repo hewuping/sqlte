@@ -1,5 +1,6 @@
-package hwp.sqlte;
+package hwp.sqlte.util;
 
+import hwp.sqlte.Range;
 import hwp.sqlte.util.QueryRequest;
 import org.junit.Assert;
 import org.junit.Test;

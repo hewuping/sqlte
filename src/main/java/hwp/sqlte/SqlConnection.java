@@ -1,7 +1,9 @@
 package hwp.sqlte;
 
 import java.io.Reader;
+import java.io.Serializable;
 import java.sql.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -163,7 +165,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      */
     default <T> List<T> listAll(Class<T> clazz) {
-        return list(clazz, null);
+        return list(clazz, (Consumer<Where>) null);
     }
 
     /**
@@ -177,6 +179,23 @@ public interface SqlConnection extends AutoCloseable {
     default <T> List<T> list(Class<T> clazz, Consumer<Where> consumer) {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         return query(sql -> sql.from(info.getTableName()).where(consumer)).list(clazz);
+    }
+
+    /**
+     * 查询表数据并返回 List
+     *
+     * @param clazz
+     * @param ids
+     * @param <T>
+     * @return
+     * @since 0.2.16
+     */
+    default <T> List<T> list(Class<T> clazz, Collection<Serializable> ids) {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        String pkColumn = info.getPKColumn();
+        return list(clazz, where -> {
+            where.and(Condition.in(pkColumn, ids));
+        });
     }
 
     /**
@@ -400,10 +419,10 @@ public interface SqlConnection extends AutoCloseable {
     <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException;
 
     /**
-     * 查询数据, 如果数据不存在则返回 null
+     * 查询数据(使用联合主键/复合主键), 如果数据不存在则返回 null
      *
-     * @param clazz
-     * @param consumer
+     * @param clazz    返回对象类型
+     * @param consumer 通过 Map 构建查询条件
      * @param <T>
      * @return
      * @throws UncheckedSQLException
@@ -428,7 +447,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 查询数据, 如果数据不存在则抛异常
+     * 查询数据(使用联合主键/复合主键), 如果数据不存在则抛异常
      *
      * @param clazz    返回对象类型
      * @param consumer 通过 Map 构建查询条件
@@ -449,6 +468,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws UncheckedSQLException
      */
     <T> T reload(T bean) throws UncheckedSQLException;
+
 
     /**
      * 插入单条记录

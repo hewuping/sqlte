@@ -113,10 +113,20 @@ public class Condition {
         return _in(false, column, (Object[]) values);
     }
 
+    /**
+     * @param column 列名
+     * @param values 可变数组, 也可以是 Array 或 Collection
+     * @return
+     */
     public static Condition in(String column, Object... values) {
         return _in(false, column, values);
     }
 
+    /**
+     * @param column 列名
+     * @param values 可变数组, 也可以是 Array 或 Collection
+     * @return
+     */
     public static Condition notIn(String column, Object... values) {
         return _in(true, column, values);
     }
