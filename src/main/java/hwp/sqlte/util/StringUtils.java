@@ -76,8 +76,4 @@ public class StringUtils {
         return tokensStream.collect(Collectors.toList());
     }
 
-    public static void main(String[] args) {
-        System.out.println(split("Simp, ,le"));
-        System.out.println(toUnderscore("SimpleTest"));
-    }
 }

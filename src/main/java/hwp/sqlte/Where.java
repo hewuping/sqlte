@@ -1,12 +1,11 @@
 package hwp.sqlte;
 
 import hwp.sqlte.example.*;
+import hwp.sqlte.util.ObjectUtils;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -66,15 +65,7 @@ public class Where {
      * @return
      */
     public Where andIf(String sql, Object arg) {
-        return this.andIf(sql, arg, it -> {
-            if (arg == null) {
-                return false;
-            }
-            if (it instanceof String && it.toString().isEmpty()) {
-                return false;
-            }
-            return true;
-        });
+        return this.and(ObjectUtils.isNotEmpty(arg), sql, arg);
     }
 
     /**
@@ -108,13 +99,7 @@ public class Where {
      * @return
      */
     public Where orIf(String sql, Object arg) {
-        if (arg == null) {
-            return this;
-        }
-        if (arg instanceof String && arg.toString().isEmpty()) {
-            return this;
-        }
-        return or(true, sql, arg);
+        return or(ObjectUtils.isNotEmpty(arg), sql, arg);
     }
 
     /**
