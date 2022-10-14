@@ -3,6 +3,8 @@ package hwp.sqlte;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -30,6 +32,38 @@ public interface RowMapper<T> extends Function<Row, T> {
         return map(row);
     }
 
+    static Registry getRegistry() {
+        return Registry.INSTANCE;
+    }
+
+    /**
+     * 注册表
+     */
+    class Registry {
+
+        public static final Registry INSTANCE = new Registry();
+        private final Map<Class<?>, RowMapper<?>> map = new HashMap<>();
+
+        public Registry() {
+            registry(String.class, STRING);
+            registry(Integer.class, INTEGER);
+            registry(Short.class, SHORT);
+            registry(Long.class, LONG);
+            registry(Double.class, DOUBLE);
+            registry(Float.class, FLOAT);
+            registry(Number.class, NUMBER);
+            registry(BigDecimal.class, BIG_DECIMAL);
+        }
+
+        public <T> void registry(Class<T> clazz, RowMapper<T> rowMapper) {
+            map.put(clazz, rowMapper);
+        }
+
+        public <T> RowMapper<T> getRowMapper(Class<T> clazz) {
+            return (RowMapper<T>) map.get(clazz);
+        }
+
+    }
 
     class FloatMapper implements RowMapper<Float> {
         static final FloatMapper MAPPER = new FloatMapper();
@@ -146,4 +180,28 @@ public interface RowMapper<T> extends Function<Row, T> {
         }
     }
 
+    class EnumMapper<T> implements RowMapper<T> {
+
+        private final ConversionService service;
+
+        private final Class<T> clazz;
+
+        public EnumMapper(Class<T> clazz) {
+            if (!clazz.isEnum()) {
+                throw new IllegalArgumentException("Not an enum class: " + clazz.getName());
+            }
+            this.clazz = clazz;
+            this.service = Config.getConfig().getConversionService();
+        }
+
+        @Override
+        public T map(Row row) {
+            Collection<Object> values = row.values();
+            if (values.isEmpty()) {
+                return null;
+            }
+            return service.convert(values.iterator().next(), clazz);
+        }
+
+    }
 }

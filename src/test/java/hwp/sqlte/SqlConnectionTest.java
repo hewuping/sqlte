@@ -94,8 +94,8 @@ public class SqlConnectionTest {
         return user;
     }
 
-    private OrmUser insertUser2() {
-        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
+    private XUser insertXUser() {
+        XUser user = new XUser("May", "may@xxx.com", "123456");
         conn.insert(user);
         return user;
     }
@@ -176,6 +176,19 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testQueryClass_List() {
+        insertXUser();
+        List<XUser> users1 = conn.query(XUser.class, where -> {
+            where.and("username = ?", "May");
+        });
+        Assert.assertEquals(1, users1.size());
+        List<XUser> users2 = conn.query(XUser.class, where -> {
+            where.and("username = ?", "Frank");
+        });
+        Assert.assertEquals(0, users2.size());
+    }
+
+    @Test
     public void testQueryBean() {
 //        User user = conn.query(User.class, where -> {
 //        }).first(User::new);
@@ -241,9 +254,9 @@ public class SqlConnectionTest {
     @Test
     public void testListClassIds() {
 //        conn.query(sql -> sql.select(""));
-        OrmUser user1 = insertUser2();
-        OrmUser user2 = insertUser2();
-        List<OrmUser> list = conn.list(OrmUser.class, Arrays.asList(user1.id, user2.id));
+        XUser user1 = insertXUser();
+        XUser user2 = insertXUser();
+        List<XUser> list = conn.list(XUser.class, Arrays.asList(user1.id, user2.id));
         Assert.assertEquals(2, list.size());
     }
 
@@ -257,6 +270,21 @@ public class SqlConnectionTest {
                 e.printStackTrace();
             }
         });
+    }
+
+    @Test
+    public void testQueryFirst_Enum() {
+        insertXUser();
+        XUser.PasswordSalt salt = conn.query("select password_salt from users where username =?", "May")
+                .first(XUser.PasswordSalt.class);
+        Assert.assertEquals(XUser.PasswordSalt.A123456, salt);
+    }
+    @Test
+    public void testQuery_EnumList() {
+        insertXUser();
+        List<XUser.PasswordSalt> list = conn.query("select password_salt from users where username =?", "May")
+                .list(XUser.PasswordSalt.class);
+        Assert.assertEquals(1, list.size());
     }
 
     @Test
@@ -274,6 +302,24 @@ public class SqlConnectionTest {
         Assert.assertNotNull(t4);
         User2 t5 = conn.firstExample(new User2(1));
         Assert.assertNotNull(t5);
+    }
+
+    @Test
+    public void testList() {
+        insertXUser();
+        insertXUser();
+        List<XUser> users = conn.list(XUser.class, where -> {
+            where.and("username =?", "May");
+        });
+        Assert.assertEquals(2, users.size());
+    }
+
+    @Test
+    public void testListAll() {
+        insertXUser();
+        insertXUser();
+        List<XUser> users = conn.list(XUser.class, Where.EMPTY);
+        Assert.assertEquals(2, users.size());
     }
 
     @Test
@@ -443,11 +489,11 @@ public class SqlConnectionTest {
         int size = 200;
         BatchUpdateResult result = conn.batchInsert(db -> {
             for (int i = 0; i < size; i++) {
-                OrmUser user = new OrmUser("zero" + i, "zero@xxx.com", "123456");
+                XUser user = new XUser("zero" + i, "zero@xxx.com", "123456");
                 user.updatedTime = LocalDateTime.now();
                 db.accept(user);
             }
-        }, OrmUser.class, "users");
+        }, XUser.class, "users");
         if (result.hasSuccessNoInfo()) {
             Assert.assertTrue(result.successNoInfoCount > 0);
         } else {
@@ -538,12 +584,12 @@ public class SqlConnectionTest {
 
     @Test
     public void testUpdate3() {
-        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
+        XUser user = new XUser("May", "may@xxx.com", "123456");
         conn.insert(user, "users");
         user.username = "My new name";
         user.email = null;
         conn.update(user, "username", true);
-        OrmUser _user = conn.tryGet(OrmUser::new, user.id);
+        XUser _user = conn.tryGet(XUser::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
     }
@@ -569,12 +615,12 @@ public class SqlConnectionTest {
 
     @Test
     public void LocalDateTime() {
-        OrmUser user = new OrmUser("May", "may@xxx.com", "123456");
+        XUser user = new XUser("May", "may@xxx.com", "123456");
         user.updatedTime = LocalDateTime.now();
-        user.passwordSalt = OrmUser.PasswordSalt.B123456;
+        user.passwordSalt = XUser.PasswordSalt.B123456;
         conn.insert(user, "users");
-        OrmUser user3 = conn.query("select * from users where email=?", user.email).first(OrmUser::new);
-        Assert.assertEquals(user3.passwordSalt, OrmUser.PasswordSalt.B123456);
+        XUser user3 = conn.query("select * from users where email=?", user.email).first(XUser::new);
+        Assert.assertEquals(user3.passwordSalt, XUser.PasswordSalt.B123456);
     }
 
     @Test

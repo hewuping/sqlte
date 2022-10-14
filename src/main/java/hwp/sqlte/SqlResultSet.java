@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -12,12 +13,10 @@ import java.util.stream.StreamSupport;
  */
 public class SqlResultSet implements Iterable<Row> {
 
-    private List<String> columns;
+    private final List<String> columns;
     private List<Row> rows;
 
-    public static final SqlResultSet EMPTY = new SqlResultSet(
-            Collections.unmodifiableList(Collections.emptyList()),
-            Collections.unmodifiableList(Collections.emptyList()));
+    public static final SqlResultSet EMPTY = new SqlResultSet(Collections.emptyList(), Collections.emptyList());
 
     public SqlResultSet(List<String> columns, List<Row> rows) {
         this.columns = columns;
@@ -90,18 +89,19 @@ public class SqlResultSet implements Iterable<Row> {
         return list;
     }
 
-    public <T> List<T> list(Supplier<T> supplier) {
-        return this.list(supplier, null);
+    public <T> List<T> list(Class<T> clazz) {
+        RowMapper<T> mapper = RowMapper.getRegistry().getRowMapper(clazz);
+        if (mapper != null) {
+            return list(mapper);
+        }
+        if (clazz.isEnum()) {
+            return list(new RowMapper.EnumMapper<>(clazz));
+        }
+        return this.list(new BeanMapper<T>(clazz));
     }
 
-    public <T> List<T> list(Class<T> clazz) {
-        return this.list(() -> {
-            try {
-                return clazz.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new SqlteException(e);
-            }
-        }, null);
+    public <T> List<T> list(Supplier<T> supplier) {
+        return this.list(supplier, null);
     }
 
     public <T> List<T> list(Supplier<T> supplier, Consumer<T> consumer) {
@@ -115,13 +115,6 @@ public class SqlResultSet implements Iterable<Row> {
         }
         return list;
     }
-/*
-    public <T> List<T> list(Class<T> clazz) {
-        List<T> list = new ArrayList<>(this.rows.size());
-        RowMapper.BeanMapper<T> mapper = new RowMapper.BeanMapper<>(clazz);
-        this.rows.forEach(row -> list.add(mapper.map(row)));
-        return list;
-    }*/
 
     protected void unmodifiableRows() {
         this.rows = Collections.unmodifiableList(this.rows);

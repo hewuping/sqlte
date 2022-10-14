@@ -18,13 +18,7 @@ class BeanMapper<T> implements RowMapper<T> {
     }
 
     public BeanMapper(Class<T> clazz) {
-        this.supplier = () -> {
-            try {
-                return clazz.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new SqlteException(e);
-            }
-        };
+        this.supplier = Helper.toSupplier(clazz);
     }
 
     static <T> T copy(Row row, T obj) throws SqlteException {

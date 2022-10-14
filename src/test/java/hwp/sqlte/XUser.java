@@ -3,7 +3,7 @@ package hwp.sqlte;
 import java.time.LocalDateTime;
 
 @Table(name = "users")
-public class OrmUser {
+public class XUser {
 
     @Id(generate = true)
     public Integer id;
@@ -19,11 +19,11 @@ public class OrmUser {
         A123456, B123456, C123456
     }
 
-    public OrmUser() {
+    public XUser() {
     }
 
 
-    public OrmUser(String username, String email, String password) {
+    public XUser(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;

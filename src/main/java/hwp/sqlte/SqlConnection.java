@@ -16,9 +16,22 @@ public interface SqlConnection extends AutoCloseable {
 
     SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
 
-    default <T> SqlResultSet query(Class<T> returnType, Consumer<Where> where) throws UncheckedSQLException {
+    /**
+     * <pre>{@code
+     *   List<Employee> list= query(Employee.class, where -> {
+     *       where.and("salary >= ?", 5000);
+     *   });
+     * } </pre>
+     *
+     * @param returnType
+     * @param where
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws UncheckedSQLException {
         ClassInfo info = ClassInfo.getClassInfo(returnType);
-        return query(sql -> sql.from(info.getTableName()).where(where));
+        return query(sql -> sql.from(info.getTableName()).where(where)).list(returnType);
     }
 
     /**
@@ -155,18 +168,20 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 查询表所有数据 (除非表数据特别少, 否则不推荐使用)
-     *
-     * @param clazz
-     * @param <T>
-     * @return
-     */
-    default <T> List<T> listAll(Class<T> clazz) {
-        return list(clazz, (Consumer<Where>) null);
-    }
-
-    /**
      * 查询表数据并返回 List
+     *
+     * <pre>{@code
+     *   List<Employee> list = conn.list(Employee.class, where -> {
+     *      where.and("first_name =?", "Foo");
+     *   });
+     * } </pre>
+     * <p>
+     * <p>
+     * 如果需要查询全表 (不推荐, 仅数据量特别少时可用)
+     *
+     * <pre>{@code
+     *   List<Employee> list = conn.list(Employee.class, Where.EMPTY);
+     * } </pre>
      *
      * @param clazz
      * @param consumer
@@ -180,6 +195,10 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 根据 ID 列表查询表数据并返回 List
+     *
+     * <pre>{@code
+     *   List<Employee> list = conn.list(Employee.class, List.of(1000, 10001));
+     * } </pre>
      *
      * @param clazz 该类必须有且仅有一个属性使用 <code>@Id</code> 注解
      * @param ids
@@ -683,6 +702,8 @@ public interface SqlConnection extends AutoCloseable {
     <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
     /**
+     * 批量插入
+     *
      * @param beans
      * @return
      * @throws UncheckedSQLException
@@ -692,8 +713,10 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * @param beans
-     * @param table 如果为 null, 会区 list 中的第一个对象映射的表名
+     * 批量插入
+     *
+     * @param beans 不能为 null
+     * @param table 如果为 null, 会取 list 中的第一个对象映射的表名
      * @return 返回 BatchUpdateResult
      * @throws UncheckedSQLException
      */
