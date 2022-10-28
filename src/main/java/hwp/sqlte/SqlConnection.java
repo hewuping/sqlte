@@ -708,7 +708,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws UncheckedSQLException
      */
-    default BatchUpdateResult batchInsert(List<?> beans) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchInsert(List<T> beans) throws UncheckedSQLException {
         return batchInsert(beans, null);
     }
 
@@ -720,11 +720,23 @@ public interface SqlConnection extends AutoCloseable {
      * @return 返回 BatchUpdateResult
      * @throws UncheckedSQLException
      */
-    BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException;
-
-    BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException;
 
     /**
+     * 批量插入
+     *
+     * @param beans      不能为 null
+     * @param table      如果为 null, 会取 list 中的第一个对象映射的表名
+     * @param sqlHandler
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException;
+
+    /**
+     * 批量插入 (该方法不会返回自动生成的 ID)
+     *
      * <blockquote><pre>
      * conn.batchInsert(it -> {
      *      for (int i = 0; i < size; i++) {
@@ -747,16 +759,76 @@ public interface SqlConnection extends AutoCloseable {
         return batchInsert(loader, clazz, table, null, null);
     }
 
+    /**
+     * 批量插入 (该方法不会返回自动生成的 ID)
+     *
+     * <blockquote><pre>
+     * conn.batchInsert(it -> {
+     *      for (int i = 0; i < size; i++) {
+     *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
+     *          user.id = i;
+     *          user.updated_time = new Date();
+     *          it.accept(user);
+     *      }
+     * }, User.class, "users", null);
+     * </pre></blockquote>
+     *
+     * @param loader
+     * @param clazz
+     * @param table
+     * @param sqlHandler
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
     default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
         return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
+    /**
+     * 批量插入 (该方法不会返回自动生成的 ID)
+     */
     <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
 
+    /**
+     * 批量更新
+     *
+     * @param sql       更新 SQL 语句
+     * @param batchSize 批次大小
+     * @param it        参数源
+     * @param consumer  设置参数
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
+    /**
+     * 批量更新
+     * <blockquote><pre>
+     * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
+     *      executor.exec("bb@example.com", "bb");
+     *      executor.exec("aa@example.com", "aa");
+     * });
+     * </pre></blockquote>
+     *
+     * @param sql      更新 SQL 语句
+     * @param consumer 设置参数
+     * @return
+     * @throws UncheckedSQLException
+     */
     BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
+    /**
+     * 批量更新
+     *
+     * @param table
+     * @param columns
+     * @param whereConsumer
+     * @param consumer
+     * @return
+     * @throws UncheckedSQLException
+     */
     BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
 
     /**

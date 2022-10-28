@@ -94,8 +94,8 @@ public class SqlConnectionTest {
         return user;
     }
 
-    private XUser insertXUser() {
-        XUser user = new XUser("May", "may@xxx.com", "123456");
+    private User3 insertUser3() {
+        User3 user = new User3("May", "may@xxx.com", "123456");
         conn.insert(user);
         return user;
     }
@@ -108,6 +108,13 @@ public class SqlConnectionTest {
     public void testInsertBean() {
         conn.setAutoCommit(false);
         insertUser();
+    }
+
+    @Test
+    public void testInsertUser2() {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        conn.insert(user, "users");
+        Assert.assertNotNull(user.id);
     }
 
     @Test
@@ -135,7 +142,6 @@ public class SqlConnectionTest {
     public void testReload() { // Single primary key OR Composite primary key
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
-        user.id = 123456;
         conn.insert(user, "users");
 
         User2 tmp = new User2();
@@ -149,7 +155,6 @@ public class SqlConnectionTest {
     public void testUpdateBean() {
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
-        user.id = 8888888;
         conn.insert(user, "users");
         String newPassword = ThreadLocalRandom.current().nextInt() + "@";
         user.password = newPassword;
@@ -162,7 +167,6 @@ public class SqlConnectionTest {
     public void testDeleteBean() {
         User2 user = new User2("May", "may@xxx.com", "123456");
         user.passwordSalt = "***";
-        user.id = 123456;
         conn.insert(user, "users");
         Assert.assertTrue(conn.delete(user, "users"));
     }
@@ -177,12 +181,12 @@ public class SqlConnectionTest {
 
     @Test
     public void testQueryClass_List() {
-        insertXUser();
-        List<XUser> users1 = conn.query(XUser.class, where -> {
+        insertUser3();
+        List<User3> users1 = conn.query(User3.class, where -> {
             where.and("username = ?", "May");
         });
         Assert.assertEquals(1, users1.size());
-        List<XUser> users2 = conn.query(XUser.class, where -> {
+        List<User3> users2 = conn.query(User3.class, where -> {
             where.and("username = ?", "Frank");
         });
         Assert.assertEquals(0, users2.size());
@@ -254,9 +258,9 @@ public class SqlConnectionTest {
     @Test
     public void testListClassIds() {
 //        conn.query(sql -> sql.select(""));
-        XUser user1 = insertXUser();
-        XUser user2 = insertXUser();
-        List<XUser> list = conn.list(XUser.class, Arrays.asList(user1.id, user2.id));
+        User3 user1 = insertUser3();
+        User3 user2 = insertUser3();
+        List<User3> list = conn.list(User3.class, Arrays.asList(user1.id, user2.id));
         Assert.assertEquals(2, list.size());
     }
 
@@ -274,16 +278,17 @@ public class SqlConnectionTest {
 
     @Test
     public void testQueryFirst_Enum() {
-        insertXUser();
-        XUser.PasswordSalt salt = conn.query("select password_salt from users where username =?", "May")
-                .first(XUser.PasswordSalt.class);
-        Assert.assertEquals(XUser.PasswordSalt.A123456, salt);
+        insertUser3();
+        User3.PasswordSalt salt = conn.query("select password_salt from users where username =?", "May")
+                .first(User3.PasswordSalt.class);
+        Assert.assertEquals(User3.PasswordSalt.A123456, salt);
     }
+
     @Test
     public void testQuery_EnumList() {
-        insertXUser();
-        List<XUser.PasswordSalt> list = conn.query("select password_salt from users where username =?", "May")
-                .list(XUser.PasswordSalt.class);
+        insertUser3();
+        List<User3.PasswordSalt> list = conn.query("select password_salt from users where username =?", "May")
+                .list(User3.PasswordSalt.class);
         Assert.assertEquals(1, list.size());
     }
 
@@ -306,9 +311,9 @@ public class SqlConnectionTest {
 
     @Test
     public void testList() {
-        insertXUser();
-        insertXUser();
-        List<XUser> users = conn.list(XUser.class, where -> {
+        insertUser3();
+        insertUser3();
+        List<User3> users = conn.list(User3.class, where -> {
             where.and("username =?", "May");
         });
         Assert.assertEquals(2, users.size());
@@ -316,9 +321,9 @@ public class SqlConnectionTest {
 
     @Test
     public void testListAll() {
-        insertXUser();
-        insertXUser();
-        List<XUser> users = conn.list(XUser.class, Where.EMPTY);
+        insertUser3();
+        insertUser3();
+        List<User3> users = conn.list(User3.class, Where.EMPTY);
         Assert.assertEquals(2, users.size());
     }
 
@@ -454,16 +459,20 @@ public class SqlConnectionTest {
     @Test
     public void testBatchInsert_Beans() {
         //pgsql9.x 自增的id列可以为null, pgsql10.x是不行的
-        List<User> users = new ArrayList<>();
-        int size = 20;
+        List<User2> users = new ArrayList<>();
+        int size = 20000;
         for (int i = 0; i < size; i++) {
-            User user = new User("zero" + i, "zero@xxx.com", "123456");
+            User2 user = new User2("zero" + i, "zero@xxx.com", "123456");
             user.id = i;
-            user.updated_time = new Date();
-            user.password_salt = "***";
+            user.updatedTime = new Date();
             users.add(user);
         }
         conn.batchInsert(users, "users");
+        Set<Integer> ids = new HashSet<>(size);
+        for (User2 user : users) {
+            ids.add(user.id);
+        }
+        Assert.assertEquals(size, ids.size());
     }
 
     @Test
@@ -489,11 +498,11 @@ public class SqlConnectionTest {
         int size = 200;
         BatchUpdateResult result = conn.batchInsert(db -> {
             for (int i = 0; i < size; i++) {
-                XUser user = new XUser("zero" + i, "zero@xxx.com", "123456");
+                User3 user = new User3("zero" + i, "zero@xxx.com", "123456");
                 user.updatedTime = LocalDateTime.now();
                 db.accept(user);
             }
-        }, XUser.class, "users");
+        }, User3.class, "users");
         if (result.hasSuccessNoInfo()) {
             Assert.assertTrue(result.successNoInfoCount > 0);
         } else {
@@ -584,12 +593,12 @@ public class SqlConnectionTest {
 
     @Test
     public void testUpdate3() {
-        XUser user = new XUser("May", "may@xxx.com", "123456");
+        User3 user = new User3("May", "may@xxx.com", "123456");
         conn.insert(user, "users");
         user.username = "My new name";
         user.email = null;
         conn.update(user, "username", true);
-        XUser _user = conn.tryGet(XUser::new, user.id);
+        User3 _user = conn.tryGet(User3::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
     }
@@ -615,12 +624,12 @@ public class SqlConnectionTest {
 
     @Test
     public void LocalDateTime() {
-        XUser user = new XUser("May", "may@xxx.com", "123456");
+        User3 user = new User3("May", "may@xxx.com", "123456");
         user.updatedTime = LocalDateTime.now();
-        user.passwordSalt = XUser.PasswordSalt.B123456;
+        user.passwordSalt = User3.PasswordSalt.B123456;
         conn.insert(user, "users");
-        XUser user3 = conn.query("select * from users where email=?", user.email).first(XUser::new);
-        Assert.assertEquals(user3.passwordSalt, XUser.PasswordSalt.B123456);
+        User3 user3 = conn.query("select * from users where email=?", user.email).first(User3::new);
+        Assert.assertEquals(user3.passwordSalt, User3.PasswordSalt.B123456);
     }
 
     @Test

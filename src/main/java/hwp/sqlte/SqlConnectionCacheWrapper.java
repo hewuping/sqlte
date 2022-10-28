@@ -247,12 +247,12 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException {
         return delegate.batchInsert(beans, table);
     }
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
         return delegate.batchInsert(beans, table, sqlHandler);
     }
 

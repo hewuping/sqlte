@@ -3,7 +3,7 @@ package hwp.sqlte;
 import java.time.LocalDateTime;
 
 @Table(name = "users")
-public class XUser {
+public class User3 {
 
     @Id(generate = true)
     public Integer id;
@@ -15,15 +15,15 @@ public class XUser {
     public LocalDateTime updatedTime;//MySQL driver 5.x is not support
 
 
-    public static enum PasswordSalt {
+    public enum PasswordSalt {
         A123456, B123456, C123456
     }
 
-    public XUser() {
+    public User3() {
     }
 
 
-    public XUser(String username, String email, String password) {
+    public User3(String username, String email, String password) {
         this.username = username;
         this.email = email;
         this.password = password;

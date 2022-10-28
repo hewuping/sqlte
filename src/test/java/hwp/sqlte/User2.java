@@ -9,7 +9,7 @@ import java.util.Date;
 @Table(name = "users")
 public class User2 {
 
-    @Id
+    @Id(generate = true)
     public Integer id;
     public String username;
     public String email;

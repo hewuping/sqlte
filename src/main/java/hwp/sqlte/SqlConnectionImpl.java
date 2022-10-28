@@ -345,39 +345,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             try (ResultSet keys = stat.getGeneratedKeys()) {
                 if (keys != null && keys.next()) {
-                    //Field field = bean.getClass().getField(idName);/
-                    //Modifier.isFinal(field.getModifiers())
-                    //MySQL: BigInteger
-                    ResultSetMetaData metaData = keys.getMetaData();
-                    int cols = metaData.getColumnCount();
-//                    ConversionService conversion = Config.getConfig().getConversionService();
-                    for (int i = 1; i <= cols; i++) {
-                        String name = metaData.getColumnLabel(i);
-//                    System.out.println(name + " --> " + keys.getObject(name));
-                        //SQLite:last_insert_rowid()
-                        //MySQL:GENERATED_KEY
-                        String driverName = conn.getMetaData().getDriverName().toLowerCase();
-                        if (driverName.contains("sqlite") || driverName.contains("mysql")) {
-                            String idColumn = returnColumns[0];
-                            Field f = info.getField(idColumn);
-                            if (f != null) {
-                                Object id = keys.getObject(1, f.getType());//bug: MySQL driver 5.1.6 is not support
-                                f.set(bean, id);
-                                break;
-                            }
-                            break;
-                        }
-                        for (String column : info.getColumns()) {
-                            if (column.equalsIgnoreCase(name)) {
-                                Field f = info.getField(column);
-                                if (f != null) {
-                                    Object id = keys.getObject(i, f.getType());
-                                    f.set(bean, id);
-                                }
-                                break;
-                            }
-                        }
-                    }
+                    this.getGeneratedKeysAndSet(info, bean, keys);
                 }
             } catch (IllegalAccessException e) {
                 throw new SqlteException(e);
@@ -390,23 +358,36 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException {
         return batchInsert(beans, table, null);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
-        Object first = beans.get(0);
-        for (Object o : beans) {
+        T first = beans.get(0);
+        for (T o : beans) {
             if (o.getClass() != first.getClass()) {
                 throw new IllegalArgumentException("The object type in the collection must be consistent");
             }
         }
-        return batchInsert(consumer -> beans.forEach(consumer::accept), (Class) first.getClass(), table, sqlHandler);
+        Class<T> aClass = (Class<T>) first.getClass();
+        ClassInfo info = ClassInfo.getClassInfo(aClass);
+        Iterator<T> it = beans.iterator();
+        return batchInsert(consumer -> beans.forEach(consumer::accept), aClass, table, sqlHandler, (stat, ints) -> {
+            try {
+                String[] agc = info.getAutoGenerateColumns();
+                if (agc == null || agc.length == 0) {
+                    return;
+                }
+                this.getGeneratedKeysAndSet(it, stat.getGeneratedKeys());
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
@@ -1116,9 +1097,68 @@ class SqlConnectionImpl implements SqlConnection {
         return sql;
     }
 
+    // ----------------------
     private boolean isMySQL() throws SQLException {
         String driverName = conn.getMetaData().getDriverName().toLowerCase();
         return driverName.contains("mysql");
+    }
+
+    private Boolean _isOnlyGenerateID;//通过 isOnlyGenerateID() 访问该属性
+
+    private boolean isOnlyGenerateID() throws SQLException {
+        if (_isOnlyGenerateID == null) {
+            String driverName = conn.getMetaData().getDriverName().toLowerCase();
+            _isOnlyGenerateID = driverName.contains("sqlite") || driverName.contains("mysql");
+        }
+        return _isOnlyGenerateID;
+    }
+
+    private <T> void getGeneratedKeysAndSet(Iterator<T> it, ResultSet generatedKeys) throws SQLException {
+        try {
+            // SQLite:last_insert_rowid()
+            // MySQL:GENERATED_KEY
+            ClassInfo info = null;
+            while (generatedKeys.next() && it.hasNext()) {
+                T bean = it.next();
+                if (info == null) {
+                    info = ClassInfo.getClassInfo(bean.getClass());
+                }
+                getGeneratedKeysAndSet(info, bean, generatedKeys);
+            }
+        } catch (SQLException | IllegalAccessException e) {
+            throw new SqlteException(e);
+        }
+    }
+
+    private void getGeneratedKeysAndSet(ClassInfo info, Object bean, ResultSet keys) throws SQLException, IllegalAccessException {
+        String[] returnColumns = info.getAutoGenerateColumns();
+        //Modifier.isFinal(field.getModifiers())
+        //MySQL: BigInteger
+        ResultSetMetaData metaData = keys.getMetaData();
+        int cols = metaData.getColumnCount();
+//      ConversionService conversion = Config.getConfig().getConversionService();
+        for (int i = 1; i <= cols; i++) {
+            String name = metaData.getColumnLabel(i);
+            if (isOnlyGenerateID()) {
+                String idColumn = returnColumns[0];
+                Field f = info.getField(idColumn);
+                if (f != null) {
+                    Object id = keys.getObject(1, f.getType());//bug: MySQL driver 5.1.6 is not support
+                    f.set(bean, id);
+                }
+                break;
+            }
+            for (String column : info.getColumns()) {
+                if (column.equalsIgnoreCase(name)) {
+                    Field f = info.getField(column);
+                    if (f != null) {
+                        Object id = keys.getObject(i, f.getType());
+                        f.set(bean, id);
+                    }
+                    break;
+                }
+            }
+        }
     }
 
 

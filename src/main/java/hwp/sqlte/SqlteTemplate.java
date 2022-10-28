@@ -242,12 +242,12 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException {
         return run(conn -> conn.batchInsert(beans, table));
     }
 
     @Override
-    public BatchUpdateResult batchInsert(List<?> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
         return run(conn -> conn.batchInsert(beans, table, sqlHandler));
     }
 
