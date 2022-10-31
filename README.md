@@ -35,7 +35,7 @@ Maven
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.16</version>
+        <version>0.2.17</version>
     </dependency>
 </dependencies>
 ```
@@ -46,7 +46,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.16'
+    implementation 'com.github.hewuping:sqlte:0.2.17'
 }
 ```
 
@@ -97,12 +97,14 @@ for (int i = 0; i < size; i++) {
     user.password_salt = "***";
     users.add(user);
 }
-conn.batchInsert(users, "users");
+conn.batchInsert(users);
+// conn.batchInsert(users, "users");
 ```
 
 **Query by ID**
 ```
-User user = conn.load(User::new, 123);
+User user = conn.tryGet(User::new, 123);
+User user = conn.mustGet(User::new, 123);
 ```
 
 **Query first**
