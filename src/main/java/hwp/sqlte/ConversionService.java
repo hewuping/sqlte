@@ -2,6 +2,10 @@ package hwp.sqlte;
 
 public interface ConversionService {
 
+    static ConversionService getDefault() {
+        return DefaultConversionService.INSTANCE;
+    }
+
     boolean canConvert(Class<?> from, Class<?> to);
 
     <T> T convert(Object from, Class<T> to);

@@ -1,11 +1,14 @@
 package hwp.sqlte;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,7 +18,7 @@ final class DefaultConversionService implements ConversionService {
 
     public static final ConversionService INSTANCE = new DefaultConversionService();
 
-    private Map<Class<?>, Map<Class<?>, TypeConverter<Object, Object>>> map = new HashMap<>();
+    private final Map<Class<?>, Map<Class<?>, TypeConverter<Object, Object>>> map = new HashMap<>();
 
     public DefaultConversionService() {
         //String to X
@@ -37,6 +40,19 @@ final class DefaultConversionService implements ConversionService {
         register(String.class, UUID.class, new StringToUUIDConverter());
         register(String.class, Boolean.class, new StringToBooleanConverter());
         register(String.class, Boolean.TYPE, new StringToBooleanConverter());
+
+        register(String.class, LocalDate.class, LocalDate::parse);// 2007-12-03
+        register(String.class, LocalTime.class, LocalTime::parse);// 10:15:30
+        register(String.class, LocalDateTime.class, LocalDateTime::parse); // 2007-12-03T10:15:30
+        register(String.class, OffsetDateTime.class, OffsetDateTime::parse); // 2007-12-03T10:15:30+01:00
+        register(String.class, ZonedDateTime.class, ZonedDateTime::parse); // 2007-12-03T10:15:30+01:00[Europe/Paris]
+        register(String.class, Instant.class, Instant::parse); // 2007-12-03T10:15:30.00Z
+        register(String.class, java.util.Date.class, s -> java.util.Date.from(Instant.parse(s))); // 2007-12-03T10:15:30.00Z
+        register(String.class, Date.class, Date::valueOf); // 2007-12-03
+        register(String.class, Timestamp.class, Timestamp::valueOf);
+
+        register(String[].class, Integer[].class, new StringArrayToIntegerArrayConverter());
+        register(String[].class, Long[].class, new StringArrayToLongArrayConverter());
 
         //to String
         register(Object.class, String.class, Object::toString);
@@ -77,22 +93,49 @@ final class DefaultConversionService implements ConversionService {
 
         // date & time
         TimeZone timeZone = Config.getConfig().getDatabaseTimeZone();
-//            ZoneOffset zoneOffset = OffsetDateTime.now().getOffset();
+        ZoneOffset zoneOffset = OffsetDateTime.now().getOffset();
+        ZoneId zoneId = timeZone.toZoneId();
 
         register(Timestamp.class, String.class, timestamp -> timestamp.toInstant().toString());
         register(Timestamp.class, Long.class, Timestamp::getTime);
         register(Timestamp.class, LocalDateTime.class, Timestamp::toLocalDateTime);
         register(Timestamp.class, LocalDate.class, timestamp -> timestamp.toLocalDateTime().toLocalDate());
+        register(Timestamp.class, OffsetDateTime.class, timestamp -> timestamp.toInstant().atOffset(zoneOffset));
+        register(Timestamp.class, ZonedDateTime.class, timestamp -> timestamp.toInstant().atZone(zoneId));
         register(Timestamp.class, java.util.Date.class, timestamp -> timestamp);
         register(Timestamp.class, Instant.class, timestamp -> Instant.ofEpochMilli(timestamp.getTime()));
+        register(Timestamp.class, YearMonth.class, timestamp -> {
+            LocalDateTime dt = timestamp.toLocalDateTime();
+            return YearMonth.of(dt.getYear(), dt.getMonth());
+        });
 
+        register(Instant.class, LocalDateTime.class, it -> LocalDateTime.ofInstant(it, zoneId));
+        register(Instant.class, OffsetDateTime.class, it -> OffsetDateTime.ofInstant(it, zoneId));
+        register(Instant.class, ZonedDateTime.class, it -> ZonedDateTime.ofInstant(it, zoneId));
         register(Instant.class, Timestamp.class, Timestamp::from);
+        register(Instant.class, Date.class, it -> new Date(it.toEpochMilli()));
+        register(Instant.class, java.util.Date.class, java.util.Date::from);
+        register(Instant.class, String.class, it -> it.truncatedTo(ChronoUnit.MINUTES).toString());
 
         register(Date.class, String.class, Date::toString);
         register(Date.class, Instant.class, Date::toInstant);
         register(Date.class, Long.class, java.util.Date::getTime);
         register(Date.class, LocalDate.class, Date::toLocalDate);
         register(Date.class, LocalDateTime.class, date -> date.toLocalDate().atTime(LocalTime.MIN));
+        register(Date.class, OffsetDateTime.class, date -> date.toInstant().atOffset(zoneOffset));
+        register(Date.class, ZonedDateTime.class, date -> date.toInstant().atZone(zoneId));
+        register(Date.class, YearMonth.class, date -> {
+            LocalDate dt = date.toLocalDate();
+            return YearMonth.of(dt.getYear(), dt.getMonth());
+        });
+
+        register(java.util.Date.class, String.class, java.util.Date::toString);
+        register(java.util.Date.class, Instant.class, java.util.Date::toInstant);
+        register(java.util.Date.class, Long.class, java.util.Date::getTime);
+        register(java.util.Date.class, LocalDate.class, date -> date.toInstant().atZone(zoneId).toLocalDate());
+        register(java.util.Date.class, LocalDateTime.class, date -> date.toInstant().atZone(zoneId).toLocalDateTime());
+        register(java.util.Date.class, OffsetDateTime.class, date -> date.toInstant().atOffset(zoneOffset));
+        register(java.util.Date.class, ZonedDateTime.class, date -> date.toInstant().atZone(zoneId));
 
         register(Time.class, String.class, Time::toString);
         register(Time.class, LocalTime.class, Time::toLocalTime);
@@ -119,11 +162,17 @@ final class DefaultConversionService implements ConversionService {
         register(OffsetDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
         register(OffsetDateTime.class, java.util.Date.class, dateTime -> java.util.Date.from(dateTime.toZonedDateTime().toInstant()));
         register(OffsetDateTime.class, Long.class, dateTime -> dateTime.toZonedDateTime().toInstant().getEpochSecond() * 1000L);
+        register(OffsetDateTime.class, LocalDate.class, OffsetDateTime::toLocalDate);
+        register(OffsetDateTime.class, LocalDateTime.class, OffsetDateTime::toLocalDateTime);
+        register(OffsetDateTime.class, ZonedDateTime.class, OffsetDateTime::toZonedDateTime);
 
         register(ZonedDateTime.class, String.class, ZonedDateTime::toString);
         register(ZonedDateTime.class, Date.class, dateTime -> new Date(dateTime.toEpochSecond() * 1000L));
         register(ZonedDateTime.class, java.util.Date.class, dateTime -> java.util.Date.from(dateTime.toInstant()));
         register(ZonedDateTime.class, Long.class, dateTime -> dateTime.toEpochSecond() * 1000L);
+        register(ZonedDateTime.class, LocalDate.class, ZonedDateTime::toLocalDate);
+        register(ZonedDateTime.class, LocalDateTime.class, ZonedDateTime::toLocalDateTime);
+        register(ZonedDateTime.class, OffsetDateTime.class, ZonedDateTime::toOffsetDateTime);
 
     }
 
@@ -168,7 +217,7 @@ final class DefaultConversionService implements ConversionService {
         }
 
         if (from instanceof Enum && Integer.class == to) {
-            return (T) Integer.valueOf(((Enum) from).ordinal());
+            return (T) Integer.valueOf(((Enum<?>) from).ordinal());
         }
         if (from instanceof String && to.isEnum()) {
             String _from = (String) from;
@@ -177,7 +226,7 @@ final class DefaultConversionService implements ConversionService {
             }
             T[] items = to.getEnumConstants();
             for (T item : items) {
-                Enum e = (Enum) item;
+                Enum<?> e = (Enum<?>) item;
                 if (e.name().equalsIgnoreCase(_from)) {
                     return item;
                 }
@@ -200,7 +249,7 @@ final class DefaultConversionService implements ConversionService {
 
 
     @Override
-    public <F, T> void register(Class<F> from, Class<T> to, TypeConverter<F, T> converter) {
+    public synchronized <F, T> void register(Class<F> from, Class<T> to, TypeConverter<F, T> converter) {
         Map<Class<?>, TypeConverter<Object, Object>> map1 = map.computeIfAbsent(from, k -> new HashMap<>());
         map1.put(to, (TypeConverter<Object, Object>) converter);
     }
@@ -231,6 +280,32 @@ final class DefaultConversionService implements ConversionService {
                 return null;
             }
             return any.contains(source.toLowerCase());
+        }
+    }
+
+    private static class StringArrayToIntegerArrayConverter implements TypeConverter<String[], Integer[]> {
+        public Integer[] convert(String[] source) {
+            Integer[] rs = new Integer[source.length];
+            for (int i = 0; i < source.length; i++) {
+                String from = source[i];
+                if (from != null) {
+                    rs[i] = Integer.valueOf(from);
+                }
+            }
+            return rs;
+        }
+    }
+
+    private static class StringArrayToLongArrayConverter implements TypeConverter<String[], Long[]> {
+        public Long[] convert(String[] source) {
+            Long[] rs = new Long[source.length];
+            for (int i = 0; i < source.length; i++) {
+                String from = source[i];
+                if (from != null) {
+                    rs[i] = Long.valueOf(from);
+                }
+            }
+            return rs;
         }
     }
 

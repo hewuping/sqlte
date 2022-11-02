@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -127,6 +128,30 @@ public class ConversionServiceTest {
     public void testBigDecimal2AtomicInteger() {
         AtomicInteger value = service.convert(BigDecimal.valueOf(2.34), AtomicInteger.class);
         Assert.assertEquals(2, value.intValue());
+    }
+
+    @Test
+    public void testStringArray2IntegerArray() {
+        String[] strings = new String[]{"123", "456", "789"};
+        Integer[] values = service.convert(strings, Integer[].class);
+        Assert.assertEquals(123, values[0].intValue());
+        Assert.assertEquals(456, values[1].intValue());
+        Assert.assertEquals(789, values[2].intValue());
+    }
+
+    @Test
+    public void testStringArray2LongArray() {
+        String[] strings = new String[]{"123", "456", "789"};
+        Long[] values = service.convert(strings, Long[].class);
+        Assert.assertEquals(123L, values[0].longValue());
+        Assert.assertEquals(456L, values[1].longValue());
+        Assert.assertEquals(789L, values[2].longValue());
+    }
+
+    @Test
+    public void testString2LocalTime() {
+        LocalTime value = service.convert("12:10:08", LocalTime.class);
+        Assert.assertEquals(LocalTime.of(12, 10, 8), value);
     }
 
 }
