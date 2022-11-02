@@ -328,6 +328,17 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testContains() {
+        User2 user = new User2("Zero", "zero@example.com", "123456");
+        conn.insert(user);
+        Assert.assertTrue(conn.contains(user));
+        user.email = "";
+        Assert.assertTrue(conn.contains(user));
+        user.email = "frank@example.com";
+        Assert.assertFalse(conn.contains(user));
+    }
+
+    @Test
     public void testList() {
         insertUser3();
         insertUser3();

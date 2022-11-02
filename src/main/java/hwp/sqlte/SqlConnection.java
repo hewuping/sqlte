@@ -218,6 +218,17 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
+     * 是否存在相似对象
+     *
+     * @param example
+     * @param <T>
+     * @return
+     */
+    default <T> boolean contains(T example) {
+        return firstExample(example) != null;
+    }
+
+    /**
      * 通过 Example 查询最先匹配到的记录
      *
      * @param example
