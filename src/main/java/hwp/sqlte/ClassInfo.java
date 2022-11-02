@@ -109,6 +109,10 @@ class ClassInfo {
         }
     }
 
+    String className() {
+        return clazz.getName();
+    }
+
     String getPKColumn() {// getPrimaryKeyColumn
         if (pkColumns.length == 0) {
             throw new SqlteException("Undefined ID field: " + clazz.getName());
@@ -128,8 +132,41 @@ class ClassInfo {
         return columnFieldMap;
     }
 
+    /**
+     * 通过列名获取 Field
+     *
+     * @param column
+     * @return
+     */
     Field getField(String column) {
         return columnFieldMap.get(column);
+    }
+
+    /**
+     * 通过列名获取多个属性值
+     *
+     * @param obj
+     * @param columns
+     * @return
+     */
+    Object[] getValuesByColumn(Object obj, String[] columns) {
+        Objects.requireNonNull(obj, "'obj' is null");
+        Objects.requireNonNull(columns, "'columns' is null");
+        Object[] values = new Object[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            String column = columns[i];
+            Field field = this.getField(column);
+            Object value = Helper.getSerializedValue(obj, field);
+            values[i] = value;
+        }
+        return values;
+    }
+
+    Object getValueByColumn(Object obj, String column) {
+        Objects.requireNonNull(obj, "'obj' is null");
+        Objects.requireNonNull(column, "'column' is null");
+        Field field = this.getField(column);
+        return Helper.getSerializedValue(obj, field);
     }
 
     String getColumn(Field field) {

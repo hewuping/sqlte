@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Reader;
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
@@ -606,9 +605,9 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
+    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
             throws UncheckedSQLException {
-        this.batchUpdate(sql, 1000, it, consumer);
+        return this.batchUpdate(sql, 1000, it, consumer);
     }
 
     @Override
@@ -762,27 +761,42 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public boolean delete(Object bean, String table) throws UncheckedSQLException {
+        BatchUpdateResult result = this.batchDelete(Arrays.asList(bean), table);
+        return result.affectedRows == 1;
+    }
+
+    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws UncheckedSQLException {
         try {
-            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            Objects.requireNonNull(beans);
+            if (beans.isEmpty()) {
+                return BatchUpdateResult.EMPTY;
+            }
+            Object first = beans.get(0);
+            ClassInfo info = ClassInfo.getClassInfo(first.getClass());
             if (table == null) {
                 table = info.getTableName();
             }
             String[] pkColumns = info.getPkColumns();
             if (pkColumns.length == 0) {
-                throw new IllegalArgumentException("The class unspecified ID field: " + bean.getClass().getName());
+                throw new IllegalArgumentException("The class unspecified ID field: " + info.className());
             }
-            SqlBuilder builder = new SqlBuilder();
+            StringBuilder builder = new StringBuilder();
             builder.append("DELETE FROM ").append(table);
-
-            Where where = new Where();
+            builder.append(" WHERE ");
             for (String pkColumn : pkColumns) {
-                Field field = info.getField(pkColumn);
-                Object value = Helper.getSerializedValue(bean, field);
-                Objects.requireNonNull(value, "ID field value is NULL: " + bean.getClass().getName() + "." + field.getName());
-                where.and(pkColumn + "=?", value);
+                if (builder.indexOf("=") > 0) {
+                    builder.append(" AND ");
+                }
+                builder.append(pkColumn + "=?");
             }
-            builder.where(where);
-            return executeUpdate(builder.sql(), builder.args()) == 1;
+            String sql = builder.toString();
+            return this.batchUpdate(sql, beans, (executor, bean) -> {
+                Object[] values = info.getValuesByColumn(bean, pkColumns);
+                for (Object value : values) {
+                    Objects.requireNonNull(value, "value must not be null");
+                }
+                executor.exec(values);
+            });
         } catch (Exception e) {
             throw new UncheckedSQLException(e);
         }

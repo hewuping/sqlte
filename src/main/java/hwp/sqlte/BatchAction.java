@@ -36,7 +36,7 @@ public class BatchAction<T> {
         if (batchSize < 1) {
             throw new IllegalArgumentException("batchSize must be > 0");
         }
-        Objects.requireNonNull(action, "action must be not null");
+        Objects.requireNonNull(action, "action must not be null");
         this.batchSize = batchSize;
         this.action = action;
         this.list = new ArrayList<>(batchSize);

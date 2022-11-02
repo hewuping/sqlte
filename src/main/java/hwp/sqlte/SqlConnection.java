@@ -688,6 +688,28 @@ public interface SqlConnection extends AutoCloseable {
         return this.executeUpdate("DELETE FROM " + table + " WHERE " + where.sql(), where.args().toArray());
     }
 
+    /**
+     * 批量删除
+     *
+     * @param beans
+     * @param <T>
+     * @throws UncheckedSQLException
+     */
+    default <T> BatchUpdateResult batchDelete(List<T> beans) throws UncheckedSQLException {
+        return this.batchDelete(beans, null);
+    }
+
+    /**
+     * 批量删除
+     *
+     * @param beans
+     * @param table 表名, 可以为 null
+     * @param <T>
+     * @throws UncheckedSQLException
+     */
+    <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws UncheckedSQLException;
+
+
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
 
     /**
@@ -699,7 +721,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @throws UncheckedSQLException
      */
-    <T> void batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
 
     /**
      * 批量插入

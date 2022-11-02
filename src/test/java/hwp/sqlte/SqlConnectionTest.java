@@ -171,6 +171,24 @@ public class SqlConnectionTest {
         Assert.assertTrue(conn.delete(user, "users"));
     }
 
+    @Test
+    public void testBatchDelete() {
+        List<User2> users = new ArrayList<>();
+        int size = 20;
+        for (int i = 0; i < size; i++) {
+            User2 user = new User2("zero" + i, "zero@xxx.com", "123456");
+            user.updatedTime = new Date();
+            users.add(user);
+        }
+        conn.batchInsert(users);
+        List<User2> list1 = conn.list(User2.class, Where.EMPTY);
+        Assert.assertEquals(size, list1.size());
+        BatchUpdateResult result = conn.batchDelete(users);
+        Assert.assertEquals(users.size(), result.affectedRows);
+        List<User2> list2 = conn.list(User2.class, Where.EMPTY);
+        Assert.assertEquals(0, list2.size());
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Test
