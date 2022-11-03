@@ -1,13 +1,12 @@
 package hwp.sqlte;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,6 +20,7 @@ final class DefaultConversionService implements ConversionService {
     private final Map<Class<?>, Map<Class<?>, TypeConverter<Object, Object>>> map = new HashMap<>();
 
     public DefaultConversionService() {
+//        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         //String to X
         register(String.class, Character.class, new StringToCharacterConverter());
         register(String.class, Byte.class, Byte::valueOf);
@@ -75,10 +75,13 @@ final class DefaultConversionService implements ConversionService {
         register(Short.class, Boolean.class, v -> v > 0);
         register(Integer.class, String.class, Object::toString);
         register(Integer.class, Boolean.class, v -> v > 0);
+        register(Integer.class, LocalTime.class, seconds -> LocalTime.ofSecondOfDay(seconds));
         register(Long.class, String.class, Object::toString);
         register(Long.class, Boolean.class, v -> v > 0);
+        register(Long.class, LocalTime.class, LocalTime::ofSecondOfDay);
         register(Float.class, String.class, Object::toString);
         register(Double.class, String.class, Object::toString);
+
 
         Class<?>[] numbers = new Class<?>[]{
                 Byte.TYPE, Short.TYPE, Integer.TYPE, Long.TYPE, Float.TYPE, Double.TYPE,
@@ -140,6 +143,11 @@ final class DefaultConversionService implements ConversionService {
         register(Time.class, String.class, Time::toString);
         register(Time.class, LocalTime.class, Time::toLocalTime);
         register(Time.class, Instant.class, Time::toInstant);
+
+        // LocalTime 精度限制到秒
+        register(LocalTime.class, String.class, it -> it.truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_TIME));
+        register(LocalTime.class, Integer.class, it -> it.toSecondOfDay());
+        register(LocalTime.class, Long.class, it -> (long) it.toSecondOfDay());
 
         register(LocalDateTime.class, Timestamp.class, Timestamp::valueOf);
         register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
@@ -231,7 +239,7 @@ final class DefaultConversionService implements ConversionService {
                     return item;
                 }
             }
-            return (T) Enum.valueOf((Class) to, _from.toUpperCase());
+            return (T) Enum.valueOf((Class<Enum>) to, _from.toUpperCase());
         }
         if (from instanceof Enum && String.class == to) {
             return (T) ((Enum) from).name();

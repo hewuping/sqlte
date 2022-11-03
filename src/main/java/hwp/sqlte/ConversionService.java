@@ -23,7 +23,7 @@ public interface ConversionService {
      *  service.convert("123", Long.class);
      *  ...
      *
-     *  // 日期时间转换
+     *  // 日期时间转换 (LocalTime 精度限制到秒)
      *  convert("12:10:08", LocalTime.class);
      *  convert(new Date(), LocalDate.class);
      *  convert(new Date(), LocalDateTime.class);

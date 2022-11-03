@@ -154,4 +154,11 @@ public class ConversionServiceTest {
         Assert.assertEquals(LocalTime.of(12, 10, 8), value);
     }
 
+    @Test
+    public void testLocalTime2String() {
+        LocalTime now = LocalTime.now();
+        String value = service.convert(now, String.class);
+        Assert.assertEquals(8, value.length());
+    }
+
 }
