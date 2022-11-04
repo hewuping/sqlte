@@ -53,6 +53,7 @@ final class DefaultConversionService implements ConversionService {
 
         register(String[].class, Integer[].class, new StringArrayToIntegerArrayConverter());
         register(String[].class, Long[].class, new StringArrayToLongArrayConverter());
+        register(String[].class, BigDecimal[].class, new StringArrayToBigDecimalArrayConverter());
 
         //to String
         register(Object.class, String.class, Object::toString);
@@ -153,6 +154,9 @@ final class DefaultConversionService implements ConversionService {
         register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
         register(LocalDateTime.class, Long.class, dateTime -> dateTime.toEpochSecond(ZoneOffset.UTC) * 1000L);
         register(LocalDateTime.class, String.class, LocalDateTime::toString);
+        register(LocalDateTime.class, Instant.class, dateTime -> Instant.ofEpochSecond(dateTime.toEpochSecond(zoneOffset)));
+        register(LocalDateTime.class, OffsetDateTime.class, dateTime -> OffsetDateTime.of(dateTime, zoneOffset));
+        register(LocalDateTime.class, ZonedDateTime.class, dateTime -> ZonedDateTime.of(dateTime, zoneId));
         register(LocalDateTime.class, java.util.Date.class, dateTime -> {
             Instant instant = dateTime.atZone(timeZone.toZoneId()).toInstant();
             return java.util.Date.from(instant);
@@ -161,6 +165,9 @@ final class DefaultConversionService implements ConversionService {
         register(LocalDate.class, String.class, LocalDate::toString);
         register(LocalDate.class, Long.class, date -> date.atStartOfDay(timeZone.toZoneId()).getSecond() * 1000L);
         register(LocalDate.class, Integer.class, date -> date.atStartOfDay(timeZone.toZoneId()).getSecond());
+        register(LocalDate.class, Instant.class, date -> Instant.ofEpochSecond(date.atStartOfDay(zoneId).toEpochSecond()));
+        register(LocalDate.class, OffsetDateTime.class, date -> OffsetDateTime.of(date, LocalTime.MIN, zoneOffset));
+        register(LocalDate.class, ZonedDateTime.class, date -> ZonedDateTime.of(date, LocalTime.MIN, zoneId));
         register(LocalDate.class, java.util.Date.class, date -> {
             Instant instant = date.atStartOfDay(timeZone.toZoneId()).toInstant();
             return java.util.Date.from(instant);
@@ -281,13 +288,21 @@ final class DefaultConversionService implements ConversionService {
     }
 
     private static class StringToBooleanConverter implements TypeConverter<String, Boolean> {
-        private final List<String> any = Arrays.asList("yes", "on", "true", "y", "1");
+        private final List<String> trueValues = Arrays.asList("yes", "on", "true", "y", "1");
+        private final List<String> falseValues = Arrays.asList("no", "off", "false", "n", "0");
 
         public Boolean convert(String source) {
             if (source == null || source.isEmpty()) {
                 return null;
             }
-            return any.contains(source.toLowerCase());
+            String value = source.toLowerCase();
+            if (trueValues.contains(value)) {
+                return Boolean.TRUE;
+            } else if (falseValues.contains(value)) {
+                return Boolean.FALSE;
+            } else {
+                throw new IllegalArgumentException("Invalid boolean value '" + source + "'");
+            }
         }
     }
 
@@ -316,6 +331,47 @@ final class DefaultConversionService implements ConversionService {
             return rs;
         }
     }
+
+    private static class StringArrayToBigDecimalArrayConverter implements TypeConverter<String[], BigDecimal[]> {
+        public BigDecimal[] convert(String[] source) {
+            BigDecimal[] rs = new BigDecimal[source.length];
+            for (int i = 0; i < source.length; i++) {
+                String from = source[i];
+                if (from != null) {
+                    rs[i] = new BigDecimal(from);
+                }
+            }
+            return rs;
+        }
+    }
+
+/*  性能优先
+    private static class StringArrayConverter<T> implements TypeConverter<String[], T[]> {
+        private final Class<T> clazz;
+
+        public StringArrayConverter(Class<T> clazz) {
+            this.clazz = clazz;
+        }
+
+        public T[] convert(String[] source) {
+            Object array = Array.newInstance(clazz, source.length);
+            for (int i = 0; i < source.length; i++) {
+                String from = source[i];
+                if (from == null) {
+                    continue;
+                }
+                if (clazz == Integer.class) {
+                    Array.set(array, i, Integer.valueOf(from));
+                    continue;
+                }
+                if (clazz == BigDecimal.class) {
+                    Array.set(array, i, new BigDecimal(from));
+                    continue;
+                }
+            }
+            return (T[]) array;
+        }
+    }*/
 
     @SuppressWarnings("unchecked")
     private static class NumberConverter<F extends Number, T extends Number> implements TypeConverter<F, T> {

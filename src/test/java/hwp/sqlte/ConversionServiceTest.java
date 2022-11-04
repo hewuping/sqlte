@@ -149,6 +149,15 @@ public class ConversionServiceTest {
     }
 
     @Test
+    public void testStringArray2BigDecimalArray() {
+        String[] strings = new String[]{"123", "456", "789"};
+        BigDecimal[] values = service.convert(strings, BigDecimal[].class);
+        Assert.assertEquals(123L, values[0].longValue());
+        Assert.assertEquals(456L, values[1].longValue());
+        Assert.assertEquals(789L, values[2].longValue());
+    }
+
+    @Test
     public void testString2LocalTime() {
         LocalTime value = service.convert("12:10:08", LocalTime.class);
         Assert.assertEquals(LocalTime.of(12, 10, 8), value);
