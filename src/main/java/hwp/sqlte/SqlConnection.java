@@ -693,11 +693,40 @@ public interface SqlConnection extends AutoCloseable {
         Objects.requireNonNull(whereConsumer);
         Where where = new Where();
         whereConsumer.accept(where);
-        if (where.isEmpty()) {
+        if (where.isEmpty() && whereConsumer != Where.EMPTY) {
             throw new IllegalArgumentException("Dangerous deletion without cause is not supported");
         }
-        return this.executeUpdate("DELETE FROM " + table + " WHERE " + where.sql(), where.args().toArray());
+        return this.executeUpdate(sql -> {
+            sql.delete(table).where(where);
+        });
     }
+
+
+    /**
+     * 根据条件删除多条记录
+     *
+     * @param clazz
+     * @param whereConsumer 条件, 必须
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws UncheckedSQLException {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        return this.delete(info.getTableName(), whereConsumer);
+    }
+
+
+    /**
+     * 删除相似数据
+     *
+     * @param example
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default int deleteByExample(Object example) throws UncheckedSQLException {
+        return this.delete(example.getClass(), where -> where.of(example));
+    }
+
 
     /**
      * 批量删除

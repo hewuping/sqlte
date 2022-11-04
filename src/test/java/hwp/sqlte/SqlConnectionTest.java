@@ -189,6 +189,24 @@ public class SqlConnectionTest {
         Assert.assertEquals(0, list2.size());
     }
 
+    @Test
+    public void testDeleteAll() {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.passwordSalt = "***";
+        conn.insert(user, "users");
+        conn.delete(User2.class, Where.EMPTY);
+        Assert.assertTrue(conn.list(User2.class, Where.EMPTY).isEmpty());
+    }
+
+    @Test
+    public void testDeleteByExampe() {
+        User2 user = new User2("May", "may@xxx.com", "123456");
+        user.passwordSalt = "***";
+        conn.insert(user, "users");
+        conn.deleteByExample(user);
+        Assert.assertTrue(conn.list(User2.class, Where.EMPTY).isEmpty());
+    }
+
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Test

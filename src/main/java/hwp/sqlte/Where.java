@@ -254,6 +254,17 @@ public class Where {
     }
 
     /**
+     * 根据对象构建条件
+     *
+     * @param example
+     * @return
+     */
+    public Where of(Object example) {
+        apply(Where.ofExample(example));
+        return this;
+    }
+
+    /**
      * 返回带占位符的 SQL
      *
      * @return
