@@ -264,6 +264,22 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
+     * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
+     *
+     * @param example
+     * @param <T>
+     * @return
+     */
+    default <T> List<T> listExample(T example) {
+        Class<T> aClass = (Class<T>) example.getClass();
+        return query(aClass, where -> where.of(example));
+    }
+
+    default <T> List<T> listExample(Class<T> clazz, Object example) {
+        return query(clazz, where -> where.of(example));
+    }
+
+    /**
      * 插入单条数据
      * <p>
      * 例如: <code>conn.insert("users", "username,password,password_salt", "may", "123456", "xxx");</code>

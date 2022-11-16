@@ -7,6 +7,8 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.util.Collections.EMPTY_LIST;
+
 /**
  * @author Zero
  * Created on 2017/3/20.
@@ -15,12 +17,16 @@ public class SqlResultSet implements Iterable<Row> {
 
     private final List<String> columns;
     private List<Row> rows;
+    private List<RowMetadata> rowMetadatas;
 
-    public static final SqlResultSet EMPTY = new SqlResultSet(Collections.emptyList(), Collections.emptyList());
+    //rowMetadata
 
-    public SqlResultSet(List<String> columns, List<Row> rows) {
+    public static final SqlResultSet EMPTY = new SqlResultSet(EMPTY_LIST, EMPTY_LIST, EMPTY_LIST);
+
+    public SqlResultSet(List<String> columns, List<Row> rows, List<RowMetadata> rowMetadatas) {
         this.columns = columns;
         this.rows = rows;
+        this.rowMetadatas = rowMetadatas;
     }
 
     public List<String> getColumns() {
@@ -29,6 +35,10 @@ public class SqlResultSet implements Iterable<Row> {
 
     public List<Row> rows() {
         return rows;
+    }
+
+    public List<RowMetadata> getRowMetadatas() {
+        return rowMetadatas;
     }
 
     public Row first() {

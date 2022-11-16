@@ -32,10 +32,17 @@ class Helper {
 
     static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();
+        List<RowMetadata> rms = new ArrayList<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int cols = metaData.getColumnCount();
-        for (int i = 1; i <= cols; i++) {
-            columnNames.add(metaData.getColumnLabel(i).toLowerCase().intern());
+        for (int column = 1; column <= cols; column++) {
+            String label = metaData.getColumnLabel(column);
+            columnNames.add(label.toLowerCase().intern());
+            RowMetadata rm = new RowMetadata(column, label);
+            rm.setSchema(metaData.getSchemaName(column));
+            rm.setTable(metaData.getTableName(column));
+            rm.setType(metaData.getColumnType(column));
+            rms.add(rm);
         }
         List<Row> results = new ArrayList<>();
         while (rs.next()) {
@@ -45,7 +52,7 @@ class Helper {
             }
             results.add(row);
         }
-        return new SqlResultSet(columnNames, results);
+        return new SqlResultSet(columnNames, results, rms);
     }
 
     static void fillStatement(PreparedStatement statement, Object[] args) throws UncheckedSQLException {

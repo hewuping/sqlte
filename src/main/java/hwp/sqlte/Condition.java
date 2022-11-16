@@ -3,6 +3,7 @@ package hwp.sqlte;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * @author Zero
@@ -187,7 +188,7 @@ public class Condition {
 
     /**
      * @param column 列名
-     * @param values 可变数组, 也可以是 Array 或 Collection
+     * @param values 可变数组, 也可以是 Array, Collection 或 Stream
      * @return
      */
     public static Condition notIn(String column, Object... values) {
@@ -206,6 +207,9 @@ public class Condition {
             } else if (value instanceof Collection) {
                 Collection<?> c = (Collection<?>) value;
                 args.addAll(c);
+            } else if (value instanceof Stream) {
+                Stream<?> c = (Stream<?>) value;
+                c.forEach(args::add);
             } else {
                 args.add(value);
             }

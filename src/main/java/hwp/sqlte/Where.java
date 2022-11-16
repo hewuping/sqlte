@@ -3,11 +3,11 @@ package hwp.sqlte;
 import hwp.sqlte.example.*;
 import hwp.sqlte.util.ObjectUtils;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class Where {
 
@@ -299,28 +299,40 @@ public class Where {
                     where.and(Condition.between(column, range.getStart(), range.getEnd()));
                     continue;
                 }
-                if (value.getClass().isArray()) {
+                if (value.getClass().isArray() || value instanceof Condition || value instanceof Stream) {
                     where.and(Condition.in(column, value));
                     continue;
                 }
-                if (field.getAnnotation(StartWith.class) != null) {
-                    where.and(Condition.startWith(column, value.toString()));
+                StartWith startWith = field.getAnnotation(StartWith.class);
+                if (startWith != null) {
+                    where.and(Condition.startWith(def(startWith.value(), column), value.toString()));
                     continue;
                 }
-                if (field.getAnnotation(EndWith.class) != null) {
-                    where.and(Condition.endWith(column, value.toString()));
+                EndWith endWith = field.getAnnotation(EndWith.class);
+                if (endWith != null) {
+                    where.and(Condition.endWith(def(endWith.value(), column), value.toString()));
                     continue;
                 }
-                if (field.getAnnotation(Like.class) != null) {
-                    where.and(Condition.like(column, value.toString()));
+
+                Like like = field.getAnnotation(Like.class);
+                if (like != null) {
+                    String val = value.toString();
+                    String[] columns = like.columns();
+                    Condition[] ls = new Condition[columns.length];
+                    for (int i = 0; i < columns.length; i++) {
+                        ls[i] = Condition.contains(columns[i], val);
+                    }
+                    where.andOr(ls);
                     continue;
                 }
-                if (field.getAnnotation(Gte.class) != null) {
-                    where.and(Condition.gte(column, value));
+                Gte gte = field.getAnnotation(Gte.class);
+                if (gte != null) {
+                    where.and(Condition.gte(def(gte.value(), column), value));
                     continue;
                 }
-                if (field.getAnnotation(Lte.class) != null) {
-                    where.and(Condition.lte(column, value));
+                Lte lte = field.getAnnotation(Lte.class);
+                if (lte != null) {
+                    where.and(Condition.lte(def(lte.value(), column), value));
                     continue;
                 }
                 where.and(column + " = ?", value);
@@ -328,6 +340,14 @@ public class Where {
         }
         return where;
     }
+
+    private static String def(String val, String def) {
+        if (val == null || val.isEmpty()) {
+            return def;
+        }
+        return val;
+    }
+
 
     //apply(where)
     //limit()

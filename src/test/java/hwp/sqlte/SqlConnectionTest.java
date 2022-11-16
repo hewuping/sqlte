@@ -211,7 +211,7 @@ public class SqlConnectionTest {
 
     @Test
     public void testQuery() {
-        User user = conn.query("select * from users where username =?", "Frank").first(User::new);
+        User user = conn.query("select * from users u where  u.username =?", "Frank").first(User::new);
         Assert.assertNull(user);
     }
 
@@ -343,6 +343,37 @@ public class SqlConnectionTest {
         Assert.assertNotNull(t4);
         User2 t5 = conn.firstExample(new User2(1));
         Assert.assertNotNull(t5);
+    }
+
+    @Test
+    public void testListExample() {
+        conn.insert(new User2("Zero1", "zero@xxx.com", "123456"));
+        conn.insert(new User2("Zero2", "zero@xxx.com", "123456"));
+        User2 example = new User2();
+        example.email = "zero@xxx.com";
+        List<User2> users = conn.listExample(example);
+        Assert.assertEquals(2, users.size());
+    }
+
+    @Test
+    public void testListExample2() {
+        conn.insert(new User2("Zero1", "zero@xxx.com", "123456"));
+        conn.insert(new User2("Zero2", "zero@xxx.com", "123456"));
+        UserQuery query = new UserQuery();
+        List<User2> users = conn.listExample(User2.class, query);
+        Assert.assertEquals(2, users.size());
+        UserQuery query2 = new UserQuery();
+        query2.email = "zero@xxx.com";
+        users = conn.listExample(User2.class, query2);
+        Assert.assertEquals(2, users.size());
+        try {
+            UserQuery query3 = new UserQuery();
+            // 测试查询不存在的字段
+            query3.name = "zero1";
+            users = conn.listExample(User2.class, query3);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof UncheckedSQLException);//eg: Column "NAME1" not found;
+        }
     }
 
     @Test

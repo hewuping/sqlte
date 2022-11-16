@@ -27,4 +27,16 @@ public class WhereTest {
         Assert.assertEquals("Sean", where.args(1));
     }
 
+    @Test
+    public void testLike() {
+        UserQuery query = new UserQuery();
+        query.name = "z";
+        query.other = "other";
+        Where where = Where.ofExample(query);
+
+        Assert.assertEquals("(name1 LIKE ? OR name2 LIKE ?) AND other = ?", where.sql());
+        Assert.assertEquals("[%z%, %z%, other]", where.args().toString());
+    }
+
+
 }
