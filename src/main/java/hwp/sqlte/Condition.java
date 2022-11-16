@@ -110,7 +110,15 @@ public class Condition {
      *     <li> [^] - 表示不在括号中的任何字符 , 例如: wildca[^abc]d (SQLite 不支持)</li>
      *     <li> [-] - 表示指定范围内的任何单个字符 , 例如: wildca[a-z]d (SQLite 不支持)</li>
      * </ul>
-     * 如果希望搜索: %_[]^- 字符, 需要转义, 例如: \_
+     * 如果希望搜索: %_[]^- 字符, 需要转义, 例如: \_ (MySQL 转义字符为: \)
+     *
+     * <ul>
+     *     <li> MySQL 转义字符为: \ </li>
+     *     <li> SQL Server 转义字符为: ' </li>
+     *     <li> Sqlite 转义字符为: ' </li>
+     * </ul>
+     *
+     * 部分数据支持在SQL中生命转义字符, 例如: SELECT * FROM `project` WHERE `name` LIKE '%#\%' ESCAPE '#'
      *
      * @param column 列名
      * @param value  可使用通配符的字符串

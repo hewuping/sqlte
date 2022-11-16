@@ -60,9 +60,10 @@ public class SqlBuilder implements Builder, Sql {
     }*/
 
     /**
-     * 生成SQL : SELECT * FROM <i>table_name</i>
+     * 如果在调用 from() 前没有构建任何 SQL则生成: {@code SELECT * FROM table_name} (在 FROM 前插入 SELECT *),
+     * 否则直接作为 sql 片段追加到 FROM 关键字后面
      *
-     * @param table 表名
+     * @param table 表名 或 SQL
      * @return
      */
     public SqlBuilder from(String table) {
@@ -74,6 +75,12 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * SELECT COUNT(*)
+     *
+     * @param from
+     * @return
+     */
     public SqlBuilder selectCount(String from) {
         Objects.requireNonNull(from);
         sql.append("SELECT COUNT(*) AS _COUNT_ FROM ");

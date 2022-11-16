@@ -764,4 +764,23 @@ public class SqlConnectionTest {
             }
         }
     }
+
+    @Test
+    public void testTransaction3() {
+        SqlConnection conn = SqlTx.begin();
+        try {
+            User3 user = new User3("May", "may@xxx.com", "123456");
+            conn.insert(user);
+            conn.insert(user);
+            conn.insert(user, "xxx");
+        } catch (Exception e) {
+            conn.rollback();
+        }
+        List<User3> list = conn.list(User3.class, Where.EMPTY);
+        Assert.assertTrue(list.isEmpty());
+        conn.close();
+        SqlConnection conn2 = SqlTx.begin();
+        Assert.assertNotSame(conn2, conn);
+    }
+
 }

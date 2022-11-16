@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.NameUtils;
 import hwp.sqlte.util.StringUtils;
 
 import java.lang.reflect.Field;
@@ -61,7 +62,7 @@ class ClassInfo {
             Column column = field.getAnnotation(Column.class);
             String columnName;
             if (column == null || column.name().isEmpty()) {
-                columnName = StringUtils.toUnderscore(field.getName());
+                columnName = NameUtils.toUnderscore(field.getName());
             } else {
                 columnName = column.name();
             }

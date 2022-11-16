@@ -35,21 +35,9 @@ public class StringUtils {
         return true;
     }
 
-    //UPPER_CAMEL -> LOWER_UNDERSCORE
+    @Deprecated
     public static String toUnderscore(String upperCamel) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0, len = upperCamel.length(); i < len; i++) {
-            char c = upperCamel.charAt(i);
-            if (Character.isUpperCase(c)) {
-                if (i > 0) {
-                    builder.append('_');
-                }
-                builder.append(Character.toLowerCase(c));
-            } else {
-                builder.append(c);
-            }
-        }
-        return builder.toString();
+        return NameUtils.toUnderscore(upperCamel);
     }
 
     public static String[] splitToArray(String str) {

@@ -1,8 +1,5 @@
 package hwp.sqlte;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -14,7 +11,6 @@ import java.util.function.Function;
  * Created on 2017/3/22.
  */
 public interface Sql {
-    Logger log = LoggerFactory.getLogger(Sql.class);
 
     /**
      * Get standard sql

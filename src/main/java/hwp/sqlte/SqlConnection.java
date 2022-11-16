@@ -146,7 +146,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 查询表总记录数
+     * 根据条件查询表总记录数
      *
      * @param table
      * @param where
@@ -154,6 +154,12 @@ public interface SqlConnection extends AutoCloseable {
      * @throws UncheckedSQLException
      */
     default long selectCount(String table, Where where) throws UncheckedSQLException {
+        return query(sql -> sql.selectCount(table).where(where)).first(Long.class);
+    }
+
+    default long selectCount(String table, Consumer<Where> consumer) throws UncheckedSQLException {
+        Where where = new Where();
+        consumer.accept(where);
         return query(sql -> sql.selectCount(table).where(where)).first(Long.class);
     }
 
@@ -165,6 +171,19 @@ public interface SqlConnection extends AutoCloseable {
         builder.append(sql.sql());
         builder.append(")");
         return query(builder.toString(), sql.args()).first(Long.class) == 1;
+    }
+
+    /**
+     * 根据 Example 查询表总记录数 (仅适用于单表)
+     *
+     * @param example
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default long count(Object example) throws UncheckedSQLException {
+        Objects.requireNonNull(example);
+        ClassInfo info = ClassInfo.getClassInfo(example.getClass());
+        return query(sql -> sql.selectCount(info.getTableName()).where(example)).first(Long.class);
     }
 
     /**

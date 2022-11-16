@@ -49,6 +49,7 @@ final class DefaultConversionService implements ConversionService {
         register(String.class, Instant.class, Instant::parse); // 2007-12-03T10:15:30.00Z
         register(String.class, java.util.Date.class, s -> java.util.Date.from(Instant.parse(s))); // 2007-12-03T10:15:30.00Z
         register(String.class, Date.class, Date::valueOf); // 2007-12-03
+        register(String.class, Time.class, Time::valueOf); // 2007-12-03
         register(String.class, Timestamp.class, Timestamp::valueOf);
 
         register(String[].class, Integer[].class, new StringArrayToIntegerArrayConverter());
@@ -133,6 +134,9 @@ final class DefaultConversionService implements ConversionService {
             return YearMonth.of(dt.getYear(), dt.getMonth());
         });
 
+        register(Time.class, String.class, Time::toString);
+        register(Time.class, LocalTime.class, Time::toLocalTime);
+
         register(java.util.Date.class, String.class, java.util.Date::toString);
         register(java.util.Date.class, Instant.class, java.util.Date::toInstant);
         register(java.util.Date.class, Long.class, java.util.Date::getTime);
@@ -149,6 +153,10 @@ final class DefaultConversionService implements ConversionService {
         register(LocalTime.class, String.class, it -> it.truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_TIME));
         register(LocalTime.class, Integer.class, it -> it.toSecondOfDay());
         register(LocalTime.class, Long.class, it -> (long) it.toSecondOfDay());
+        register(LocalTime.class, Time.class, it->{
+            String format = it.truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_TIME);
+            return Time.valueOf(format);
+        });
 
         register(LocalDateTime.class, Timestamp.class, Timestamp::valueOf);
         register(LocalDateTime.class, Date.class, dateTime -> Date.valueOf(dateTime.toLocalDate()));
