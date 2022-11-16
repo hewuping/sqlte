@@ -1,10 +1,11 @@
 package hwp.sqlte;
 
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.time.*;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -15,7 +16,64 @@ import java.util.function.Supplier;
 public class Row extends HashMap<String, Object> {
 
     public String getString(String name) {
-        return (String) get(name);
+        return getValue(name, String.class);
+    }
+
+    public Long getLong(String name) {
+        return getValue(name, Long.class);
+    }
+
+    public Integer getInteger(String name) {
+        return getValue(name, Integer.class);
+    }
+
+    public BigDecimal getBigDecimal(String name) {
+        return getValue(name, BigDecimal.class);
+    }
+
+    public Float getFloat(String name) {
+        return getValue(name, Float.class);
+    }
+
+    public Double getDouble(String name) {
+        return getValue(name, Double.class);
+    }
+
+
+    public LocalDate getLocalDate(String name) {
+        return getValue(name, LocalDate.class);
+    }
+
+    public LocalTime getLocalTime(String name) {
+        return getValue(name, LocalTime.class);
+    }
+
+    public LocalDateTime getLocalDateTime(String name) {
+        return getValue(name, LocalDateTime.class);
+    }
+
+    public Timestamp getTimestamp(String name) {
+        return getValue(name, Timestamp.class);
+    }
+
+    public Date getDate(String name) {
+        return getValue(name, Date.class);
+    }
+
+    public Time getTime(String name) {
+        return getValue(name, Time.class);
+    }
+
+    public OffsetDateTime getOffsetDateTime(String name) {
+        return getValue(name, OffsetDateTime.class);
+    }
+
+    public ZonedDateTime getZonedDateTime(String name) {
+        return getValue(name, ZonedDateTime.class);
+    }
+
+    public Instant getInstant(String name) {
+        return getValue(name, Instant.class);
     }
 
     public Number getNumber(String name) {
@@ -24,17 +82,21 @@ public class Row extends HashMap<String, Object> {
 
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name, T defValue) {
-        T v = (T) super.get(name);
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(defValue);
+        T v = (T) getValue(name, defValue.getClass());
         return v == null ? defValue : v;
     }
 
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name) {
+        Objects.requireNonNull(name);
         return (T) super.get(name);
     }
 
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name, Class<T> tClass) {
+        Objects.requireNonNull(name);
         Object value = get(name);
         if (value == null) return null;
         if (value.getClass() == tClass || tClass.isInstance(value)) {
