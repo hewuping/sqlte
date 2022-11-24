@@ -11,7 +11,7 @@ import java.util.*;
  * @author Zero
  * Created on 2018/11/13.
  */
-class ClassInfo {
+public class ClassInfo {
     private static final Map<Class<?>, ClassInfo> map = new HashMap<>();
 
     private final Class<?> clazz;
@@ -26,11 +26,12 @@ class ClassInfo {
     private String[] updateColumns;
 
     private final Map<Field, String> fieldColumnMap = new HashMap<>();
+    private final Map<String, String> fieldNameColumnMap = new HashMap<>();
     private final Map<String, Field> columnFieldMap = new LinkedHashMap<>();
 
 //    private Map<String, Class<?>> typeMap = new HashMap<>();
 
-    static ClassInfo getClassInfo(Class<?> clazz) {
+    public static ClassInfo getClassInfo(Class<?> clazz) {
         Objects.requireNonNull(clazz);
         ClassInfo info = map.get(clazz);
         if (info != null) {
@@ -68,6 +69,7 @@ class ClassInfo {
             }
             this.columnFieldMap.put(columnName, field);
             this.fieldColumnMap.put(field, columnName);
+            this.fieldNameColumnMap.put(field.getName(), columnName);
             Id id = field.getAnnotation(Id.class);
             if (id != null) {
                 pkColumnList.add(columnName);
@@ -110,11 +112,11 @@ class ClassInfo {
         }
     }
 
-    String className() {
+    public String className() {
         return clazz.getName();
     }
 
-    String getPKColumn() {// getPrimaryKeyColumn
+    public String getPKColumn() {// getPrimaryKeyColumn
         if (pkColumns.length == 0) {
             throw new SqlteException("Undefined ID field: " + clazz.getName());
         }
@@ -139,7 +141,7 @@ class ClassInfo {
      * @param column
      * @return
      */
-    Field getField(String column) {
+    public Field getField(String column) {
         return columnFieldMap.get(column);
     }
 
@@ -170,15 +172,19 @@ class ClassInfo {
         return Helper.getSerializedValue(obj, field);
     }
 
-    String getColumn(Field field) {
+    public String getColumn(Field field) {
         return fieldColumnMap.get(field);
     }
 
-    Field[] getFields() {
+    public String getColumn(String fieldName) {
+        return fieldNameColumnMap.get(fieldName);
+    }
+
+    public Field[] getFields() {
         return fields;
     }
 
-    String[] getColumns() {
+    public String[] getColumns() {
         return columns;
     }
 
@@ -190,7 +196,7 @@ class ClassInfo {
         return updateColumns;
     }
 
-    String getTableName() {
+    public String getTableName() {
         return fullTableName;
     }
 

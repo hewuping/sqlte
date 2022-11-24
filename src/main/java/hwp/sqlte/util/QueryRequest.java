@@ -51,6 +51,7 @@ import java.util.*;
  * @author Zero
  * Created on 2021/2/19.
  */
+@Deprecated
 public class QueryRequest {
     private static Gson gson = new Gson();
 

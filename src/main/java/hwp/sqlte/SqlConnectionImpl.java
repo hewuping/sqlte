@@ -22,6 +22,7 @@ class SqlConnectionImpl implements SqlConnection {
     private static final Logger logger = LoggerFactory.getLogger(SqlConnection.class);
 
     private final Connection conn;
+    private int defalutBatchSize = 1000;
 
     SqlConnectionImpl(Connection conn) {
         this.conn = conn;
@@ -574,7 +575,7 @@ class SqlConnectionImpl implements SqlConnection {
             if (table == null) {
                 table = info.getTableName();
             }
-            String sql = Helper.makeUpdateSql(table, _columns);
+            String sql = Helper.makeUpdateSql(table, _columns, null);
             SqlBuilder builder = new SqlBuilder();
             builder.append(sql, args);
 
@@ -607,26 +608,27 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
             throws UncheckedSQLException {
-        return this.batchUpdate(sql, 1000, it, consumer);
+//        return batchUpdate(sql, defalutBatchSize, executor -> it.forEach(item -> consumer.accept(executor, item)), null);
+        return this.batchUpdate(sql, defalutBatchSize, it, consumer);
     }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<
             T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
-        return batchUpdate(sql, batchSize, executor -> it.forEach(t -> consumer.accept(executor, t)));
+        return batchUpdate(sql, batchSize, executor -> it.forEach(item -> consumer.accept(executor, item)));
     }
 
     //分批导入大量数据
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer)
             throws UncheckedSQLException {
-        return this.batchUpdate(sql, 1000, consumer);
+        return this.batchUpdate(sql, defalutBatchSize, consumer);
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer)
             throws UncheckedSQLException {
-        String sql = Helper.makeUpdateSql(table, StringUtils.splitToArray(columns));
+        String sql = Helper.makeUpdateSql(table, StringUtils.splitToArray(columns), null);
         Where where = new Where();
         whereConsumer.accept(where);
         if (where.isEmpty()) {
@@ -646,12 +648,20 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws
             UncheckedSQLException {
+        return batchUpdate(sql, batchSize, consumer, null);
+    }
+
+    @Override
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
+            UncheckedSQLException {
         sql = toSql(sql);
         if (logger.isDebugEnabled()) {
             logger.debug("sql: {}", sql);
         }
-        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            return batchUpdate(statement, batchSize, consumer, null);
+
+//        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+        try (PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            return batchUpdate(statement, batchSize, consumer, psConsumer);
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
@@ -711,10 +721,35 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public void batchUpdate(List<?> beans) throws UncheckedSQLException {
-        for (Object bean : beans) {
-            this.update(bean, null, false);
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+        if (beans.isEmpty()) {
+            return BatchUpdateResult.EMPTY;
         }
+        Object first = beans.get(0);
+        ClassInfo info = ClassInfo.getClassInfo(first.getClass());
+        if (table == null) {
+            table = info.getTableName();
+        }
+        String[] columns = info.getUpdateColumns();// 可更新的列
+        if (columns.length == 0) {
+            throw new IllegalArgumentException("No fields to modify: " + columns);
+        }
+        String[] pkColumns = info.getPkColumns();// ID
+        String sql = Helper.makeUpdateSql(table, columns, pkColumns);
+        return batchUpdate(sql, beans, (executor, item) -> {
+            List<Object> args = new ArrayList<>(columns.length + pkColumns.length);
+            for (String column : columns) {
+                Field field = info.getField(column);
+                Object value = Helper.getSerializedValue(item, field);
+                args.add(value);
+            }
+            for (String column : pkColumns) {
+                Field field = info.getField(column);
+                Object value = Helper.getSerializedValue(item, field);
+                args.add(value);
+            }
+            executor.exec(args.toArray());
+        });
     }
 
     private void updateBatchUpdateResult(BatchUpdateResult result, int[] rs) {

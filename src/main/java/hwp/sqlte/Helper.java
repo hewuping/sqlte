@@ -8,6 +8,8 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.Date;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -111,7 +113,7 @@ class Helper {
         return builder.toString();
     }
 
-    static String makeUpdateSql(String table, String... columns) {
+    static String makeUpdateSql(String table, String[] columns, String[] pkColumns) {
         StringBuilder builder = new StringBuilder("UPDATE ").append(table);
         builder.append(" SET");
         for (int i = 0, len = columns.length; i < len; i++) {
@@ -123,6 +125,21 @@ class Helper {
             }
             builder.append(column);
             builder.append("=?");
+        }
+        if (pkColumns != null && pkColumns.length > 0) {
+            builder.append(" ").append(makeWhereSql(pkColumns));
+        }
+        return builder.toString();
+    }
+
+    private static String makeWhereSql(String... columns) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("WHERE ");
+        for (String column : columns) {
+            if (builder.length() > 6) {
+                builder.append(" AND ");
+            }
+            builder.append(column).append(" =?");
         }
         return builder.toString();
     }
@@ -175,6 +192,24 @@ class Helper {
         }
         return (Supplier<T>) supplier;
     }
+
+    public static final BiConsumer<PreparedStatement, int[]> PRINT_GENERATED_KEYS = (ps, ints) -> {
+        try {
+            ResultSet keys = ps.getGeneratedKeys();
+            while (keys.next()) {
+                ResultSetMetaData metaData = keys.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    Object value = keys.getObject(i);
+                    System.out.println(columnName + "=" + value);
+                }
+            }
+            keys.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    };
 
 /*    static String[] columns(Field[] fields) {
         List<String> columnNames = new ArrayList<>();

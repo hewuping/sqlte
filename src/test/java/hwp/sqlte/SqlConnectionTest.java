@@ -394,6 +394,7 @@ public class SqlConnectionTest {
         }
     }
 
+
     @Test
     public void testContains() {
         User2 user = new User2("Zero", "zero@example.com", "123456");
@@ -420,6 +421,15 @@ public class SqlConnectionTest {
         insertUser3();
         insertUser3();
         List<User3> users = conn.list(User3.class, Where.EMPTY);
+        Assert.assertEquals(2, users.size());
+    }
+
+    @Test
+    public void testListByIds() {
+        User3 user1 = insertUser3();
+        User3 user2 = insertUser3();
+        List<Integer> ids = Arrays.asList(user1.id, user2.id);
+        List<User3> users = conn.list(User3.class, ids);
         Assert.assertEquals(2, users.size());
     }
 
@@ -703,6 +713,27 @@ public class SqlConnectionTest {
         conn.update("", "");
         conn.update("", "", true);
         conn.update("qw", "", true);
+    }
+
+    @Test
+    public void testBatchUpdateBeans() {
+        List<User2> users = new ArrayList<>();
+        int size = 100;
+        for (int i = 0; i < size; i++) {
+            User2 user = new User2("zero" + i, "zero@xxx.com", "123456");
+            user.updatedTime = new Date();
+            users.add(user);
+        }
+        conn.batchInsert(users);
+        for (User2 user : users) {
+            user.username += ".changed";
+        }
+        BatchUpdateResult result = conn.batchUpdate(users);
+        Assert.assertEquals(users.size(), result.affectedRows);
+        List<User2> list = conn.list(User2.class, Where.EMPTY);
+        for (User2 user : list) {
+            Assert.assertTrue(user.username.endsWith(".changed"));
+        }
     }
 
     ///////////////////////////////////////////Use Sql Provider////////////////////////////////////////////////////

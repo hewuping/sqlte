@@ -117,7 +117,7 @@ public class Condition {
      *     <li> SQL Server 转义字符为: ' </li>
      *     <li> Sqlite 转义字符为: ' </li>
      * </ul>
-     *
+     * <p>
      * 部分数据支持在SQL中生命转义字符, 例如: SELECT * FROM `project` WHERE `name` LIKE '%#\%' ESCAPE '#'
      *
      * @param column 列名
@@ -221,6 +221,9 @@ public class Condition {
             } else {
                 args.add(value);
             }
+        }
+        if (args.size() == 0) {
+            throw new IllegalArgumentException("IN 参数值不能为空");
         }
         // 构建sql
         StringBuilder builder = new StringBuilder(column);

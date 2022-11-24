@@ -38,5 +38,13 @@ public class WhereTest {
         Assert.assertEquals("[%z%, %z%, other]", where.args().toString());
     }
 
+    @Test
+    public void testOfMap() {
+        Where where = Where.ofMap(map -> {
+            map.put("first_name", "Frank");
+            map.put("last_name", "Fu");
+        });
+        Assert.assertEquals("first_name = ? AND last_name = ?", where.sql());
+    }
 
 }

@@ -225,7 +225,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @since 0.2.16
      */
-    default <T> List<T> list(Class<T> clazz, Collection<Serializable> ids) {
+    default <T> List<T> list(Class<T> clazz, Collection<? extends Serializable> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
@@ -959,6 +959,19 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 批量更新
      *
+     * @param sql
+     * @param batchSize
+     * @param consumer
+     * @param psConsumer
+     * @return
+     * @throws UncheckedSQLException
+     */
+    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
+            UncheckedSQLException;
+
+    /**
+     * 批量更新
+     *
      * @param statement
      * @param batchSize
      * @param consumer
@@ -974,7 +987,11 @@ public interface SqlConnection extends AutoCloseable {
      * @param beans
      * @throws UncheckedSQLException
      */
-    void batchUpdate(List<?> beans) throws UncheckedSQLException;
+    default <T> BatchUpdateResult batchUpdate(List<T> beans) throws UncheckedSQLException {
+        return batchUpdate(beans, null);
+    }
+
+    <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException;
 
     /**
      * @param clazz

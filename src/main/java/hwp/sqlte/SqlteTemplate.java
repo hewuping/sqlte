@@ -286,8 +286,13 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
-        return run(conn -> conn.batchUpdate(sql, maxBatchSize, consumer));
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+        return run(conn -> conn.batchUpdate(sql, batchSize, consumer));
+    }
+
+    @Override
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+        return run(conn -> conn.batchUpdate(sql, batchSize, consumer, psConsumer));
     }
 
     @Override
@@ -296,10 +301,9 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void batchUpdate(List<?> beans) throws UncheckedSQLException {
-        run(conn -> {
-            conn.batchUpdate(beans);
-            return null;
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+        return run(conn -> {
+            return conn.batchUpdate(beans, table);
         });
     }
 

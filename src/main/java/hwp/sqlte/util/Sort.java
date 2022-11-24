@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 public class Sort extends LinkedHashMap<String, Direction> {
 
-
     /**
      * 转换为 Order 对象
      * <p>
@@ -19,7 +18,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
      * @param mapper
      * @return
      */
-    public Order asOrder(Consumer<Map<String, String>> mapper) {
+    public Order mapper(Consumer<Map<String, String>> mapper) {
         Map<String, String> map = new LinkedHashMap<>();
         mapper.accept(map);
         Order order = new Order();
@@ -27,6 +26,16 @@ public class Sort extends LinkedHashMap<String, Direction> {
             Direction direction = get(name);
             if (direction != null) {
                 order.by(column, direction);
+            }
+        });
+        return order;
+    }
+
+    public Order toOrder() {
+        Order order = new Order();
+        forEach((name, direction) -> {
+            if (direction != null) {
+                order.by(name, direction);
             }
         });
         return order;
@@ -46,13 +55,6 @@ public class Sort extends LinkedHashMap<String, Direction> {
         if (direction != null) {
             consumer.accept(direction);
         }
-    }
-
-    {
-        asOrder(mapper -> {
-            mapper.put("name", "user.name");
-            mapper.put("group", "group.name");
-        });
     }
 
 }

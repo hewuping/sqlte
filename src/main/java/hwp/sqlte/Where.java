@@ -318,6 +318,9 @@ public class Where {
                 if (like != null) {
                     String val = value.toString();
                     String[] columns = like.columns();
+                    if (columns.length == 0) {
+                        columns = new String[]{column};
+                    }
                     Condition[] ls = new Condition[columns.length];
                     for (int i = 0; i < columns.length; i++) {
                         ls[i] = Condition.contains(columns[i], val);
@@ -339,6 +342,22 @@ public class Where {
             }
         }
         return where;
+    }
+
+    public static Where ofMap(Map<String, Object> map) {
+        Where where = new Where();
+        map.forEach((col, val) -> {
+            if (col != null && val != null) {
+                where.and(Condition.eq(col, val));
+            }
+        });
+        return where;
+    }
+
+    public static Where ofMap(Consumer<Map<String, Object>> consumer) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        consumer.accept(map);
+        return ofMap(map);
     }
 
     private static String def(String val, String def) {
