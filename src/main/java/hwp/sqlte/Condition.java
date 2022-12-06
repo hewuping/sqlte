@@ -190,7 +190,7 @@ public class Condition {
      * @param values 可变数组, 也可以是 Array 或 Collection
      * @return
      */
-    public static Condition in(String column, Object... values) {
+    public static <T> Condition in(String column, T... values) {
         return _in(false, column, values);
     }
 
@@ -203,7 +203,7 @@ public class Condition {
         return _in(true, column, values);
     }
 
-    private static <T> Condition _in(boolean notIn, String column, Object... values) {
+    private static <T> Condition _in(boolean notIn, String column, T... values) {
         // 展开数组和集合
         List<Object> args = new ArrayList<>(values.length);
         for (Object value : values) {
