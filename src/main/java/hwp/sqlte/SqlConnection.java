@@ -524,6 +524,14 @@ public interface SqlConnection extends AutoCloseable {
         return tryGet(clazz, consumer);
     }
 
+    default <T> T load(Class<T> clazz, Object id) {
+        return mustGet(clazz, id);
+    }
+
+//    Row firstRow(Class<?> clazz, Object id);
+
+    <T, E> E loadAs(Class<T> clazz, Class<E> as, Object id);
+
     /**
      * 重新加载数据库中的数据到指定对象
      *
@@ -1013,6 +1021,26 @@ public interface SqlConnection extends AutoCloseable {
             return true;
         });
         action.end();
+    }
+
+
+    default <T> void batchSave(List<T> list, Function<T, Boolean> isInsert) {
+        List<T> inserts = new ArrayList<>();
+        List<T> updates = new ArrayList<>();
+        for (T obj : list) {
+            Boolean b = isInsert.apply(obj);
+            if (b != null && b) {
+                inserts.add(obj);
+            } else {
+                updates.add(obj);
+            }
+        }
+        if (!inserts.isEmpty()) {
+            batchInsert(inserts);
+        }
+        if (!updates.isEmpty()) {
+            batchUpdate(updates);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

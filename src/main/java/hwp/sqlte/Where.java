@@ -338,6 +338,15 @@ public class Where {
                     where.and(Condition.lte(def(lte.value(), column), value));
                     continue;
                 }
+//                Ignore Ignore = field.getAnnotation(Ignore.class);
+
+                if (field.isAnnotationPresent(Ignore.class)) {
+                    continue;
+                }
+//                if ("page".equals(column) || "pageSize".equals(column) || "sort".equals(column)) {
+//                    // 忽略排序分页字段
+//                    continue;
+//                }
                 where.and(column + " = ?", value);
             }
         }

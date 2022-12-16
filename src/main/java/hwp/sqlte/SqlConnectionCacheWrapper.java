@@ -167,6 +167,11 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
+    public <T, E> E loadAs(Class<T> clazz, Class<E> as, Object id) {
+        return delegate.loadAs(clazz, as, id);
+    }
+
+    @Override
     public <T> T reload(T bean) throws UncheckedSQLException {
         return delegate.reload(bean);
     }

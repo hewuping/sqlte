@@ -114,6 +114,11 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public <T, E> E loadAs(Class<T> clazz, Class<E> as, Object id) {
+        return run(conn -> conn.loadAs(clazz, as, id));
+    }
+
+    @Override
     public <T> T reload(T bean) throws UncheckedSQLException {
         return run(conn -> conn.reload(bean));
     }

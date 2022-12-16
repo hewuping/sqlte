@@ -7,14 +7,14 @@ import hwp.sqlte.util.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
-public class PageQuery<T> {
+public class PageQueryV1<T> {
 
-    private static final Logger logger = LoggerFactory.getLogger(PageQuery.class);
+    private static final Logger logger = LoggerFactory.getLogger(PageQueryV1.class);
 
     private T query;
 
@@ -24,9 +24,9 @@ public class PageQuery<T> {
     private int pageSize = 10;
 
 
-    public static <T> PageQuery<T> fromJson(String json, Class<T> queryClass) {
+    public static <T> PageQueryV1<T> fromJson(String json, Class<T> queryClass) {
         JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-        PageQuery<T> request = new PageQuery<T>();
+        PageQueryV1<T> request = new PageQueryV1<T>();
         Gson gson = new Gson();
         JsonElement query = obj.get("query");
         if (query != null) {
@@ -64,6 +64,9 @@ public class PageQuery<T> {
         }
     }
 
+    public void accept(Consumer<T> consumer) {
+        consumer.accept(query);
+    }
 
     public T getQuery() {
         return query;

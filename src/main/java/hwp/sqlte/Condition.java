@@ -75,7 +75,7 @@ public class Condition {
         if (begin != null && end != null && begin.getClass() != end.getClass()) {
             throw new IllegalArgumentException("Type of 'begin' and 'end' are inconsistent");
         }
-        if ("".equals(begin) || "".equals(end)) {
+        if ("".equals(begin) && "".equals(end)) {
             throw new IllegalArgumentException("'begin' and 'end' cannot both be empty");
         }
         if (begin == null) {

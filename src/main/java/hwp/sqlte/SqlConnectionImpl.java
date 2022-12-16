@@ -95,13 +95,16 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
+    private Row first(Class<?> clazz, Object id) {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        String pkColumn = info.getPKColumn();
+        return query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
+    }
 
     @Override
     public <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException {
         T bean = supplier.get();
-        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-        String pkColumn = info.getPKColumn();
-        Row first = query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
+        Row first = first(bean.getClass(), id);
         if (first == null) {
             return null;
         }
@@ -110,11 +113,9 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public <T> T tryGet(Class<T> clazz, Object id) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        String pkColumn = info.getPKColumn();
-        Row first = query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
+        Row first = first(clazz, id);
         if (first == null) {
-            return null;
+           throw new NotFoundException("Can't found " + clazz.getSimpleName() + " by ID : " + id);
         }
         try {
             T obj = clazz.getDeclaredConstructor().newInstance();
@@ -149,6 +150,19 @@ class SqlConnectionImpl implements SqlConnection {
             return list.get(0);
         }
         throw new UncheckedSQLException("Only one record was expected to be returned, but multiple records were returned");
+    }
+
+    public <T, E> E loadAs(Class<T> clazz, Class<E> as, Object id) {
+        Row first = first(clazz, id);
+        if (first == null) {
+            return null;
+        }
+        try {
+            E obj = as.getDeclaredConstructor().newInstance();
+            return first.copyTo(obj);
+        } catch (ReflectiveOperationException e) {
+            throw new SqlteException(e);
+        }
     }
 
     @Override
