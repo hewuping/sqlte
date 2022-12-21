@@ -23,6 +23,10 @@ public class StringUtils {
         return cs == null || cs.trim().isEmpty();
     }
 
+    public static boolean isNotBlank(final String cs) {
+        return !isBlank(cs);
+    }
+
     public static boolean isNumber(String s) {
         if (s.length() == 0) {
             return false;

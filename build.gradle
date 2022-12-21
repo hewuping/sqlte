@@ -13,12 +13,23 @@ sourceCompatibility = 1.8
 sourceSets.main.java.exclude("**/module-info.java")
 
 [compileJava]*.options*.encoding = 'utf-8'
+[javadoc]*.options*.encoding = 'utf-8'
 [compileTestJava]*.options*.encoding = 'utf-8'
 
 // In this section you declare where to find the dependencies of your project
 repositories {
     mavenLocal()
     mavenCentral()
+}
+
+// ./gradlew javadoc
+javadoc {
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+java {
+    withJavadocJar()
 }
 
 dependencies {

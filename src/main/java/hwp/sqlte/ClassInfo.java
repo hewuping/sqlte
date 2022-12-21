@@ -1,7 +1,6 @@
 package hwp.sqlte;
 
 import hwp.sqlte.util.NameUtils;
-import hwp.sqlte.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -103,7 +102,7 @@ public class ClassInfo {
         this.updateColumns = updateColumnList.toArray(new String[0]);
         //Table Name
         Table table = clazz.getAnnotation(Table.class);
-        this.tableName = table != null ? table.name() : StringUtils.toUnderscore(clazz.getSimpleName());
+        this.tableName = table != null ? table.name() : NameUtils.toUnderscore(clazz.getSimpleName());
         if (table != null && !table.schema().isEmpty()) {
             this.schema = table.schema();
             this.fullTableName = this.schema + "." + this.tableName;

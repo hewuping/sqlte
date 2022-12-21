@@ -77,6 +77,11 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
+    public long selectCount(Object example) throws UncheckedSQLException {
+        return delegate.selectCount(example);
+    }
+
+    @Override
     public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
         return delegate.insert(table, columns, args);
     }
@@ -174,6 +179,11 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     @Override
     public <T> T reload(T bean) throws UncheckedSQLException {
         return delegate.reload(bean);
+    }
+
+    @Override
+    public <T> T reload(T bean, String table) throws UncheckedSQLException {
+        return delegate.reload(bean, table);
     }
 
     @Override
@@ -317,8 +327,8 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
-        return delegate.batchUpdate(beans, table);
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws UncheckedSQLException {
+        return delegate.batchUpdate(beans, table, columns);
     }
 
     @Override

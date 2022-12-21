@@ -146,7 +146,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 根据条件查询表总记录数
+     * 根据条件查询总记录数
      *
      * @param table
      * @param where
@@ -154,14 +154,32 @@ public interface SqlConnection extends AutoCloseable {
      * @throws UncheckedSQLException
      */
     default long selectCount(String table, Where where) throws UncheckedSQLException {
-        return query(sql -> sql.selectCount(table).where(where)).first(Long.class);
+        return query(sql -> sql.selectCount(table).where(where)).asLong();
     }
 
+    /**
+     * 根据条件查询总记录数
+     *
+     * @param table
+     * @param consumer
+     * @return
+     * @throws UncheckedSQLException
+     */
     default long selectCount(String table, Consumer<Where> consumer) throws UncheckedSQLException {
         Where where = new Where();
         consumer.accept(where);
-        return query(sql -> sql.selectCount(table).where(where)).first(Long.class);
+        return query(sql -> sql.selectCount(table).where(where)).asLong();
     }
+
+    /**
+     * 统计相似数据条数
+     *
+     * @param example
+     * @return
+     * @throws UncheckedSQLException
+     */
+    long selectCount(Object example) throws UncheckedSQLException;
+
 
     default boolean selectExists(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
         SqlBuilder sql = new SqlBuilder();
@@ -294,6 +312,27 @@ public interface SqlConnection extends AutoCloseable {
         return query(aClass, where -> where.of(example));
     }
 
+    /**
+     * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
+     *
+     * @param example  查询条件
+     * @param consumer 对查询条件的进一步处理
+     * @param <T>
+     * @return
+     */
+    default <T> List<T> listExample(T example, Consumer<T> consumer) {
+        consumer.accept(example);
+        return listExample(example);
+    }
+
+    /**
+     * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
+     *
+     * @param clazz   返回的类型
+     * @param example 查询条件
+     * @param <T>
+     * @return
+     */
     default <T> List<T> listExample(Class<T> clazz, Object example) {
         return query(clazz, where -> where.of(example));
     }
@@ -542,6 +581,8 @@ public interface SqlConnection extends AutoCloseable {
      */
     <T> T reload(T bean) throws UncheckedSQLException;
 
+    <T> T reload(T bean, String table) throws UncheckedSQLException;
+
 
     /**
      * 插入单条记录
@@ -758,6 +799,13 @@ public interface SqlConnection extends AutoCloseable {
         return this.delete(info.getTableName(), whereConsumer);
     }
 
+    default int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws UncheckedSQLException {
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        Map<String, Object> map = new LinkedHashMap<>();
+        whereConsumer.accept(map);
+        return this.delete(info.getTableName(), where -> where.and(map));
+    }
+
 
     /**
      * 删除相似数据
@@ -767,6 +815,40 @@ public interface SqlConnection extends AutoCloseable {
      * @throws UncheckedSQLException
      */
     default int deleteByExample(Object example) throws UncheckedSQLException {
+        return this.delete(example.getClass(), where -> where.of(example));
+    }
+
+    /**
+     * 删除相似数据
+     *
+     * @param clazz
+     * @param consumer
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default <T> int deleteByExample(Class<T> clazz, Consumer<T> consumer) throws UncheckedSQLException {
+        try {
+            T example = clazz.newInstance();
+            consumer.accept(example);
+            return this.delete(clazz, where -> where.of(example));
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+
+    /**
+     * 删除相似数据
+     *
+     * @param supplier
+     * @param consumer
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default <T> int deleteByExample(Supplier<T> supplier, Consumer<T> consumer) throws UncheckedSQLException {
+        T example = supplier.get();
+        consumer.accept(example);
         return this.delete(example.getClass(), where -> where.of(example));
     }
 
@@ -842,7 +924,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      *
-     * <blockquote><pre>
+     * <pre>{@code
      * conn.batchInsert(it -> {
      *      for (int i = 0; i < size; i++) {
      *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
@@ -851,7 +933,7 @@ public interface SqlConnection extends AutoCloseable {
      *          it.accept(user);
      *      }
      * }, User.class, "users");
-     * </pre></blockquote>
+     * } </pre>
      *
      * @param loader
      * @param clazz
@@ -867,7 +949,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      *
-     * <blockquote><pre>
+     * <pre>{@code
      * conn.batchInsert(it -> {
      *      for (int i = 0; i < size; i++) {
      *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
@@ -876,7 +958,7 @@ public interface SqlConnection extends AutoCloseable {
      *          it.accept(user);
      *      }
      * }, User.class, "users", null);
-     * </pre></blockquote>
+     * } </pre>
      *
      * @param loader
      * @param clazz
@@ -996,12 +1078,37 @@ public interface SqlConnection extends AutoCloseable {
      * @throws UncheckedSQLException
      */
     default <T> BatchUpdateResult batchUpdate(List<T> beans) throws UncheckedSQLException {
-        return batchUpdate(beans, null);
+        return batchUpdate(beans, null, null);
     }
 
-    <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException;
+    /**
+     * 批量更新
+     *
+     * @param beans 更新的对象列表, 必需是同一类型
+     * @param table 表名, 可以为 null, 如果为 null 则去列表中第一个对象的 class 名作为表名
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    default <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+        return batchUpdate(beans, table, null);
+    }
 
     /**
+     * 批量更新
+     *
+     * @param beans   更新的对象列表, 必需是同一类型
+     * @param table   表名, 可以为 null, 如果为 null 则去列表中第一个对象的 class 名作为表名
+     * @param columns 指定更新的列名, 更新多列使用英文逗号分隔
+     * @param <T>
+     * @return
+     * @throws UncheckedSQLException
+     */
+    <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws UncheckedSQLException;
+
+    /**
+     * 批量更新
+     *
      * @param clazz
      * @param sqlConsumer
      * @param fun
@@ -1024,6 +1131,13 @@ public interface SqlConnection extends AutoCloseable {
     }
 
 
+    /**
+     * 批量保存
+     *
+     * @param list     保存对象列表, 必需是同一类型
+     * @param isInsert 返回 true 表示插入, false 表示更新
+     * @param <T>
+     */
     default <T> void batchSave(List<T> list, Function<T, Boolean> isInsert) {
         List<T> inserts = new ArrayList<>();
         List<T> updates = new ArrayList<>();

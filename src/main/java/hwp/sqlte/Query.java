@@ -115,6 +115,10 @@ public class Query implements Sql {//QueryDsl
         return this;
     }
 
+    public Query paging(Pageable pageable) {
+        return paging(pageable.getPage(), pageable.getPageSize());
+    }
+
     public String toSql(char separator) {
         Objects.requireNonNull(select);
         Objects.requireNonNull(from);

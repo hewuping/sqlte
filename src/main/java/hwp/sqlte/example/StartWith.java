@@ -14,8 +14,9 @@ import static java.lang.annotation.ElementType.FIELD;
 @Target({FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface StartWith {
+
     /**
-     * 列名, 优先级高于 {@link @hwp.sqlte.Column } @Column 和 字段属性名
+     * 列名, 优先级高于 {@link hwp.sqlte.Column } @Column 和 字段属性名
      *
      * @return
      */

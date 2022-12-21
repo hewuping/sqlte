@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+@Deprecated
 public class PageQueryV1<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(PageQueryV1.class);

@@ -165,6 +165,10 @@ public class SqlResultSet implements Iterable<Row> {
         return rows == null || rows.isEmpty();
     }
 
+    public boolean isNotEmpty() {
+        return !isEmpty();
+    }
+
 /*    public void cache(Cache cache) {
         cache.put("", this);
     }*/

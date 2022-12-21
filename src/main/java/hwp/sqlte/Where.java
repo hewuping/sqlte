@@ -3,7 +3,9 @@ package hwp.sqlte;
 import hwp.sqlte.example.*;
 import hwp.sqlte.util.ObjectUtils;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -130,6 +132,27 @@ public class Where {
         return append("OR", when, sql, args);
     }
 
+
+    public Where exists(String sql, Object... args) {
+        return append("AND", true, "EXISTS (" + sql + ")", args);
+    }
+
+    public Where exists(Consumer<SqlBuilder> consumer) {
+        SqlBuilder sub = new SqlBuilder();
+        consumer.accept(sub);
+        return exists(sub.sql(), sub.args());
+    }
+
+
+    /**
+     * 追加 SQL 片段
+     *
+     * @param operator 操作符, 比如: AND, OR 等, 当前操作符前面没有语句时, 该操作符会被忽略
+     * @param when     当为 true 时, 后面的 sql 和 参数才会添加到 Builder 中
+     * @param sql
+     * @param args
+     * @return
+     */
     public Where append(String operator, boolean when, String sql, Object... args) {
         if (when) {
             if (whereBuilder.length() > 0) {
@@ -139,7 +162,11 @@ public class Where {
             }
             String _sql = sql.toUpperCase();
             if (_sql.contains(" OR ") || _sql.contains(" AND ")) {
-                whereBuilder.append('(').append(sql).append(')');
+                if (_sql.startsWith("(") && _sql.endsWith(")")) {
+                    whereBuilder.append(sql);
+                } else {
+                    whereBuilder.append('(').append(sql).append(')');
+                }
             } else {
                 whereBuilder.append(sql);
             }
@@ -191,13 +218,26 @@ public class Where {
 
 
     /**
-     * AND (xxx AND xxx AND xxx)
+     * 生成SQL: AND (xxx AND xxx AND xxx)
      *
      * @param conditions
      * @return
      */
     public Where and(Condition... conditions) {
         return conditions("AND", "AND", conditions);
+    }
+
+    /**
+     * 生成SQL: AND (key1=value1 AND key2=value2 AND key3=value3)
+     *
+     * @param map
+     * @return
+     */
+    public Where and(Map<String, Object> map) {
+        map.forEach((key, value) -> {
+            and(key + "=?", value);
+        });
+        return this;
     }
 
     /**

@@ -124,6 +124,11 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
+    public <T> T reload(T bean, String table) throws UncheckedSQLException {
+        return run(conn -> conn.reload(bean, table));
+    }
+
+    @Override
     public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
         run(conn -> {
             conn.query(sql, rowHandler);
@@ -137,6 +142,11 @@ public class SqlteTemplate implements SqlConnection {//sql
             conn.query(consumer, rowHandler);
             return null;
         });
+    }
+
+    @Override
+    public long selectCount(Object example) throws UncheckedSQLException {
+        return run(conn -> conn.selectCount(example));
     }
 
 
@@ -306,9 +316,9 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws UncheckedSQLException {
         return run(conn -> {
-            return conn.batchUpdate(beans, table);
+            return conn.batchUpdate(beans, table, columns);
         });
     }
 

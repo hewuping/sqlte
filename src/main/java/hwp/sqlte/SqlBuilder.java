@@ -276,6 +276,10 @@ public class SqlBuilder implements Builder, Sql {
         return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
     }
 
+    public SqlBuilder paging(Pageable pageable) {
+        return paging(pageable.getPage(), pageable.getPageSize());
+    }
+
     public SqlBuilder limit(int first, int size) {
         this.sql.append("LIMIT ").append(first).append(", ").append(size).append(separator);
         return this;

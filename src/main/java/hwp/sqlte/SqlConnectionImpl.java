@@ -115,7 +115,7 @@ class SqlConnectionImpl implements SqlConnection {
     public <T> T tryGet(Class<T> clazz, Object id) throws SqlteException {
         Row first = first(clazz, id);
         if (first == null) {
-           throw new NotFoundException("Can't found " + clazz.getSimpleName() + " by ID : " + id);
+            return null;
         }
         try {
             T obj = clazz.getDeclaredConstructor().newInstance();
@@ -165,8 +165,12 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-    @Override
     public <T> T reload(T bean) throws UncheckedSQLException {
+        return this.reload(bean, null);
+    }
+
+    @Override
+    public <T> T reload(T bean, String table) throws UncheckedSQLException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
@@ -174,7 +178,7 @@ class SqlConnectionImpl implements SqlConnection {
             for (String k : pkColumns) {
                 where.and(k + "=?", info.getField(k).get(bean));
             }
-            Row first = query(sql -> sql.from(info.getTableName()).where(where)).first();
+            Row first = query(sql -> sql.from(Objects.toString(table, info.getTableName())).where(where)).first();
             if (first == null) {
                 return null;
             }
@@ -202,6 +206,16 @@ class SqlConnectionImpl implements SqlConnection {
         } catch (SQLException e) {
             throw new UncheckedSQLException(e);
         }
+    }
+
+    @Override
+    public long selectCount(Object example) throws UncheckedSQLException {
+        ClassInfo info = ClassInfo.getClassInfo(example.getClass());
+        return query(sql -> sql.selectCount(info.getTableName()).where(example)).asLong();
+   /*     return query(sql -> {
+            sql.select("COUNT(*)").from(info.getTableName()).where(example);
+        }).asLong();*/
+
     }
 
 
@@ -734,8 +748,12 @@ class SqlConnectionImpl implements SqlConnection {
 
     }
 
-    @Override
     public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+        return this.batchUpdate(beans, table, null);
+    }
+
+    @Override
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String _columns) throws UncheckedSQLException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
@@ -744,7 +762,12 @@ class SqlConnectionImpl implements SqlConnection {
         if (table == null) {
             table = info.getTableName();
         }
-        String[] columns = info.getUpdateColumns();// 可更新的列
+        String[] columns;// 可更新的列
+        if (StringUtils.isNotBlank(_columns)) {
+            columns = StringUtils.splitToArray(_columns);
+        } else {
+            columns = info.getUpdateColumns();
+        }
         if (columns.length == 0) {
             throw new IllegalArgumentException("No fields to modify: " + columns);
         }

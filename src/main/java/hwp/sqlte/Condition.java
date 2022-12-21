@@ -61,8 +61,8 @@ public class Condition {
      * begin and end values are included.
      *
      * @param column 列名
-     * @param begin  开始值(包含), 如果为 null 或 空 则变为 <= end
-     * @param end    结束值(包含), 如果为 null 或 空 则变为 <= begin
+     * @param begin  开始值(包含), 如果为 null 或 空 则变为 {@code <= end }
+     * @param end    结束值(包含), 如果为 null 或 空 则变为 {@code <= begin }
      * @return
      */
     public static Condition between(String column, Object begin, Object end) {
@@ -194,6 +194,10 @@ public class Condition {
         return _in(false, column, values);
     }
 
+    public static <E> Condition in(String column, Iterable<E> values) {
+        return _in(false, column, values);
+    }
+
     /**
      * @param column 列名
      * @param values 可变数组, 也可以是 Array, Collection 或 Stream
@@ -212,9 +216,9 @@ public class Condition {
                 for (Object o : va) {
                     args.add(o);
                 }
-            } else if (value instanceof Collection) {
-                Collection<?> c = (Collection<?>) value;
-                args.addAll(c);
+            } else if (value instanceof Iterable) {
+                Iterable<?> it = (Iterable<?>) value;
+                it.forEach(o -> args.add(o));
             } else if (value instanceof Stream) {
                 Stream<?> c = (Stream<?>) value;
                 c.forEach(args::add);

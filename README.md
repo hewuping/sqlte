@@ -202,6 +202,28 @@ sql.select("*").from("user").where(where -> {
 }).groupBy("uid").orderBy("name desc");
 ```
 
+## Pageable
+
+```java
+public class GlossaryQuery extends PageQuery {
+
+    @Like(columns = {"name", "description"})
+    public String name;
+    public String srcLang;
+    public String trgLang;
+    public Integer userId;
+    public Integer domainId;
+    public Range<Date> createdAt;
+
+}
+
+public Page<Glossary> getList(GlossaryQuery query) {
+    return db.queryPage(sql -> {
+        sql.select(Glossary.class).where(query).orderBy("created_at DESC").paging(query);
+    }, Glossary::new);
+}
+```
+
 ## Spring
 
 ```
