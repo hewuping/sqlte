@@ -378,8 +378,16 @@ public class Where {
                     where.and(Condition.lte(def(lte.value(), column), value));
                     continue;
                 }
-//                Ignore Ignore = field.getAnnotation(Ignore.class);
-
+                Gt gt = field.getAnnotation(Gt.class);
+                if (gt != null) {
+                    where.and(Condition.gt(def(gt.value(), column), value));
+                    continue;
+                }
+                Lt lt = field.getAnnotation(Lt.class);
+                if (lt != null) {
+                    where.and(Condition.lt(def(lt.value(), column), value));
+                    continue;
+                }
                 if (field.isAnnotationPresent(Ignore.class)) {
                     continue;
                 }

@@ -169,7 +169,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 根据条件查询总记录数
+     * 根据 Example 查询表总记录数 (仅适用于单表)
      *
      * @param table
      * @param consumer
@@ -199,20 +199,19 @@ public interface SqlConnection extends AutoCloseable {
         builder.append("SELECT EXISTS(");
         builder.append(sql.sql());
         builder.append(")");
-        return query(builder.toString(), sql.args()).first(Long.class) == 1;
+        return query(builder.toString(), sql.args()).asLong() == 1;
     }
 
+
     /**
-     * 根据 Example 查询表总记录数 (仅适用于单表)
+     * 根据 Example 查询表总记录数 (仅适用于单表), 同 selectCount(Object example)
      *
      * @param example
      * @return
      * @throws SqlteException
      */
     default long count(Object example) throws SqlteException {
-        Objects.requireNonNull(example);
-        ClassInfo info = ClassInfo.getClassInfo(example.getClass());
-        return query(sql -> sql.selectCount(info.getTableName()).where(example)).first(Long.class);
+        return selectCount(example);
     }
 
     /**
@@ -598,6 +597,14 @@ public interface SqlConnection extends AutoCloseable {
         return tryGet(clazz, consumer);
     }
 
+    /**
+     * 加载数据, 同 {@code  mustGet() }
+     *
+     * @param clazz
+     * @param id
+     * @param <T>
+     * @return
+     */
     default <T> T load(Class<T> clazz, Object id) {
         return mustGet(clazz, id);
     }
@@ -616,6 +623,16 @@ public interface SqlConnection extends AutoCloseable {
      */
     <T> T reload(T bean) throws SqlteException;
 
+
+    /**
+     * 重新加载数据库中的数据到指定对象
+     *
+     * @param bean
+     * @param table 如果使用了分表设计, 可以通过该参数指定分表
+     * @param <T>
+     * @return
+     * @throws SqlteException
+     */
     <T> T reload(T bean, String table) throws SqlteException;
 
 
@@ -834,6 +851,20 @@ public interface SqlConnection extends AutoCloseable {
         return this.delete(info.getTableName(), whereConsumer);
     }
 
+    /**
+     * 根据条件删除多条记录, 全部条件使用 = 和 AND
+     * <pre>{@code
+     *  conn.deleteByMap(User.class, map->{
+     *      map.put("age", 18);
+     *      map.put("username", "foo");
+     *  })
+     * } </pre>
+     *
+     * @param clazz
+     * @param whereConsumer
+     * @return
+     * @throws SqlteException
+     */
     default int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         Map<String, Object> map = new LinkedHashMap<>();
@@ -1164,6 +1195,8 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量保存
+     * <p>
+     * 批量插入或更新, 生成的 SQL 是插入还是更新还是混合由第二个参数决定, 如果同时存在插入和更新, 会分组再执行
      *
      * @param list     保存对象列表, 必需是同一类型
      * @param isInsert 返回 true 表示插入, false 表示更新
