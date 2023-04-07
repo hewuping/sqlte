@@ -390,7 +390,7 @@ public class SqlConnectionTest {
             query3.name = "zero1";
             users = conn.listExample(User2.class, query3);
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof UncheckedSQLException);//eg: Column "NAME1" not found;
+            Assert.assertTrue(e instanceof SqlteException);//eg: Column "NAME1" not found;
         }
     }
 

@@ -53,7 +53,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void statement(Consumer<Statement> consumer) throws UncheckedSQLException {
+    public void statement(Consumer<Statement> consumer) throws SqlteException {
         run(conn -> {
             conn.statement(consumer);
             return null;
@@ -61,7 +61,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException {
+    public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws SqlteException {
         run(conn -> {
             conn.prepareStatement(sql, consumer);
             return null;
@@ -69,47 +69,47 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public SqlResultSet query(String sql) throws UncheckedSQLException {
+    public SqlResultSet query(String sql) throws SqlteException {
         return run(conn -> conn.query(sql));
     }
 
     @Override
-    public SqlResultSet query(String sql, Object... args) throws UncheckedSQLException {
+    public SqlResultSet query(String sql, Object... args) throws SqlteException {
         return run(conn -> conn.query(sql, args));
     }
 
     @Override
-    public SqlResultSet query(Sql sql) throws UncheckedSQLException {
+    public SqlResultSet query(Sql sql) throws SqlteException {
         return run(conn -> conn.query(sql));
     }
 
     @Override
-    public SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    public SqlResultSet query(Consumer<SqlBuilder> consumer) throws SqlteException {
         return run(conn -> conn.query(consumer));
     }
 
     @Override
-    public <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws UncheckedSQLException {
+    public <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws SqlteException {
         return run(conn -> conn.queryPage(consumer, supplier));
     }
 
     @Override
-    public <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+    public <T> T tryGet(Supplier<T> supplier, Object id) throws SqlteException {
         return run(conn -> conn.tryGet(supplier, id));
     }
 
     @Override
-    public <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+    public <T> T tryGet(Class<T> clazz, Object id) throws SqlteException {
         return run(conn -> conn.tryGet(clazz, id));
     }
 
     @Override
-    public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
+    public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException {
         return run(conn -> conn.tryGet(clazz, consumer));
     }
 
     @Override
-    public <T> T mustGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+    public <T> T mustGet(Class<T> clazz, Object id) throws SqlteException {
         return run(conn -> conn.mustGet(clazz, id));
     }
 
@@ -119,17 +119,17 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public <T> T reload(T bean) throws UncheckedSQLException {
+    public <T> T reload(T bean) throws SqlteException {
         return run(conn -> conn.reload(bean));
     }
 
     @Override
-    public <T> T reload(T bean, String table) throws UncheckedSQLException {
+    public <T> T reload(T bean, String table) throws SqlteException {
         return run(conn -> conn.reload(bean, table));
     }
 
     @Override
-    public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, ResultSetHandler rowHandler) throws SqlteException {
         run(conn -> {
             conn.query(sql, rowHandler);
             return null;
@@ -137,7 +137,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws UncheckedSQLException {
+    public void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws SqlteException {
         run(conn -> {
             conn.query(consumer, rowHandler);
             return null;
@@ -145,13 +145,13 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public long selectCount(Object example) throws UncheckedSQLException {
+    public long selectCount(Object example) throws SqlteException {
         return run(conn -> conn.selectCount(example));
     }
 
 
     @Override
-    public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, RowHandler rowHandler) throws SqlteException {
         run(conn -> {
             conn.query(sql, rowHandler);
             return null;
@@ -160,12 +160,12 @@ public class SqlteTemplate implements SqlConnection {//sql
 
 
     @Override
-    public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
+    public int insert(String table, String columns, Object... args) throws SqlteException {
         return run(conn -> conn.insert(table, columns, args));
     }
 
     @Override
-    public void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException {
+    public void insert(Sql sql, ResultSetHandler resultHandler) throws SqlteException {
         run(conn -> {
             conn.insert(sql, resultHandler);
             return null;
@@ -173,12 +173,12 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
+    public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws SqlteException {
         return run(conn -> conn.insertAndReturnKey(sql, idColumn, args));
     }
 
     @Override
-    public void insert(Object bean, String table) throws UncheckedSQLException {
+    public void insert(Object bean, String table) throws SqlteException {
         run(conn -> {
             conn.insert(bean, table);
             return null;
@@ -186,7 +186,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void replace(Object bean, String table) throws UncheckedSQLException {
+    public void replace(Object bean, String table) throws SqlteException {
         run(conn -> {
             conn.replace(bean, table);
             return null;
@@ -194,7 +194,7 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public void insertIgnore(Object bean, String table) throws UncheckedSQLException {
+    public void insertIgnore(Object bean, String table) throws SqlteException {
         run(conn -> {
             conn.insertIgnore(bean, table);
             return null;
@@ -202,24 +202,24 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public boolean update(Object bean) throws UncheckedSQLException {
+    public boolean update(Object bean) throws SqlteException {
         return this.update(bean, null);
     }
 
     @Override
-    public int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {
+    public int insertMap(String table, Map<String, Object> row) throws SqlteException {
         return this.insertMap(table, row, (String[]) null);
     }
 
     @Override
-    public int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException {
+    public int insertMap(String table, Consumer<Row> row) throws SqlteException {
         Row _map = new Row();
         row.accept(_map);
         return this.insertMap(table, _map);
     }
 
     @Override
-    public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
+    public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws SqlteException {
         return run(conn -> conn.insertMap(table, row, returnColumns));
     }
 
@@ -234,123 +234,123 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int executeUpdate(String sql, Object... args) throws UncheckedSQLException {
+    public int executeUpdate(String sql, Object... args) throws SqlteException {
         return run(conn -> conn.executeUpdate(sql, args));
     }
 
     @Override
-    public int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    public int update(Consumer<SqlBuilder> consumer) throws SqlteException {
         return run(conn -> conn.update(consumer));
     }
 
     @Override
-    public boolean update(Object bean, String columns) throws UncheckedSQLException {
+    public boolean update(Object bean, String columns) throws SqlteException {
         return run(conn -> conn.update(bean, columns));
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
         return run(conn -> {
             return conn.batchUpdate(sql, it, consumer);
         });
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
         return run(conn -> conn.batchInsert(beans, table));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
         return run(conn -> conn.batchInsert(beans, table, sqlHandler));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, null));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler, psConsumer));
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(sql, maxBatchSize, it, consumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(sql, consumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(table, columns, whereConsumer, consumer));
     }
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
         return run(conn -> conn.batchInsert(table, columns, consumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(sql, batchSize, consumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(sql, batchSize, consumer, psConsumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, psConsumer));
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException {
         return run(conn -> {
             return conn.batchUpdate(beans, table, columns);
         });
     }
 
     @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException {
+    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
         return run(conn -> conn.update(bean, table, columns, ignoreNullValue, where));
     }
 
     @Override
-    public boolean delete(Object bean, String table) throws UncheckedSQLException {
+    public boolean delete(Object bean, String table) throws SqlteException {
         return run(conn -> conn.delete(bean, table));
     }
 
     @Override
-    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException {
         return run(conn -> {
             return conn.batchDelete(beans, table);
         });
     }
 
     @Override
-    public int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException {
+    public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
         return run(conn -> conn.update(table, map, where));
     }
 
     @Override
-    public int updateByPks(String table, Map<String, Object> map, String... pk) throws UncheckedSQLException {
+    public int updateByPks(String table, Map<String, Object> map, String... pk) throws SqlteException {
         return run(conn -> conn.updateByPks(table, map, pk));
     }
 
     @Override
-    public void setAutoCommit(boolean autoCommit) throws UncheckedSQLException {
+    public void setAutoCommit(boolean autoCommit) throws SqlteException {
         run(conn -> {
             conn.setAutoCommit(autoCommit);
             return null;
@@ -358,32 +358,32 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public boolean getAutoCommit() throws UncheckedSQLException {
+    public boolean getAutoCommit() throws SqlteException {
         return run(SqlConnection::getAutoCommit);
     }
 
     @Override
-    public void commit() throws UncheckedSQLException {
+    public void commit() throws SqlteException {
         throw new UnsupportedOperationException("Manual commit is not allowed");
     }
 
     @Override
-    public void rollback() throws UncheckedSQLException {
+    public void rollback() throws SqlteException {
         throw new UnsupportedOperationException("Manual rollback is not allowed");
     }
 
     @Override
-    public void close() throws UncheckedSQLException {
+    public void close() throws SqlteException {
         throw new UnsupportedOperationException("Manual close is not allowed");
     }
 
     @Override
-    public boolean isClosed() throws UncheckedSQLException {
+    public boolean isClosed() throws SqlteException {
         return run(SqlConnection::isClosed);
     }
 
     @Override
-    public void setReadOnly(boolean readOnly) throws UncheckedSQLException {
+    public void setReadOnly(boolean readOnly) throws SqlteException {
         run(conn -> {
             conn.setReadOnly(readOnly);
             return null;
@@ -391,12 +391,12 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public boolean isReadOnly() throws UncheckedSQLException {
+    public boolean isReadOnly() throws SqlteException {
         return run(SqlConnection::isReadOnly);
     }
 
     @Override
-    public void setTransactionIsolation(int level) throws UncheckedSQLException {
+    public void setTransactionIsolation(int level) throws SqlteException {
         run(conn -> {
             conn.setTransactionIsolation(level);
             return null;
@@ -404,37 +404,37 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int getTransactionIsolation() throws UncheckedSQLException {
+    public int getTransactionIsolation() throws SqlteException {
         return run(SqlConnection::getTransactionIsolation);
     }
 
     @Override
-    public SqlConnection beginTransaction() throws UncheckedSQLException {
+    public SqlConnection beginTransaction() throws SqlteException {
         return run(SqlConnection::beginTransaction);
     }
 
     @Override
-    public SqlConnection beginTransaction(int level) throws UncheckedSQLException {
+    public SqlConnection beginTransaction(int level) throws SqlteException {
         return run(conn -> conn.beginTransaction(level));
     }
 
     @Override
-    public Savepoint setSavepoint() throws UncheckedSQLException {
+    public Savepoint setSavepoint() throws SqlteException {
         return run(SqlConnection::setSavepoint);
     }
 
     @Override
-    public Savepoint setSavepoint(String name) throws UncheckedSQLException {
+    public Savepoint setSavepoint(String name) throws SqlteException {
         return run(conn -> conn.setSavepoint(name));
     }
 
     @Override
-    public void rollback(Savepoint savepoint) throws UncheckedSQLException {
+    public void rollback(Savepoint savepoint) throws SqlteException {
         throw new UnsupportedOperationException("Manual rollback is not allowed");
     }
 
     @Override
-    public void releaseSavepoint(Savepoint savepoint) throws UncheckedSQLException {
+    public void releaseSavepoint(Savepoint savepoint) throws SqlteException {
         run(connection -> {
             connection.releaseSavepoint(savepoint);
             return null;
@@ -442,37 +442,37 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SqlteException {
         return run(conn -> prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability));
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SqlteException {
         return run(conn -> conn.prepareStatement(sql, autoGeneratedKeys));
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SqlteException {
         return run(conn -> conn.prepareStatement(sql, columnNames));
     }
 
     @Override
-    public boolean isValid(int timeout) throws UncheckedSQLException {
+    public boolean isValid(int timeout) throws SqlteException {
         return run(conn -> conn.isValid(timeout));
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql) throws SqlteException {
         return run(conn -> conn.prepareStatement(sql));
     }
 
     @Override
-    public CallableStatement prepareCall(String sql) throws UncheckedSQLException {
+    public CallableStatement prepareCall(String sql) throws SqlteException {
         return run(conn -> conn.prepareCall(sql));
     }
 
     @Override
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws UncheckedSQLException {
+    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SqlteException {
         return run(conn -> conn.prepareCall(sql, resultSetType, resultSetConcurrency));
     }
 
@@ -486,7 +486,7 @@ public class SqlteTemplate implements SqlConnection {//sql
         try {
             return dataSource.getConnection();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 

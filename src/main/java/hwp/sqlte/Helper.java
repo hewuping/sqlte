@@ -2,6 +2,7 @@ package hwp.sqlte;
 
 
 import hwp.sqlte.cache.FifoCache;
+import hwp.sqlte.util.ClassUtils;
 
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -23,7 +24,7 @@ class Helper {
         try {
             Converter converter = cache.get(clazz);
             if (converter == null) {
-                converter = (Converter) clazz.getDeclaredConstructor().newInstance();
+                converter = ClassUtils.newInstance(clazz);
                 cache.put(clazz, converter);
             }
             return converter;
@@ -57,7 +58,7 @@ class Helper {
         return new SqlResultSet(columnNames, results, rms);
     }
 
-    static void fillStatement(PreparedStatement statement, Object[] args) throws UncheckedSQLException {
+    static void fillStatement(PreparedStatement statement, Object[] args) throws SqlteException {
         try {
             for (int i = 0; i < args.length; i++) {
                 Object value = args[i];
@@ -74,7 +75,7 @@ class Helper {
                 }
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 

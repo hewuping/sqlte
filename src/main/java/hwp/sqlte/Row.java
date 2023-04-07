@@ -1,6 +1,8 @@
 package hwp.sqlte;
 
 
+import hwp.sqlte.util.ClassUtils;
+
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
@@ -123,7 +125,7 @@ public class Row extends HashMap<String, Object> {
 
     public <T> T map(Class<T> clazz) {
         try {
-            return copyTo(clazz.getDeclaredConstructor().newInstance());
+            return copyTo(ClassUtils.newInstance(clazz));
         } catch (Exception e) {
             throw new SqlteException(e);
         }
@@ -148,7 +150,7 @@ public class Row extends HashMap<String, Object> {
             }
             return row;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 

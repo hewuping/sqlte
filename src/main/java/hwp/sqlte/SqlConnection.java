@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.ClassUtils;
+
 import java.io.Reader;
 import java.io.Serializable;
 import java.sql.*;
@@ -14,11 +16,20 @@ public interface SqlConnection extends AutoCloseable {
 
     SqlConnection cacheable();
 
-    SqlResultSet query(String sql, Object... args) throws UncheckedSQLException;
+    SqlResultSet query(String sql, Object... args) throws SqlteException;
 
     /**
      * <pre>{@code
      *   List<Employee> list= query(Employee.class, where -> {
+     *       where.and("salary >= ?", 5000);
+     *   });
+     * } </pre>
+     * <p>
+     * <p>
+     * 请使用 list 代替
+     *
+     * <pre>{@code
+     *   List<Employee> list= list(Employee.class, where -> {
      *       where.and("salary >= ?", 5000);
      *   });
      * } </pre>
@@ -27,9 +38,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param where
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws UncheckedSQLException {
+    default <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(returnType);
         return query(sql -> sql.from(info.getTableName()).where(where)).list(returnType);
     }
@@ -39,9 +50,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param sql
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default SqlResultSet query(String sql) throws UncheckedSQLException {
+    default SqlResultSet query(String sql) throws SqlteException {
         return query(sql, (Object[]) null);
     }
 
@@ -50,9 +61,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param sql
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default SqlResultSet query(Sql sql) throws UncheckedSQLException {
+    default SqlResultSet query(Sql sql) throws SqlteException {
         return query(sql.sql(), sql.args());
     }
 
@@ -61,9 +72,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default SqlResultSet query(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    default SqlResultSet query(Consumer<SqlBuilder> consumer) throws SqlteException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         return query(sb.sql(), sb.args());
@@ -76,9 +87,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param clazz
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> clazz) throws UncheckedSQLException {
+    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> clazz) throws SqlteException {
         return queryPage(consumer, Helper.toSupplier(clazz));
     }
 
@@ -89,9 +100,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param supplier
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws UncheckedSQLException {
+    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws SqlteException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         String sql = sb.sql();
@@ -108,16 +119,16 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * @param sql        sql
      * @param rowHandler return true if continue
-     * @throws UncheckedSQLException if a database access error occurs
+     * @throws SqlteException if a database access error occurs
      */
-    void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException;
+    void query(Sql sql, RowHandler rowHandler) throws SqlteException;
 
     /**
      * @param consumer   build SQL
      * @param rowHandler return true if continue
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default void query(Consumer<SqlBuilder> consumer, RowHandler rowHandler) throws UncheckedSQLException {
+    default void query(Consumer<SqlBuilder> consumer, RowHandler rowHandler) throws SqlteException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
         query(builder, rowHandler);
@@ -128,18 +139,18 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param sql
      * @param rowHandler
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException;
+    void query(Sql sql, ResultSetHandler rowHandler) throws SqlteException;
 
     /**
      * 查询数据并处理数据
      *
      * @param consumer
      * @param rowHandler
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws UncheckedSQLException {
+    default void query(Consumer<SqlBuilder> consumer, ResultSetHandler rowHandler) throws SqlteException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         query(sb, rowHandler);
@@ -151,9 +162,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table
      * @param where
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default long selectCount(String table, Where where) throws UncheckedSQLException {
+    default long selectCount(String table, Where where) throws SqlteException {
         return query(sql -> sql.selectCount(table).where(where)).asLong();
     }
 
@@ -163,9 +174,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default long selectCount(String table, Consumer<Where> consumer) throws UncheckedSQLException {
+    default long selectCount(String table, Consumer<Where> consumer) throws SqlteException {
         Where where = new Where();
         consumer.accept(where);
         return query(sql -> sql.selectCount(table).where(where)).asLong();
@@ -176,12 +187,12 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param example
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    long selectCount(Object example) throws UncheckedSQLException;
+    long selectCount(Object example) throws SqlteException;
 
 
-    default boolean selectExists(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    default boolean selectExists(Consumer<SqlBuilder> consumer) throws SqlteException {
         SqlBuilder sql = new SqlBuilder();
         consumer.accept(sql);
         StringBuilder builder = new StringBuilder();
@@ -196,9 +207,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param example
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default long count(Object example) throws UncheckedSQLException {
+    default long count(Object example) throws SqlteException {
         Objects.requireNonNull(example);
         ClassInfo info = ClassInfo.getClassInfo(example.getClass());
         return query(sql -> sql.selectCount(info.getTableName()).where(example)).first(Long.class);
@@ -265,18 +276,26 @@ public interface SqlConnection extends AutoCloseable {
         return firstExample(example) != null;
     }
 
+
     /**
-     * 通过 Example 查询最先匹配到的记录
+     * <blockquote><pre>
+     * first(User.class, user -> {
+     *     user.username=="xxx";
+     * });
+     * </pre></blockquote>
      *
-     * @param example
+     * @param clazz
+     * @param consumer
      * @param <T>
      * @return
      */
-    default <T> T firstExample(T example) {
-        Objects.requireNonNull(example, "example can't be null");
-        Class<T> clazz = (Class<T>) example.getClass();
+    default <T> T first(Class<T> clazz, Consumer<T> consumer) {
+        Objects.requireNonNull(clazz);
+        Objects.requireNonNull(consumer);
         ClassInfo info = ClassInfo.getClassInfo(clazz);
-        return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(clazz);
+        T query = ClassUtils.newInstance(clazz);
+        consumer.accept(query);
+        return query(sql -> sql.from(info.getTableName()).where(query).limit(1)).first(clazz);
     }
 
     /**
@@ -291,7 +310,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> T firstExample(Supplier<T> supplier, Consumer<T> consumer) {
+    default <T> T first(Supplier<T> supplier, Consumer<T> consumer) {
         Objects.requireNonNull(supplier);
         Objects.requireNonNull(consumer);
         T example = supplier.get();
@@ -299,6 +318,21 @@ public interface SqlConnection extends AutoCloseable {
         ClassInfo info = ClassInfo.getClassInfo(example.getClass());
         return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(supplier);
     }
+
+    /**
+     * 通过 Example 查询最先匹配到的记录
+     *
+     * @param example
+     * @param <T>
+     * @return
+     */
+    default <T> T firstExample(T example) {
+        Objects.requireNonNull(example, "example can't be null");
+        Class<T> clazz = (Class<T>) example.getClass();
+        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(clazz);
+    }
+
 
     /**
      * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
@@ -320,7 +354,8 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> List<T> listExample(T example, Consumer<T> consumer) {
+    default <T> List<T> listExample(Class<T> clazz, Consumer<T> consumer) {
+        T example = ClassUtils.newInstance(clazz);
         consumer.accept(example);
         return listExample(example);
     }
@@ -346,18 +381,18 @@ public interface SqlConnection extends AutoCloseable {
      * @param columns
      * @param args
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int insert(String table, String columns, Object... args) throws UncheckedSQLException;
+    int insert(String table, String columns, Object... args) throws SqlteException;
 
     /**
      * 插入数据
      *
      * @param sql
      * @param resultHandler
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException;
+    void insert(Sql sql, ResultSetHandler resultHandler) throws SqlteException;
 
     /**
      * 插入数据并返回自动生成的 ID
@@ -366,9 +401,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param idColumn 自动生成值的列名
      * @param args
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException;
+    Long insertAndReturnKey(String sql, String idColumn, Object... args) throws SqlteException;
 
     /**
      * 通过 Map 插入数据
@@ -376,9 +411,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名
      * @param row   插入数据内容
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException;
+    int insertMap(String table, Map<String, Object> row) throws SqlteException;
 
     /**
      * 通过 Row 插入数据
@@ -386,9 +421,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名
      * @param row   插入数据内容
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException;
+    int insertMap(String table, Consumer<Row> row) throws SqlteException;
 
     /**
      * 通过 Row 插入数据
@@ -397,9 +432,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param row
      * @param returnColumns
      * @return 返回受影响的行数
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException;
+    int insertMap(String table, Map<String, Object> row, String... returnColumns) throws SqlteException;
 
     /**
      * MySQL: REPLACE INTO
@@ -417,18 +452,18 @@ public interface SqlConnection extends AutoCloseable {
      * @param sql
      * @param args
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int executeUpdate(String sql, Object... args) throws UncheckedSQLException;//execute
+    int executeUpdate(String sql, Object... args) throws SqlteException;//execute
 
     /**
      * 执行更新 SQL
      *
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int executeUpdate(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    default int executeUpdate(Consumer<SqlBuilder> consumer) throws SqlteException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
         return this.executeUpdate(builder.sql(), builder.args());
@@ -439,9 +474,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException;
+    int update(Consumer<SqlBuilder> consumer) throws SqlteException;
 
     /**
      * 更新内容
@@ -450,9 +485,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param map   更新内容
      * @param where 查询条件
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException;
+    int update(String table, Map<String, Object> map, Where where) throws SqlteException;
 
     /**
      * 更新内容
@@ -461,9 +496,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param map   更新内容
      * @param where 查询条件
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int update(String table, Map<String, Object> map, Consumer<Where> where) throws UncheckedSQLException {
+    default int update(String table, Map<String, Object> map, Consumer<Where> where) throws SqlteException {
         Where w = new Where();
         where.accept(w);
         return update(table, map, w);
@@ -476,9 +511,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer 更新内容
      * @param where    查询条件
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int update(String table, Consumer<Row> consumer, Consumer<Where> where) throws UncheckedSQLException {
+    default int update(String table, Consumer<Row> consumer, Consumer<Where> where) throws SqlteException {
         Where w = new Where();
         where.accept(w);
         Row row = new Row();
@@ -493,9 +528,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param map   更新内容(需要包含主键)
      * @param pk    主键列名
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    int updateByPks(String table, Map<String, Object> map, String... pk) throws UncheckedSQLException;
+    int updateByPks(String table, Map<String, Object> map, String... pk) throws SqlteException;
 
     ////////////////////////////////////////Simple ORM//////////////////////////////////////////////////////////
 //    <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql);
@@ -507,9 +542,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param id
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException;
+    <T> T tryGet(Supplier<T> supplier, Object id) throws SqlteException;
 
     /**
      * 查询数据, 如果数据不存在则返回 null
@@ -518,9 +553,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param id
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> T tryGet(Class<T> clazz, Object id) throws UncheckedSQLException;
+    <T> T tryGet(Class<T> clazz, Object id) throws SqlteException;
 
     /**
      * 查询数据(使用联合主键/复合主键), 如果数据不存在则返回 null
@@ -529,9 +564,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer 通过 Map 构建查询条件
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException;
+    <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException;
 
     /**
      * 查询数据, 如果数据不存在则抛异常
@@ -540,9 +575,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param id
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> T mustGet(Class<T> clazz, Object id) throws UncheckedSQLException {
+    default <T> T mustGet(Class<T> clazz, Object id) throws SqlteException {
         T obj = tryGet(clazz, id);
         if (obj == null) {
             throw new NotFoundException("Can't found " + clazz.getSimpleName() + " by ID : " + id);
@@ -557,9 +592,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer 通过 Map 构建查询条件
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> T mustGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
+    default <T> T mustGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException {
         return tryGet(clazz, consumer);
     }
 
@@ -577,20 +612,20 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> T reload(T bean) throws UncheckedSQLException;
+    <T> T reload(T bean) throws SqlteException;
 
-    <T> T reload(T bean, String table) throws UncheckedSQLException;
+    <T> T reload(T bean, String table) throws SqlteException;
 
 
     /**
      * 插入单条记录
      *
      * @param bean 插入内容
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default void insert(Object bean) throws UncheckedSQLException {
+    default void insert(Object bean) throws SqlteException {
         insert(bean, null);
     }
 
@@ -599,27 +634,27 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param bean  插入内容
      * @param table 表名
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    void insert(Object bean, String table) throws UncheckedSQLException;
+    void insert(Object bean, String table) throws SqlteException;
 
     /**
      * 替换插入到指定表
      *
      * @param bean  插入内容
      * @param table 表名
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    void replace(Object bean, String table) throws UncheckedSQLException;
+    void replace(Object bean, String table) throws SqlteException;
 
     /**
      * 插入单条记录到指定表并忽略错误
      *
      * @param bean  插入内容
      * @param table 表名
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    void insertIgnore(Object bean, String table) throws UncheckedSQLException;
+    void insertIgnore(Object bean, String table) throws SqlteException;
 
     /**
      * 根据条件更新多条记录
@@ -630,9 +665,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
      * @param where           条件
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException;
+    boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException;
 
     /**
      * 根据条件更新多条记录
@@ -641,9 +676,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名, 可以为 null
      * @param where 条件
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+    default boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException {
         return update(bean, table, null, false, where);
     }
 
@@ -655,9 +690,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
      * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
      * @return 更新成功返回 true
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws SqlteException {
         return update(bean, table, columns, ignoreNullValue, null);
     }
 
@@ -668,9 +703,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
      * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
      * @return 更新成功返回 true
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws UncheckedSQLException {
+    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws SqlteException {
         return update(bean, null, columns, ignoreNullValue);
     }
 
@@ -680,9 +715,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean    更新对象
      * @param columns 指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
      * @return 更新成功返回 true
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean, String columns) throws UncheckedSQLException {
+    default boolean update(Object bean, String columns) throws SqlteException {
         return this.update(bean, columns, false);
     }
 
@@ -692,9 +727,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean            更新对象
      * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
      * @return 更新成功返回 true
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean, boolean ignoreNullValue) throws UncheckedSQLException {
+    default boolean update(Object bean, boolean ignoreNullValue) throws SqlteException {
         return this.update(bean, null, ignoreNullValue);
     }
 
@@ -703,9 +738,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param bean 更新对象
      * @return 更新成功返回 true
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean update(Object bean) throws UncheckedSQLException {
+    default boolean update(Object bean) throws SqlteException {
         return update(bean, null, false);
     }
 
@@ -741,16 +776,16 @@ public interface SqlConnection extends AutoCloseable {
         }
     }
 
-    //  boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException;
+    //  boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException;
 
     /**
      * 删除单条记录
      *
      * @param bean
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default boolean delete(Object bean) throws UncheckedSQLException {
+    default boolean delete(Object bean) throws SqlteException {
         return delete(bean, null);
     }
 
@@ -760,9 +795,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean  删除对象, 不能为 null
      * @param table 表名, 可以为 null
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    boolean delete(Object bean, String table) throws UncheckedSQLException;
+    boolean delete(Object bean, String table) throws SqlteException;
 
     /**
      * 根据条件删除多条记录
@@ -770,9 +805,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table         表名, 必须
      * @param whereConsumer 条件, 必须
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int delete(String table, Consumer<Where> whereConsumer) throws UncheckedSQLException {
+    default int delete(String table, Consumer<Where> whereConsumer) throws SqlteException {
         Objects.requireNonNull(table);
         Objects.requireNonNull(whereConsumer);
         Where where = new Where();
@@ -792,14 +827,14 @@ public interface SqlConnection extends AutoCloseable {
      * @param clazz
      * @param whereConsumer 条件, 必须
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws UncheckedSQLException {
+    default int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         return this.delete(info.getTableName(), whereConsumer);
     }
 
-    default int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws UncheckedSQLException {
+    default int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         Map<String, Object> map = new LinkedHashMap<>();
         whereConsumer.accept(map);
@@ -812,9 +847,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param example
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default int deleteByExample(Object example) throws UncheckedSQLException {
+    default int deleteByExample(Object example) throws SqlteException {
         return this.delete(example.getClass(), where -> where.of(example));
     }
 
@@ -825,16 +860,12 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> int deleteByExample(Class<T> clazz, Consumer<T> consumer) throws UncheckedSQLException {
-        try {
-            T example = clazz.newInstance();
-            consumer.accept(example);
-            return this.delete(clazz, where -> where.of(example));
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
+    default <T> int deleteByExample(Class<T> clazz, Consumer<T> consumer) throws SqlteException {
+        T example = ClassUtils.newInstance(clazz);
+        consumer.accept(example);
+        return this.delete(clazz, where -> where.of(example));
     }
 
     /**
@@ -844,9 +875,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> int deleteByExample(Supplier<T> supplier, Consumer<T> consumer) throws UncheckedSQLException {
+    default <T> int deleteByExample(Supplier<T> supplier, Consumer<T> consumer) throws SqlteException {
         T example = supplier.get();
         consumer.accept(example);
         return this.delete(example.getClass(), where -> where.of(example));
@@ -858,9 +889,9 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param beans
      * @param <T>
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchDelete(List<T> beans) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchDelete(List<T> beans) throws SqlteException {
         return this.batchDelete(beans, null);
     }
 
@@ -870,9 +901,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param beans
      * @param table 表名, 可以为 null
      * @param <T>
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException;
 
 
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
@@ -884,18 +915,18 @@ public interface SqlConnection extends AutoCloseable {
      * @param it
      * @param consumer
      * @param <T>
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
 
     /**
      * 批量插入
      *
      * @param beans
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(List<T> beans) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchInsert(List<T> beans) throws SqlteException {
         return batchInsert(beans, null);
     }
 
@@ -905,9 +936,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param beans 不能为 null
      * @param table 如果为 null, 会取 list 中的第一个对象映射的表名
      * @return 返回 BatchUpdateResult
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException;
 
     /**
      * 批量插入
@@ -917,9 +948,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param sqlHandler
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException;
 
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
@@ -940,9 +971,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table
      * @param <T>
      * @return 返回 BatchUpdateResult
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return batchInsert(loader, clazz, table, null, null);
     }
 
@@ -966,16 +997,16 @@ public interface SqlConnection extends AutoCloseable {
      * @param sqlHandler
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
         return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      */
-    <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
 
     /**
      * 批量更新
@@ -986,9 +1017,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer  设置参数
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
 
     /**
      * 批量更新
@@ -1002,9 +1033,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param sql      更新 SQL 语句
      * @param consumer 设置参数
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
      * 批量更新
@@ -1014,9 +1045,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param whereConsumer
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
      * 批量插入, 例如:
@@ -1031,9 +1062,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param columns
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
      * 批量更新
@@ -1042,9 +1073,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param batchSize
      * @param consumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
      * 批量更新
@@ -1054,10 +1085,10 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @param psConsumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
     BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
-            UncheckedSQLException;
+            SqlteException;
 
     /**
      * 批量更新
@@ -1067,17 +1098,17 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @param psConsumer
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException;
+    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
 
     /**
      * 批量更新
      *
      * @param beans
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchUpdate(List<T> beans) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchUpdate(List<T> beans) throws SqlteException {
         return batchUpdate(beans, null, null);
     }
 
@@ -1088,9 +1119,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名, 可以为 null, 如果为 null 则去列表中第一个对象的 class 名作为表名
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+    default <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws SqlteException {
         return batchUpdate(beans, table, null);
     }
 
@@ -1102,9 +1133,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param columns 指定更新的列名, 更新多列使用英文逗号分隔
      * @param <T>
      * @return
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      */
-    <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws UncheckedSQLException;
+    <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException;
 
     /**
      * 批量更新
@@ -1113,10 +1144,10 @@ public interface SqlConnection extends AutoCloseable {
      * @param sqlConsumer
      * @param fun
      * @param <T>
-     * @throws UncheckedSQLException
+     * @throws SqlteException
      * @since 0.2.14
      */
-    default <T> void batchUpdate(Class<T> clazz, Consumer<SqlBuilder> sqlConsumer, Predicate<T> fun) throws UncheckedSQLException {
+    default <T> void batchUpdate(Class<T> clazz, Consumer<SqlBuilder> sqlConsumer, Predicate<T> fun) throws SqlteException {
         BatchAction<T> action = new BatchAction<>(100, batch -> {
             batchUpdate(batch);
         });
@@ -1163,56 +1194,56 @@ public interface SqlConnection extends AutoCloseable {
 
     void executeSqlScript(Reader reader, boolean ignoreError);
 
-    void statement(Consumer<Statement> consumer) throws UncheckedSQLException;
+    void statement(Consumer<Statement> consumer) throws SqlteException;
 
-    void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException;
+    void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws SqlteException;
 
-    void setAutoCommit(boolean autoCommit) throws UncheckedSQLException;
+    void setAutoCommit(boolean autoCommit) throws SqlteException;
 
-    boolean getAutoCommit() throws UncheckedSQLException;
+    boolean getAutoCommit() throws SqlteException;
 
-    void commit() throws UncheckedSQLException;
+    void commit() throws SqlteException;
 
-    void rollback() throws UncheckedSQLException;
+    void rollback() throws SqlteException;
 
-    void close() throws UncheckedSQLException;
+    void close() throws SqlteException;
 
-    boolean isClosed() throws UncheckedSQLException;
+    boolean isClosed() throws SqlteException;
 
-    void setReadOnly(boolean readOnly) throws UncheckedSQLException;
+    void setReadOnly(boolean readOnly) throws SqlteException;
 
-    boolean isReadOnly() throws UncheckedSQLException;
+    boolean isReadOnly() throws SqlteException;
 
-    void setTransactionIsolation(int level) throws UncheckedSQLException;
+    void setTransactionIsolation(int level) throws SqlteException;
 
-    int getTransactionIsolation() throws UncheckedSQLException;
+    int getTransactionIsolation() throws SqlteException;
 
-    SqlConnection beginTransaction() throws UncheckedSQLException;
+    SqlConnection beginTransaction() throws SqlteException;
 
-    SqlConnection beginTransaction(int level) throws UncheckedSQLException;
+    SqlConnection beginTransaction(int level) throws SqlteException;
 
-    Savepoint setSavepoint() throws UncheckedSQLException;
+    Savepoint setSavepoint() throws SqlteException;
 
-    Savepoint setSavepoint(String name) throws UncheckedSQLException;
+    Savepoint setSavepoint(String name) throws SqlteException;
 
-    void rollback(Savepoint savepoint) throws UncheckedSQLException;
+    void rollback(Savepoint savepoint) throws SqlteException;
 
-    void releaseSavepoint(Savepoint savepoint) throws UncheckedSQLException;
+    void releaseSavepoint(Savepoint savepoint) throws SqlteException;
 
     PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
-            throws UncheckedSQLException;
+            throws SqlteException;
 
-    PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws UncheckedSQLException;
+    PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SqlteException;
 
-    PreparedStatement prepareStatement(String sql, String[] columnNames) throws UncheckedSQLException;
+    PreparedStatement prepareStatement(String sql, String[] columnNames) throws SqlteException;
 
-    boolean isValid(int timeout) throws UncheckedSQLException;
+    boolean isValid(int timeout) throws SqlteException;
 
-    PreparedStatement prepareStatement(String sql) throws UncheckedSQLException;
+    PreparedStatement prepareStatement(String sql) throws SqlteException;
 
-    CallableStatement prepareCall(String sql) throws UncheckedSQLException;
+    CallableStatement prepareCall(String sql) throws SqlteException;
 
-    CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws UncheckedSQLException;
+    CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SqlteException;
 
     Connection connection();
 }

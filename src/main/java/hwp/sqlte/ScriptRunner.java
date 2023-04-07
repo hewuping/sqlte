@@ -30,15 +30,15 @@ class ScriptRunner {
         this.fullLineDelimiter = fullLineDelimiter;
     }
 
-    public void runScript(Connection conn, InputStream in) throws UncheckedSQLException {
+    public void runScript(Connection conn, InputStream in) throws SqlteException {
         runScript(conn, new InputStreamReader(in));
     }
 
-    public void runScript(Connection conn, URL in) throws UncheckedSQLException {
+    public void runScript(Connection conn, URL in) throws SqlteException {
         try (Reader reader = new InputStreamReader(in.openStream())) {
             runScript(conn, reader);
         } catch (IOException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
@@ -48,9 +48,9 @@ class ScriptRunner {
      *
      * @param conn   - the connection to use for the script
      * @param reader - the source of the script
-     * @throws UncheckedSQLException if any SQL errors occur
+     * @throws SqlteException if any SQL errors occur
      */
-    public void runScript(Connection conn, Reader reader) throws UncheckedSQLException {
+    public void runScript(Connection conn, Reader reader) throws SqlteException {
         StringBuffer command = null;
         try {
             LineNumberReader lineReader = new LineNumberReader(reader);
@@ -113,7 +113,7 @@ class ScriptRunner {
                 conn.commit();
             }
         } catch (SQLException | IOException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         } finally {
             try {
                 if (!conn.getAutoCommit()) {

@@ -1,6 +1,7 @@
 package hwp.sqlte;
 
 
+import hwp.sqlte.util.ClassUtils;
 import hwp.sqlte.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,26 +45,26 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public void statement(Consumer<Statement> consumer) throws UncheckedSQLException {
+    public void statement(Consumer<Statement> consumer) throws SqlteException {
         try (Statement stat = connection().createStatement()) {
             consumer.accept(stat);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws UncheckedSQLException {
+    public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws SqlteException {
         try (PreparedStatement stat = connection().prepareStatement(toSql(sql))) {
             consumer.accept(stat);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public SqlResultSet query(String sql) throws UncheckedSQLException {
+    public SqlResultSet query(String sql) throws SqlteException {
         try (Statement stat = conn.createStatement()) {
             sql = toSql(sql);
             if (logger.isDebugEnabled()) {
@@ -73,12 +74,12 @@ class SqlConnectionImpl implements SqlConnection {
                 return Helper.convert(rs);
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public SqlResultSet query(String sql, Object... args) throws UncheckedSQLException {
+    public SqlResultSet query(String sql, Object... args) throws SqlteException {
         sql = toSql(sql);
         try (PreparedStatement stat = conn.prepareStatement(sql)) {
             if (args.length > 0) {
@@ -91,7 +92,7 @@ class SqlConnectionImpl implements SqlConnection {
                 return Helper.convert(rs);
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
@@ -102,7 +103,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> T tryGet(Supplier<T> supplier, Object id) throws UncheckedSQLException {
+    public <T> T tryGet(Supplier<T> supplier, Object id) throws SqlteException {
         T bean = supplier.get();
         Row first = first(bean.getClass(), id);
         if (first == null) {
@@ -117,16 +118,11 @@ class SqlConnectionImpl implements SqlConnection {
         if (first == null) {
             return null;
         }
-        try {
-            T obj = clazz.getDeclaredConstructor().newInstance();
-            return first.copyTo(obj);
-        } catch (ReflectiveOperationException e) {
-            throw new SqlteException(e);
-        }
+        return first.copyTo(ClassUtils.newInstance(clazz));
     }
 
     @Override
-    public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws UncheckedSQLException {
+    public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException {
         Objects.requireNonNull(clazz);
         Objects.requireNonNull(consumer);
         ClassInfo info = ClassInfo.getClassInfo(clazz);
@@ -149,7 +145,7 @@ class SqlConnectionImpl implements SqlConnection {
         if (list.size() == 1) {
             return list.get(0);
         }
-        throw new UncheckedSQLException("Only one record was expected to be returned, but multiple records were returned");
+        throw new SqlteException("Only one record was expected to be returned, but multiple records were returned");
     }
 
     public <T, E> E loadAs(Class<T> clazz, Class<E> as, Object id) {
@@ -157,20 +153,15 @@ class SqlConnectionImpl implements SqlConnection {
         if (first == null) {
             return null;
         }
-        try {
-            E obj = as.getDeclaredConstructor().newInstance();
-            return first.copyTo(obj);
-        } catch (ReflectiveOperationException e) {
-            throw new SqlteException(e);
-        }
+        return first.copyTo(ClassUtils.newInstance(as));
     }
 
-    public <T> T reload(T bean) throws UncheckedSQLException {
+    public <T> T reload(T bean) throws SqlteException {
         return this.reload(bean, null);
     }
 
     @Override
-    public <T> T reload(T bean, String table) throws UncheckedSQLException {
+    public <T> T reload(T bean, String table) throws SqlteException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
@@ -190,7 +181,7 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void query(Sql sql, ResultSetHandler rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, ResultSetHandler rowHandler) throws SqlteException {
         try (PreparedStatement stat = createQueryStatement(sql.sql())) {
             if (sql.args().length > 0) {
                 Helper.fillStatement(stat, sql.args());
@@ -204,12 +195,12 @@ class SqlConnectionImpl implements SqlConnection {
                 }
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public long selectCount(Object example) throws UncheckedSQLException {
+    public long selectCount(Object example) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(example.getClass());
         return query(sql -> sql.selectCount(info.getTableName()).where(example)).asLong();
    /*     return query(sql -> {
@@ -220,7 +211,7 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public void query(Sql sql, RowHandler rowHandler) throws UncheckedSQLException {
+    public void query(Sql sql, RowHandler rowHandler) throws SqlteException {
         String _sql = toSql(sql.sql());
         try (PreparedStatement stat = createQueryStatement(_sql)) {
             if (sql.args().length > 0) {
@@ -235,12 +226,12 @@ class SqlConnectionImpl implements SqlConnection {
                 }
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
-    private PreparedStatement createQueryStatement(String sql) throws UncheckedSQLException {
+    private PreparedStatement createQueryStatement(String sql) throws SqlteException {
         try {
             sql = toSql(sql);
             PreparedStatement stat = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
@@ -251,19 +242,19 @@ class SqlConnectionImpl implements SqlConnection {
             stat.setFetchDirection(ResultSet.FETCH_FORWARD);
             return stat;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public int insert(String table, String columns, Object... args) throws UncheckedSQLException {
+    public int insert(String table, String columns, Object... args) throws SqlteException {
         return executeUpdate(Helper.makeInsertSql(table, columns), args);
     }
 
     @Override
-    public void insert(Sql sql, ResultSetHandler resultHandler) throws UncheckedSQLException {
+    public void insert(Sql sql, ResultSetHandler resultHandler) throws SqlteException {
         String _sql = toSql(sql.sql());
         try (PreparedStatement stat = conn.prepareStatement(_sql, Statement.RETURN_GENERATED_KEYS)) {
             if (sql.args().length > 0) {
@@ -279,12 +270,12 @@ class SqlConnectionImpl implements SqlConnection {
                 }
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws UncheckedSQLException {
+    public Long insertAndReturnKey(String sql, String idColumn, Object... args) throws SqlteException {
         sql = toSql(sql);
         try (PreparedStatement stat = conn.prepareStatement(sql, new String[]{idColumn})) {
             if (args.length > 0) {
@@ -307,27 +298,27 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return null;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public void insert(Object bean, String table) throws UncheckedSQLException {
+    public void insert(Object bean, String table) throws SqlteException {
         this.insert(null, bean, table);
     }
 
     @Override
-    public void replace(Object bean, String table) throws UncheckedSQLException {
+    public void replace(Object bean, String table) throws SqlteException {
         this.insert("REPLACE INTO", bean, table);
     }
 
     @Override
-    public void insertIgnore(Object bean, String table) throws UncheckedSQLException {
+    public void insertIgnore(Object bean, String table) throws SqlteException {
         this.insert("INSERT IGNORE INTO", bean, table);
     }
 
-    private void insert(String insert, Object bean, String table) throws UncheckedSQLException {
+    private void insert(String insert, Object bean, String table) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
         if (table == null) {
             table = info.getTableName();
@@ -380,19 +371,19 @@ class SqlConnectionImpl implements SqlConnection {
             }
         } catch (SQLException e) {
 //            e.printStackTrace();
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
         return batchInsert(beans, table, null);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
@@ -419,12 +410,12 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return this.batchInsert(loader, clazz, table, null);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
 //        ClassInfo info = ClassInfo.getClassInfo(clazz);
 //        boolean hasGks = info.getAutoGenerateColumns().length > 0;
         //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
@@ -432,7 +423,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
@@ -451,24 +442,24 @@ class SqlConnectionImpl implements SqlConnection {
                 });
             }, psConsumer);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public int insertMap(String table, Map<String, Object> row) throws UncheckedSQLException {
+    public int insertMap(String table, Map<String, Object> row) throws SqlteException {
         return insertMap(table, row, (String[]) null);
     }
 
     @Override
-    public int insertMap(String table, Consumer<Row> row) throws UncheckedSQLException {
+    public int insertMap(String table, Consumer<Row> row) throws SqlteException {
         Row _map = new Row();
         row.accept(_map);
         return this.insertMap(table, _map);
     }
 
     @Override
-    public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
+    public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws SqlteException {
         return this.insertMap(null, table, row, returnColumns);
     }
 
@@ -482,7 +473,7 @@ class SqlConnectionImpl implements SqlConnection {
         return this.insertMap("INSERT IGNORE INTO", table, row, returnColumns);
     }
 
-    private int insertMap(String insert, String table, Map<String, Object> row, String... returnColumns) throws UncheckedSQLException {
+    private int insertMap(String insert, String table, Map<String, Object> row, String... returnColumns) throws SqlteException {
         String sql = Helper.makeInsertSql(insert, table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());
         try (PreparedStatement stat = (returnColumns == null ? conn.prepareStatement(sql)
@@ -517,13 +508,13 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return uc;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
-    public int executeUpdate(String sql, Object... args) throws UncheckedSQLException {
+    public int executeUpdate(String sql, Object... args) throws SqlteException {
         sql = toSql(sql);
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             if (logger.isDebugEnabled()) {
@@ -532,12 +523,12 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, args);
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public int update(Consumer<SqlBuilder> consumer) throws UncheckedSQLException {
+    public int update(Consumer<SqlBuilder> consumer) throws SqlteException {
         SqlBuilder builder = new SqlBuilder();
         consumer.accept(builder);
         String sql = toSql(builder.sql());
@@ -548,12 +539,12 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws UncheckedSQLException {
+    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
 
@@ -635,27 +626,27 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
-            throws UncheckedSQLException {
+            throws SqlteException {
 //        return batchUpdate(sql, defalutBatchSize, executor -> it.forEach(item -> consumer.accept(executor, item)), null);
         return this.batchUpdate(sql, defalutBatchSize, it, consumer);
     }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<
-            T> it, BiConsumer<BatchExecutor, T> consumer) throws UncheckedSQLException {
+            T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
         return batchUpdate(sql, batchSize, executor -> it.forEach(item -> consumer.accept(executor, item)));
     }
 
     //分批导入大量数据
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer)
-            throws UncheckedSQLException {
+            throws SqlteException {
         return this.batchUpdate(sql, defalutBatchSize, consumer);
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer)
-            throws UncheckedSQLException {
+            throws SqlteException {
         String sql = Helper.makeUpdateSql(table, StringUtils.splitToArray(columns), null);
         Where where = new Where();
         whereConsumer.accept(where);
@@ -668,20 +659,20 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer)
-            throws UncheckedSQLException {
+            throws SqlteException {
         String sql = Helper.makeInsertSql(table, columns);
         return this.batchUpdate(sql, consumer);
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws
-            UncheckedSQLException {
+            SqlteException {
         return batchUpdate(sql, batchSize, consumer, null);
     }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
-            UncheckedSQLException {
+            SqlteException {
         sql = toSql(sql);
         if (logger.isDebugEnabled()) {
             logger.debug("sql: {}", sql);
@@ -691,13 +682,13 @@ class SqlConnectionImpl implements SqlConnection {
         try (PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             return batchUpdate(statement, batchSize, consumer, psConsumer);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
     public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer,
-                                         BiConsumer<PreparedStatement, int[]> psConsumer) throws UncheckedSQLException {
+                                         BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         try {
             boolean autoCommit = conn.getAutoCommit();
             if (autoCommit) {
@@ -720,7 +711,7 @@ class SqlConnectionImpl implements SqlConnection {
                     }
                     statement.clearParameters();
                 } catch (SQLException e) {
-                    throw new UncheckedSQLException(e);
+                    throw new SqlteException(e);
                 }
             };
             consumer.accept(executor);
@@ -743,17 +734,17 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return result;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
 
     }
 
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws SqlteException {
         return this.batchUpdate(beans, table, null);
     }
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String _columns) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String _columns) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
@@ -801,7 +792,7 @@ class SqlConnectionImpl implements SqlConnection {
         }
     }
 
-/*    public boolean update(Object bean, String table, Consumer<Where> where) throws UncheckedSQLException {
+/*    public boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException {
         try {
             ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
             if (table == null) {
@@ -827,17 +818,17 @@ class SqlConnectionImpl implements SqlConnection {
             }
             return update(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }*/
 
     @Override
-    public boolean delete(Object bean, String table) throws UncheckedSQLException {
+    public boolean delete(Object bean, String table) throws SqlteException {
         BatchUpdateResult result = this.batchDelete(Arrays.asList(bean), table);
         return result.affectedRows == 1;
     }
 
-    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws UncheckedSQLException {
+    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException {
         try {
             Objects.requireNonNull(beans);
             if (beans.isEmpty()) {
@@ -870,13 +861,13 @@ class SqlConnectionImpl implements SqlConnection {
                 executor.exec(values);
             });
         } catch (Exception e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public int update(String table, Map<String, Object> map, Where where) throws UncheckedSQLException {
+    public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
         SqlBuilder builder = new SqlBuilder();
         builder.append("UPDATE ").append(table).append(" SET ");
         Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
@@ -895,7 +886,7 @@ class SqlConnectionImpl implements SqlConnection {
             Helper.fillStatement(statement, builder.args());
             return statement.executeUpdate();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
@@ -903,10 +894,10 @@ class SqlConnectionImpl implements SqlConnection {
      * @param table table name
      * @param map   data
      * @param ids   default name is "id"
-     * @throws UncheckedSQLException if a database access error occurs
+     * @throws SqlteException if a database access error occurs
      */
     @Override
-    public int updateByPks(String table, Map<String, Object> map, String... ids) throws UncheckedSQLException {
+    public int updateByPks(String table, Map<String, Object> map, String... ids) throws SqlteException {
         return update(table, new HashMap<>(map), where -> {
             if (ids.length == 0) {
                 Object v = map.get("id");
@@ -954,43 +945,43 @@ class SqlConnectionImpl implements SqlConnection {
     ///////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void setAutoCommit(boolean autoCommit) throws UncheckedSQLException {
+    public void setAutoCommit(boolean autoCommit) throws SqlteException {
         try {
             conn.setAutoCommit(autoCommit);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public boolean getAutoCommit() throws UncheckedSQLException {
+    public boolean getAutoCommit() throws SqlteException {
         try {
             return conn.getAutoCommit();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void commit() throws UncheckedSQLException {
+    public void commit() throws SqlteException {
         try {
             conn.commit();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void rollback() throws UncheckedSQLException {
+    public void rollback() throws SqlteException {
         try {
             conn.rollback();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void close() throws UncheckedSQLException {
+    public void close() throws SqlteException {
         try {
             conn.setAutoCommit(true);
             conn.close();
@@ -998,176 +989,176 @@ class SqlConnectionImpl implements SqlConnection {
                 logger.debug("SqlConnection closed");
             }
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public boolean isClosed() throws UncheckedSQLException {
+    public boolean isClosed() throws SqlteException {
         try {
             return conn.isClosed();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public void setReadOnly(boolean readOnly) throws UncheckedSQLException {
+    public void setReadOnly(boolean readOnly) throws SqlteException {
         try {
             conn.setReadOnly(readOnly);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public boolean isReadOnly() throws UncheckedSQLException {
+    public boolean isReadOnly() throws SqlteException {
         try {
             return conn.isReadOnly();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void setTransactionIsolation(int level) throws UncheckedSQLException {
+    public void setTransactionIsolation(int level) throws SqlteException {
         try {
             conn.setTransactionIsolation(level);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public int getTransactionIsolation() throws UncheckedSQLException {
+    public int getTransactionIsolation() throws SqlteException {
         try {
             return conn.getTransactionIsolation();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public SqlConnection beginTransaction() throws UncheckedSQLException {
+    public SqlConnection beginTransaction() throws SqlteException {
         try {
             conn.setAutoCommit(false);
             return this;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public SqlConnection beginTransaction(int level) throws UncheckedSQLException {
+    public SqlConnection beginTransaction(int level) throws SqlteException {
         try {
             conn.setTransactionIsolation(level);
             conn.setAutoCommit(false);
             return this;
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public Savepoint setSavepoint() throws UncheckedSQLException {
+    public Savepoint setSavepoint() throws SqlteException {
         try {
             return conn.setSavepoint();
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public Savepoint setSavepoint(String name) throws UncheckedSQLException {
+    public Savepoint setSavepoint(String name) throws SqlteException {
         try {
             return conn.setSavepoint(name);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void rollback(Savepoint savepoint) throws UncheckedSQLException {
+    public void rollback(Savepoint savepoint) throws SqlteException {
         try {
             conn.rollback(savepoint);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public void releaseSavepoint(Savepoint savepoint) throws UncheckedSQLException {
+    public void releaseSavepoint(Savepoint savepoint) throws SqlteException {
         try {
             conn.releaseSavepoint(savepoint);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
-                                              int resultSetHoldability) throws UncheckedSQLException {
+                                              int resultSetHoldability) throws SqlteException {
         try {
             return conn.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SqlteException {
         try {
             return conn.prepareStatement(sql, autoGeneratedKeys);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SqlteException {
         try {
             return conn.prepareStatement(sql, columnNames);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public boolean isValid(int timeout) throws UncheckedSQLException {
+    public boolean isValid(int timeout) throws SqlteException {
         try {
             return conn.isValid(timeout);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql) throws UncheckedSQLException {
+    public PreparedStatement prepareStatement(String sql) throws SqlteException {
         try {
             return conn.prepareStatement(sql);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
-    public CallableStatement prepareCall(String sql) throws UncheckedSQLException {
+    public CallableStatement prepareCall(String sql) throws SqlteException {
         try {
             return conn.prepareCall(sql);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
     @Override
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
-            throws UncheckedSQLException {
+            throws SqlteException {
         try {
             return conn.prepareCall(sql, resultSetType, resultSetConcurrency);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 

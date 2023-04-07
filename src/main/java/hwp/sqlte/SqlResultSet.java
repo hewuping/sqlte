@@ -149,7 +149,7 @@ public class SqlResultSet implements Iterable<Row> {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    public <T> T first(RowMapper<T> mapper) throws UncheckedSQLException {
+    public <T> T first(RowMapper<T> mapper) throws SqlteException {
         Row row = first();
         if (row == null || row.values().isEmpty()) {
             return null;

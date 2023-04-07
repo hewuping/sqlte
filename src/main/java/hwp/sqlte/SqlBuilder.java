@@ -35,7 +35,41 @@ public class SqlBuilder implements Builder, Sql {
         return this.args.toArray();
     }
 
+    /**
+     * 用于构建 CTE（Common Table Expressions，公共表达式）
+     * <p>
+     * CTE 例子:
+     * <pre>{@code
+     * WITH filtered_orders AS (
+     *   SELECT customer_id, COUNT(*) AS order_count
+     *   FROM orders
+     *   WHERE order_amount > 1000
+     *   GROUP BY customer_id
+     * )
+     * SELECT customers.name, filtered_orders.order_count
+     * FROM filtered_orders
+     * JOIN customers ON customers.id = filtered_orders.customer_id;
+     * }</pre>
+     *
+     * @param name
+     * @param sqlBuilder
+     * @return
+     */
+    public SqlBuilder withAs(String name, SqlBuilder sqlBuilder) {
+        sql.append("WITH ").append(name).append("AS (");
+        append(sqlBuilder);
+        sql.append(")\n");
+        return this;
+    }
 
+    /**
+     * 例子: select("column1,column2")
+     * <p>
+     * 生成 SQL: SELECT column1,column2
+     *
+     * @param columns 列名, 使用英文逗号分隔
+     * @return
+     */
     public SqlBuilder select(String columns) {
         Objects.requireNonNull(columns);
         this.sql.append("SELECT ").append(columns).append(separator);
@@ -179,11 +213,14 @@ public class SqlBuilder implements Builder, Sql {
                 }
                 continue;
             }
-            if (arg instanceof Collection) {
-                this.args.addAll((Collection) arg);
-            } else {
-                this.args.add(arg);
+            if (arg instanceof Iterable) {
+                Iterable<?> it = (Iterable<?>) arg;
+                for (Object item : it) {
+                    this.args.add(item);
+                }
+                continue;
             }
+            this.args.add(arg);
         }
     }
 
@@ -375,6 +412,12 @@ public class SqlBuilder implements Builder, Sql {
         Objects.requireNonNull(sql);
         this.sql.append(sql).append(separator);
         this.addArgs(args);
+        return this;
+    }
+
+    public SqlBuilder append(SqlBuilder sub) {
+        Objects.requireNonNull(sub);
+        this.append(sub.sql(), sub.args());
         return this;
     }
 

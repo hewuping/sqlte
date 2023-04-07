@@ -46,51 +46,51 @@ public interface Sql {
         consumer.accept(Config.getConfig());
     }
 
-    static SqlConnection open() throws UncheckedSQLException {
+    static SqlConnection open() throws SqlteException {
         try {
             return SqlConnectionImpl.use(config().getDataSource().getConnection());
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
-    static SqlConnection open(String dsName) throws UncheckedSQLException {
+    static SqlConnection open(String dsName) throws SqlteException {
         try {
             return SqlConnectionImpl.use(config().getDataSource(dsName).getConnection());
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
-    static SqlConnection open(DataSource dataSource) throws UncheckedSQLException {
+    static SqlConnection open(DataSource dataSource) throws SqlteException {
         try {
             return SqlConnectionImpl.use(dataSource.getConnection());
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
-    static void use(DataSource dataSource, Consumer<SqlConnection> consumer) throws UncheckedSQLException {
+    static void use(DataSource dataSource, Consumer<SqlConnection> consumer) throws SqlteException {
         try (SqlConnection conn = SqlConnectionImpl.use(dataSource.getConnection())) {
             consumer.accept(conn);
         } catch (SQLException e) {
-            throw new UncheckedSQLException(e);
+            throw new SqlteException(e);
         }
     }
 
-    static void use(Consumer<SqlConnection> consumer) throws UncheckedSQLException {
+    static void use(Consumer<SqlConnection> consumer) throws SqlteException {
         try (SqlConnection conn = open()) {
             consumer.accept(conn);
         }
     }
 
-    static <R> R apply(Function<SqlConnection, R> function) throws UncheckedSQLException {
+    static <R> R apply(Function<SqlConnection, R> function) throws SqlteException {
         try (SqlConnection conn = open()) {
             return function.apply(conn);
         }
     }
 
-    static <R> R transaction(Function<SqlConnection, R> function) throws UncheckedSQLException {
+    static <R> R transaction(Function<SqlConnection, R> function) throws SqlteException {
         SqlConnection conn = open();
         try {
             conn.setAutoCommit(false);
