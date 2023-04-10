@@ -11,20 +11,20 @@ H2|1.4.197
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
 ## install
-```
+```bash
 ./gradlew build
 ./gradlew publishToMavenLocal
 
 ```
 
-```
+```groovy
  compile group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
 ```
 
 **use jitpack**
 
 Maven
-```
+```xml
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -40,7 +40,7 @@ Maven
 </dependencies>
 ```
 Gradle
-```
+```groovy
 repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
@@ -52,7 +52,7 @@ dependencies {
 
 ## Example
 
-```
+```java
 @Table(name = "users")
 public class User {
 
@@ -67,28 +67,28 @@ public class User {
 ```
 **Insert One**
 
-```
+```java
 User user = new User("May", "may@xxx.com", "123456");
 conn.insert(user);
 conn.insert(user, "users");
 ```
 
 **Batch insert**
-```
+```java
 conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
     executor.exec("bb@example.com", "bb");
     executor.exec("aa@example.com", "aa");
 });
 ```
 OR
-```
+```java
 conn.batchInsert("users", "email, username", executor -> {
     executor.exec("bb@example.com", "bb");
     executor.exec("aa@example.com", "aa");
 });
 ```
 OR
-```
+```java
 List<User> users = new ArrayList<>();
 int size = 20;
 for (int i = 0; i < size; i++) {
@@ -108,13 +108,15 @@ User user = conn.mustGet(User::new, 123);
 ```
 
 **Query first**
-```
+```java
 SqlConnection conn = Sql.open();
 User user = conn.query("select * from users where email=? limit 1", "xxx@xxx.com").first(User::new);
 conn.close();
 ```
+
 **Query by Example**
-```
+
+```java
 class User {
     public Integer id;
     public String name;
@@ -146,13 +148,13 @@ User user = conn.query(sql->sql.select(User.class)).where(new User("Active"));
 
 **Delete**
 
-```
+```java
 conn.delete(user)
 ```
 
 **Update**
 
-```
+```java
 conn.update("users", row -> {
     row.set("username", "zero00").set("email", "zero@example.com");
 }, where -> {
@@ -160,14 +162,14 @@ conn.update("users", row -> {
 });
 ```
 
-```
+```java
 user.uername = "new name";
 conn.update(user, "username", true);
 ```
 
 ## SqlBuilder
 
-```
+```java
 SqlBuilder sql = new SqlBuilder();
 sql.from("users"); // select * from users
 sql.where(where -> {
@@ -194,7 +196,7 @@ List<User> users = conn.query(sql).list(User::new);
 
 ## QuerySql
 
-```
+```java
 QuerySql sql = new QuerySql();
 sql.select("*").from("user").where(where -> {
     where.and("created_at > ?", new Date());
@@ -226,7 +228,7 @@ public Page<Glossary> getList(GlossaryQuery query) {
 
 ## Spring
 
-```
+```java
 @Bean
 public SqlteTemplate sqlteTemplate(DataSource dataSource) {
     var config = Sql.config();
