@@ -2,7 +2,10 @@ package hwp.sqlte;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Zero
@@ -54,13 +57,55 @@ public class SqlBuilder implements Builder, Sql {
      * @param name
      * @param sqlBuilder
      * @return
+     * @since 0.2.24
      */
-    public SqlBuilder withAs(String name, SqlBuilder sqlBuilder) {
-        sql.append("WITH ").append(name).append("AS (");
-        append(sqlBuilder);
-        sql.append(")\n");
+    public SqlBuilder withAs(String name, Consumer<SqlBuilder> consumer) {
+        sql.append("WITH ").append(name).append(" AS (\n    ");
+        SqlBuilder sub = new SqlBuilder();
+        consumer.accept(sub);
+        append(sub);
+        sql.append("\n)\n");
         return this;
     }
+
+
+    /**
+     * 用于构建 CTE（Common Table Expressions，公共表达式）
+     * <p>
+     * CTE 例子:
+     * <pre>{@code
+     *    conn.with(cte -> {
+     *         cte.set("xxx", sql -> {
+     *
+     *         });
+     *         cte.set("yyy", sql -> {
+     *
+     *         });
+     *     });
+     * }</pre>
+     *
+     * @param consumer
+     * @return
+     * @since 0.2.24
+     */
+    public SqlBuilder with(Consumer<CTE> consumer) {
+        sql.append("WITH ");
+        CTE cte = new CTE();
+        consumer.accept(cte);
+        AtomicBoolean first = new AtomicBoolean(true);
+        cte.forEach((name, sb) -> {
+            if (!first.get()) {
+                sql.append(",\n");
+            }
+            sql.append(name).append(" AS (\n");
+            append(sb);
+            sql.append("\n)");
+            first.set(false);
+        });
+        sql.append("\n");
+        return this;
+    }
+
 
     /**
      * 例子: select("column1,column2")
@@ -172,6 +217,20 @@ public class SqlBuilder implements Builder, Sql {
             this.sql.append(separator);
         }
         return this;
+    }
+
+    /**
+     * 追加子 SQL
+     *
+     * @param consumer
+     * @return
+     * @since 0.2.24
+     */
+    public SqlBuilder sql(Consumer<SqlBuilder> consumer) {
+        Objects.requireNonNull(consumer);
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        return append(sb);
     }
 
     /**

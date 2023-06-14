@@ -4,6 +4,7 @@ import hwp.sqlte.util.ClassUtils;
 
 import java.io.Reader;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import java.util.function.*;
@@ -78,6 +79,10 @@ public interface SqlConnection extends AutoCloseable {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         return query(sb.sql(), sb.args());
+    }
+
+    default <T> Page<T> queryPage(Class<T> clazz, Consumer<SqlBuilder> consumer) throws SqlteException {
+        return queryPage(consumer, Helper.toSupplier(clazz));
     }
 
     /**
@@ -1170,10 +1175,12 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量更新
+     * <p>
+     * 查询数据并逐行转为对象, 然后对对象进行修改, 最后自动更新到数据库
      *
-     * @param clazz
-     * @param sqlConsumer
-     * @param fun
+     * @param clazz       行映射类
+     * @param sqlConsumer 查询SQL 构建器
+     * @param fun         更新操作
      * @param <T>
      * @throws SqlteException
      * @since 0.2.14
@@ -1191,6 +1198,34 @@ public interface SqlConnection extends AutoCloseable {
         });
         action.end();
     }
+
+    /**
+     * @param query  查询条件 Example
+     * @param update 更新字段, 非 null 值
+     * @param <T>
+     * @throws SqlteException
+     * @since 0.2.24
+    default <T> void batchUpdate(T query, Consumer<T> update) throws SqlteException {
+        ClassInfo info = ClassInfo.getClassInfo(query.getClass());
+        Field[] fields = info.getFields();
+        List<String> columns = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+        try {
+            for (Field field : fields) {
+                String column = info.getColumn(field);
+                Object value = field.get(update);
+                if (value != null) {
+                    columns.add(column);
+                    values.add(value);
+                }
+            }
+        } catch (IllegalAccessException e) {
+
+        }
+        executeUpdate(sql -> {
+            sql.update(info.getTableName(), String.join(",", columns), values.toArray()).where(query);
+        });
+    }*/
 
 
     /**

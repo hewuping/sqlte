@@ -113,4 +113,59 @@ public class SqlBuilderTest {
         public String status = "Active"; // status = "Active"
     }
 
+
+    @Test
+    public void testCTE_withAs() {
+        SqlBuilder builder = new SqlBuilder();
+        builder.withAs("ranked_employees", sql -> {
+            sql.sql("SELECT name, salary, DENSE_RANK() OVER (ORDER BY salary DESC) AS rank FROM employees");
+        });
+        builder.sql("SELECT name, salary FROM ranked_employees WHERE rank <= 5;");
+        String sql = "WITH ranked_employees AS (\n" +
+                "    SELECT name, salary, DENSE_RANK() OVER (ORDER BY salary DESC) AS rank FROM employees \n" +
+                ")\n" +
+                "SELECT name, salary FROM ranked_employees WHERE rank <= 5;";
+        Assert.assertEquals(sql, builder.sql());
+    }
+
+    @Test
+    public void testCTE_with() {
+        SqlBuilder builder = new SqlBuilder();
+        builder.with(cte -> {
+            cte.set("customer_orders", sql -> {
+                sql.sql("  SELECT customer_id, \n" +
+                        "         COUNT(*) AS order_count, \n" +
+                        "         SUM(total_amount) AS total_amount, \n" +
+                        "         AVG(total_amount) AS avg_amount\n" +
+                        "  FROM orders\n" +
+                        "  GROUP BY customer_id");
+            });
+            cte.set("ranked_customers", sql -> {
+                sql.sql("  SELECT c.name, o.avg_amount, \n" +
+                        "         DENSE_RANK() OVER (ORDER BY o.avg_amount DESC) AS rank\n" +
+                        "  FROM customer_orders o \n" +
+                        "  JOIN customers c ON o.customer_id = c.id");
+            });
+        });
+        builder.sql("SELECT name, avg_amount FROM ranked_customers WHERE rank <= 5;");
+
+        String sql = "WITH customer_orders AS (\n" +
+                "  SELECT customer_id, \n" +
+                "         COUNT(*) AS order_count, \n" +
+                "         SUM(total_amount) AS total_amount, \n" +
+                "         AVG(total_amount) AS avg_amount\n" +
+                "  FROM orders\n" +
+                "  GROUP BY customer_id \n" +
+                "),\n" +
+                "ranked_customers AS (\n" +
+                "  SELECT c.name, o.avg_amount, \n" +
+                "         DENSE_RANK() OVER (ORDER BY o.avg_amount DESC) AS rank\n" +
+                "  FROM customer_orders o \n" +
+                "  JOIN customers c ON o.customer_id = c.id \n" +
+                ")\n" +
+                "SELECT name, avg_amount FROM ranked_customers WHERE rank <= 5;";
+
+        Assert.assertEquals(sql, builder.sql());
+    }
+
 }

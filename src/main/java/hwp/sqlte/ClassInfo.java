@@ -117,7 +117,7 @@ public class ClassInfo {
 
     public String getPKColumn() {// getPrimaryKeyColumn
         if (pkColumns.length == 0) {
-            throw new SqlteException("Undefined ID field: " + clazz.getName());
+            throw new SqlteException("Undefined ID field (@Id): " + clazz.getName());
         }
         return pkColumns[0];
     }
