@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.github.hewuping'
 archivesBaseName = 'sqlte'
-version = '0.2.23'
+version = '0.2.24'
 
 sourceCompatibility = 1.8
 
@@ -30,6 +30,7 @@ javadoc {
 
 java {
     withJavadocJar()
+    withSourcesJar()
 }
 
 dependencies {

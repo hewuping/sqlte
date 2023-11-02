@@ -1,11 +1,13 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.Sort;
 import hwp.sqlte.util.StringUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Zero
@@ -38,24 +40,96 @@ public class Order {
         return this;
     }
 
+    /**
+     * 指定列名和排序方式
+     *
+     * @param column    表列名
+     * @param direction 如果为 null 将忽略
+     * @return
+     */
     public Order by(String column, Direction direction) {
+        if (direction == null) {
+            return this;
+        }
         items.put(column, direction);
         return this;
     }
 
+    /**
+     * 指定列名和排序方式
+     *
+     * @param column 表列名
+     * @param desc   是否按倒序排序, 否则为升序
+     * @return
+     */
     public Order by(String column, boolean desc) {
         items.put(column, desc ? Direction.DESC : Direction.ASC);
         return this;
     }
 
+    /**
+     * 根据名称匹配排序, 一般结合 Sort 类使用
+     *
+     * <pre>{@code
+     *  sql.orderBy(order -> {
+     * 	order.by("user_id", sort::match);// 字段匹配, 默认为升序
+     * 	order.by("created_at", sort::match);
+     * }); }</pre>
+     *
+     * @param column 表列名
+     * @param match  匹配方法
+     * @param def    默认值
+     * @return 如果未匹配到则返回 ASC
+     * @since 0.2.24
+     */
+    public Order by(String column, Function<String, Direction> match, Direction def) {
+        Direction dir = match.apply(column);
+        if (dir == null) {
+            if (def == null) {
+                return this;
+            }
+            return by(column, def);
+        }
+        return by(column, dir);
+    }
+
+    /**
+     * 根据名称匹配排序, 一般结合 Sort 类使用
+     *
+     * @param column 表列名
+     * @param match  匹配方法
+     * @return 如果未匹配到则返回 ASC
+     * @since 0.2.24
+     */
+    public Order by(String column, Function<String, Direction> match) {
+        return by(column, match.apply(column));
+    }
+
+    /**
+     * 按指定列名升序排序
+     *
+     * @param column 表列名
+     * @return
+     */
     public Order asc(String column) {
         return this.by(column, Direction.ASC);
     }
 
+    /**
+     * 按指定列名降序排序
+     *
+     * @param column 表列名
+     * @return
+     */
     public Order desc(String column) {
         return this.by(column, Direction.DESC);
     }
 
+    /**
+     * 对象模型转为 SQL 片段
+     *
+     * @return
+     */
     public String sql() {
         if (items.isEmpty()) {
             return "";
@@ -70,6 +144,11 @@ public class Order {
         return sql.toString();
     }
 
+    /**
+     * 排序规则是否为空
+     *
+     * @return
+     */
     public boolean isEmpty() {
         return items.isEmpty();
     }
