@@ -22,6 +22,20 @@ public class PageQuery implements Pageable {
         return sort;
     }
 
+    public Direction getSort(String name) {
+        if (sort == null) {
+            return null;
+        }
+        return sort.get(name);
+    }
+
+    public Direction getSort(String name, Direction def) {
+        if (sort == null) {
+            return def;
+        }
+        return sort.getOrDefault(name, def);
+    }
+
     public void setSort(Sort sort) {
         this.sort = sort;
     }
