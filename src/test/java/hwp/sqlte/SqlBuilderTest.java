@@ -60,7 +60,7 @@ public class SqlBuilderTest {
 
         sql = new SqlBuilder();
         sql.selectCount("select * from users");
-        expected = "SELECT COUNT(*) AS _COUNT_ FROM users";
+        expected = "SELECT COUNT(*) AS _COUNT_ FROM ( select * from users ) AS __TABLE__";
         Assert.assertEquals(expected, sql.sql());
     }
 
