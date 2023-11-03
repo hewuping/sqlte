@@ -168,4 +168,16 @@ public class SqlBuilderTest {
         Assert.assertEquals(sql, builder.sql());
     }
 
+
+    @Test
+    public void testUnion() {
+        SqlBuilder builder = new SqlBuilder();
+        builder.select("*").from("users");
+        builder.union(sql->{
+            sql.select("*").from("users");
+        });
+        System.out.println(builder.sql());
+
+//        Assert.assertEquals(sql, builder.sql());
+    }
 }

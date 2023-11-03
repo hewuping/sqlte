@@ -474,12 +474,55 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    private SqlBuilder appendSeparator() {
+        if (sql.length() > 0 && !isEndWithSeparator(sql)) {
+            sql.append(separator);
+        }
+        return this;
+    }
+
+    private boolean isEndWithSeparator(CharSequence str) {
+        char c = str.charAt(str.length() - 1);
+        return isSeparator(c);
+    }
+
+    private boolean isSeparator(char c) {
+        return c == separator || c == ' ' || c == '\n';
+    }
+
     public SqlBuilder append(SqlBuilder sub) {
         Objects.requireNonNull(sub);
         this.append(sub.sql(), sub.args());
         return this;
     }
 
+    /**
+     * 结果集合并成一个新的结果集，并且去除重复的行
+     *
+     * @param consumer
+     * @return
+     */
+    public SqlBuilder union(Consumer<SqlBuilder> consumer) {
+        append("\nUNION\n");
+        SqlBuilder sub = new SqlBuilder();
+        consumer.accept(sub);
+        append(sub);
+        return this;
+    }
+
+    /**
+     * 结果集合并成一个新的结果集，不去除重复的行
+     *
+     * @param consumer
+     * @return
+     */
+    public SqlBuilder unionAll(Consumer<SqlBuilder> consumer) {
+        append("\nUNION ALL\n");
+        SqlBuilder sub = new SqlBuilder();
+        consumer.accept(sub);
+        append(sub);
+        return this;
+    }
 
     @Override
     public String toString() {
@@ -492,13 +535,6 @@ public class SqlBuilder implements Builder, Sql {
     @Override
     public Sql build() {
         return new SimpleSql(sql(), args());
-    }
-
-
-    private void addSeparator() {
-        if (sql.length() > 0 && Character.isSpaceChar(sql.charAt(sql.length() - 1))) {
-            sql.append(separator);
-        }
     }
 
 }
