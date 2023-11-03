@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -212,9 +213,11 @@ public class Condition {
         List<Object> args = new ArrayList<>(values.length);
         for (Object value : values) {
             if (value.getClass().isArray()) {
-                Object[] va = (Object[]) value;
-                for (Object o : va) {
-                    args.add(o);
+                // 注意: values 参数只传递 int[]{1 ,2, 3} 时会被被作为一个数组大小为 1 且值为数组的的数组
+                // 而 Integer[]{1 ,2, 3} 则不会
+                int length = Array.getLength(value);
+                for (int i = 0; i < length; i++) {
+                    args.add(Array.get(value, i));
                 }
             } else if (value instanceof Iterable) {
                 Iterable<?> it = (Iterable<?>) value;

@@ -60,11 +60,11 @@ public class SqlBuilder implements Builder, Sql {
      * @since 0.2.24
      */
     public SqlBuilder withAs(String name, Consumer<SqlBuilder> consumer) {
-        sql.append("WITH ").append(name).append(" AS (\n    ");
+        this.append("WITH ").append(name).append(" AS (\n    ");
         SqlBuilder sub = new SqlBuilder();
         consumer.accept(sub);
         append(sub);
-        sql.append("\n)\n");
+        this.append("\n)\n");
         return this;
     }
 
@@ -89,20 +89,20 @@ public class SqlBuilder implements Builder, Sql {
      * @since 0.2.24
      */
     public SqlBuilder with(Consumer<CTE> consumer) {
-        sql.append("WITH ");
+        this.append("WITH ");
         CTE cte = new CTE();
         consumer.accept(cte);
         AtomicBoolean first = new AtomicBoolean(true);
         cte.forEach((name, sb) -> {
             if (!first.get()) {
-                sql.append(",\n");
+                this.append(",\n");
             }
-            sql.append(name).append(" AS (\n");
+            this.append(name).append(" AS (\n");
             append(sb);
-            sql.append("\n)");
+            this.append("\n)");
             first.set(false);
         });
-        sql.append("\n");
+        this.append("\n");
         return this;
     }
 
@@ -117,7 +117,7 @@ public class SqlBuilder implements Builder, Sql {
      */
     public SqlBuilder select(String columns) {
         Objects.requireNonNull(columns);
-        this.sql.append("SELECT ").append(columns).append(separator);
+        this.append("SELECT ").append(columns);
         return this;
     }
 
@@ -130,7 +130,7 @@ public class SqlBuilder implements Builder, Sql {
     public SqlBuilder select(Class<?> clazz) {
         Objects.requireNonNull(clazz);
         ClassInfo info = ClassInfo.getClassInfo(clazz);
-        this.sql.append("SELECT * FROM ").append(info.getTableName()).append(separator);
+        this.append("SELECT * FROM ").append(info.getTableName());
         return this;
     }
 
@@ -148,27 +148,30 @@ public class SqlBuilder implements Builder, Sql {
     public SqlBuilder from(String table) {
         Objects.requireNonNull(table);
         if (sql.length() == 0) {
-            this.sql.append("SELECT *").append(separator);
+            this.append("SELECT *");
         }
-        this.sql.append("FROM ").append(table).append(separator);
+        this.append("FROM ").append(table);
         return this;
     }
 
     /**
-     * SELECT COUNT(*)
+     * 生成 SELECT COUNT(*)
+     * <p>
+     * 例如 1: {@code SELECT COUNT(*) AS _COUNT_ FROM <table> }
+     * <p>
+     * 例如 2: {@code SELECT COUNT(*) AS _COUNT_ FROM ( <sub sql> ) AS __TABLE__}
      *
      * @param from
      * @return
      */
     public SqlBuilder selectCount(String from) {
         Objects.requireNonNull(from);
-        sql.append("SELECT COUNT(*) AS _COUNT_ FROM ");
+        this.append("SELECT COUNT(*) AS _COUNT_ FROM ");
         if (from.indexOf(' ') != -1) {
-            sql.append('(').append(from).append(") AS __TABLE__");
+            this.append("(").append(from).append(") AS __TABLE__");
         } else {
-            sql.append(from);
+            this.append(from);
         }
-        sql.append(separator);
         return this;
     }
 
@@ -183,18 +186,17 @@ public class SqlBuilder implements Builder, Sql {
     public SqlBuilder update(String table, String columns, Object... values) {
         Objects.requireNonNull(table);
         Objects.requireNonNull(columns);
-        sql.append("UPDATE ").append(table);
+        this.append("UPDATE ").append(table);
         String[] split = columns.split(",");
-        sql.append(" SET ");
+        this.append("SET");
         for (int i = 0; i < split.length; i++) {
             String column = split[i];
             if (i > 0) {
-                sql.append(", ");
+                this.append(", ");
             }
-            sql.append(column.trim() + "=?");
+            this.append(column.trim() + "=?");
             addArgs(values[i]);
         }
-        sql.append(separator);
         return this;
     }
 
@@ -205,17 +207,12 @@ public class SqlBuilder implements Builder, Sql {
      * @return
      */
     public SqlBuilder delete(String table) {
-        sql.append("DELETE FROM ").append(table).append(separator);
+        this.append("DELETE FROM ").append(table);
         return this;
     }
 
     public SqlBuilder sql(CharSequence sql) {
-        Objects.requireNonNull(sql);
-        this.sql.append(sql);
-        char lastChar = sql.charAt(sql.length() - 1);
-        if (!Character.isSpaceChar(lastChar)) {
-            this.sql.append(separator);
-        }
+        this.append(sql);
         return this;
     }
 
@@ -251,8 +248,37 @@ public class SqlBuilder implements Builder, Sql {
      *
      * @param args
      * @return
+     * @since 0.2.24
      */
+    public Object args(int index) {
+        return args.get(index);
+    }
+
+    /**
+     * 使用新的参数值替换原来的值
+     *
+     * @param args
+     * @return
+     * @deprecated 使用 setArgs() 代替
+     */
+    @Deprecated
     public SqlBuilder args(Object... args) {
+        if (this.args.size() > 0) {
+            this.args.clear();
+        }
+        addArgs(args);
+        return this;
+    }
+
+
+    /**
+     * 使用新的参数值替换原来的值
+     *
+     * @param args
+     * @return
+     * @since 0.2.24
+     */
+    public SqlBuilder setArgs(Object... args) {
         if (this.args.size() > 0) {
             this.args.clear();
         }
@@ -286,7 +312,7 @@ public class SqlBuilder implements Builder, Sql {
 
     public SqlBuilder where(Where where) {
         if (where != null && !where.isEmpty()) {
-            this.sql.append("WHERE ").append(where).append(separator);
+            this.append("WHERE ").append(where.sql());
             this.args.addAll(where.args());
         }
         return this;
@@ -377,12 +403,12 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     public SqlBuilder limit(int first, int size) {
-        this.sql.append("LIMIT ").append(first).append(", ").append(size).append(separator);
+        this.append("LIMIT ").append(first).append(", ").append(size);
         return this;
     }
 
     public SqlBuilder limit(int size) {
-        this.sql.append("LIMIT ").append(size).append(separator);
+        this.append("LIMIT ").append(size);
         return this;
     }
 
@@ -397,7 +423,7 @@ public class SqlBuilder implements Builder, Sql {
      */
     public SqlBuilder orderBy(String orderSql) {
         Objects.requireNonNull(orderSql);
-        sql.append("ORDER BY ").append(orderSql).append(separator);
+        this.append("ORDER BY ").append(orderSql);
         return this;
     }
 
@@ -412,7 +438,7 @@ public class SqlBuilder implements Builder, Sql {
      */
     public SqlBuilder orderBy(Order order) {
         if (order != null && !order.isEmpty()) {
-            sql.append("ORDER BY ").append(order).append(separator);
+            this.append("ORDER BY ").append(order.sql());
         }
         return this;
     }
@@ -437,13 +463,13 @@ public class SqlBuilder implements Builder, Sql {
 
     public SqlBuilder groupBy(String groupSql) {
         Objects.requireNonNull(groupSql);
-        sql.append("GROUP BY ").append(groupSql).append(separator);
+        this.append("GROUP BY ").append(groupSql);
         return this;
     }
 
     public SqlBuilder groupBy(String groupSql, Consumer<Having> having) {
         Objects.requireNonNull(groupSql);
-        sql.append("GROUP BY ").append(groupSql).append(separator);
+        this.append("GROUP BY ").append(groupSql);
         if (having != null) {
             Having h = new Having();
             having.accept(h);
@@ -455,39 +481,52 @@ public class SqlBuilder implements Builder, Sql {
     private SqlBuilder having(Having having) {
         Objects.requireNonNull(having);
         if (!having.isEmpty()) {
-            this.sql.append("HAVING ").append(having).append(separator);
+            this.append("HAVING ").append(having.sql());
             this.args.addAll(having.args());
         }
         return this;
     }
 
-    public SqlBuilder append(String sql) {
+    public SqlBuilder append(CharSequence sql) {
+        // 仅该方法可使用 this.sql.append()
         Objects.requireNonNull(sql);
-        this.sql.append(sql).append(separator);
+        if (startWithSeparator(sql) || endWithSeparator(this.sql)) {
+            this.sql.append(sql);
+            return this;
+        }
+        this.sql.append(separator);
+        this.sql.append(sql);
+        return this;
+    }
+
+    private SqlBuilder append(Number number) {
+        this.append(String.valueOf(number));
         return this;
     }
 
     public SqlBuilder append(String sql, Object... args) {
         Objects.requireNonNull(sql);
-        this.sql.append(sql).append(separator);
+        this.append(sql);
         this.addArgs(args);
         return this;
     }
 
-    private SqlBuilder appendSeparator() {
-        if (sql.length() > 0 && !isEndWithSeparator(sql)) {
-            sql.append(separator);
-        }
-        return this;
+
+    private boolean startWithSeparator(CharSequence str) {
+        char c = str.charAt(0);
+        return isSeparator(c);
     }
 
-    private boolean isEndWithSeparator(CharSequence str) {
+    private boolean endWithSeparator(CharSequence str) {
+        if (sql.length() == 0) {
+            return true;
+        }
         char c = str.charAt(str.length() - 1);
         return isSeparator(c);
     }
 
     private boolean isSeparator(char c) {
-        return c == separator || c == ' ' || c == '\n';
+        return c == separator || c == ' ' || c == '\n' || c == ',';
     }
 
     public SqlBuilder append(SqlBuilder sub) {

@@ -233,7 +233,7 @@ public class Where {
      * @param map
      * @return
      */
-    public Where and(Map<String, Object> map) {
+    public Where and(Map<String, ?> map) {
         map.forEach((key, value) -> {
             and(key + "=?", value);
         });

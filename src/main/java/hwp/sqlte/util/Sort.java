@@ -34,7 +34,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
      * 当参数名和列表一致时可使用该方法 (比如: user_id, 而不是 userId)
      *
      * @return
-     * @Deprecated 太隐晦了, 不利于后续项目维护, 不建议使用
+     * @deprecated 太隐晦了, 不利于后续项目维护, 不建议使用
      */
     @Deprecated
     public Order toOrder() {
