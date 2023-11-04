@@ -57,6 +57,28 @@ public class NameUtils {
         return builder.toString();
     }
 
+    public static String toClassName(String lower_underscore) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0, len = lower_underscore.length(); i < len; i++) {
+            char c = lower_underscore.charAt(i);
+            if (i == 0) {
+                builder.append(Character.toUpperCase(c));
+                continue;
+            }
+            if ('_' == c || '-' == c) {
+                i++;
+                if (i >= len) {
+                    break;
+                }
+                char next = lower_underscore.charAt(i);
+                builder.append(Character.toUpperCase(next));
+                continue;
+            }
+            builder.append(Character.toLowerCase(c));
+        }
+        return builder.toString();
+    }
+
     public static void main(String[] args) {
         System.out.println(toUnderscore("upperCamel"));
         System.out.println(toUnderscore("UpperCamel"));
