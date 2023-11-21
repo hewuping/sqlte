@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -35,17 +34,18 @@ class Helper {
 
     static SqlResultSet convert(java.sql.ResultSet rs) throws SQLException {
         List<String> columnNames = new ArrayList<>();
-        List<RowMetadata> rms = new ArrayList<>();
+        List<ColumnMetaData> cmds = new ArrayList<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int cols = metaData.getColumnCount();
         for (int column = 1; column <= cols; column++) {
-            String label = metaData.getColumnLabel(column);
-            columnNames.add(label.toLowerCase().intern());
-            RowMetadata rm = new RowMetadata(column, label);
-            rm.setSchema(metaData.getSchemaName(column));
-            rm.setTable(metaData.getTableName(column));
-            rm.setType(metaData.getColumnType(column));
-            rms.add(rm);
+            // MetaData
+            ColumnMetaData cmd = new ColumnMetaData(metaData.getSchemaName(column), metaData.getTableName(column), column);
+            cmd.setLabel(metaData.getColumnLabel(column));
+            cmd.setName(metaData.getColumnName(column));
+            cmd.setType(metaData.getColumnType(column));
+            cmds.add(cmd);
+            // columnNames
+            columnNames.add(cmd.getLabel().toLowerCase().intern());
         }
         List<Row> results = new ArrayList<>();
         while (rs.next()) {
@@ -55,7 +55,7 @@ class Helper {
             }
             results.add(row);
         }
-        return new SqlResultSet(columnNames, results, rms);
+        return new SqlResultSet(columnNames, results, cmds);
     }
 
     static void fillStatement(PreparedStatement statement, Object[] args) throws SqlteException {

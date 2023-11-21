@@ -1,6 +1,5 @@
 package hwp.sqlte;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -15,18 +14,21 @@ import static java.util.Collections.EMPTY_LIST;
  */
 public class SqlResultSet implements Iterable<Row> {
 
+    /**
+     * 查询结果集小写列别名
+     */
     private final List<String> columns;
     private List<Row> rows;
-    private List<RowMetadata> rowMetadatas;
+    private final List<ColumnMetaData> columnMetaDatas;
 
     //rowMetadata
 
     public static final SqlResultSet EMPTY = new SqlResultSet(EMPTY_LIST, EMPTY_LIST, EMPTY_LIST);
 
-    public SqlResultSet(List<String> columns, List<Row> rows, List<RowMetadata> rowMetadatas) {
+    public SqlResultSet(List<String> columns, List<Row> rows, List<ColumnMetaData> columnMetaDatas) {
         this.columns = columns;
         this.rows = rows;
-        this.rowMetadatas = rowMetadatas;
+        this.columnMetaDatas = columnMetaDatas;
     }
 
     public List<String> getColumns() {
@@ -37,8 +39,8 @@ public class SqlResultSet implements Iterable<Row> {
         return rows;
     }
 
-    public List<RowMetadata> getRowMetadatas() {
-        return rowMetadatas;
+    public List<ColumnMetaData> getRowMetadatas() {
+        return columnMetaDatas;
     }
 
     public Row first() {

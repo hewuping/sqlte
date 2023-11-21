@@ -6,6 +6,7 @@ import hwp.sqlte.util.StringUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -72,7 +73,7 @@ public class Order {
      *
      * <pre>{@code
      *  sql.orderBy(order -> {
-     * 	order.by("user_id", sort::match);// 字段匹配, 默认为升序
+     * 	order.by("user_id", sort::match, Direction.ASC);// 字段匹配, 默认为升序
      * 	order.by("created_at", sort::match);
      * }); }</pre>
      *
@@ -96,6 +97,13 @@ public class Order {
     /**
      * 根据名称匹配排序, 一般结合 Sort 类使用
      *
+     * <pre>{@code
+     *  sql.orderBy(order -> {
+     * 	order.by("user_id", sort::match);// 字段匹配, 默认为升序
+     * 	order.by("created_at", sort::match);
+     * });
+     * }</pre>
+     *
      * @param column 表列名
      * @param match  匹配方法
      * @return 如果未匹配到则返回 ASC
@@ -112,7 +120,26 @@ public class Order {
      * @return
      */
     public Order asc(String column) {
-        return this.by(column, Direction.ASC);
+        return by(column, Direction.ASC);
+    }
+
+
+    /**
+     * 默认为升序, 如果设置了 direction 参数, 则以 direction 为准
+     *
+     * <pre>{@code
+     *  sql.orderBy(order -> {
+     * 	  order.asc("user_id", newDir);// 字段匹配, 默认为升序
+     *  });
+     *  }</pre>
+     *
+     * @param column    表列名
+     * @param direction 排序
+     * @return
+     * @since 0.2.25
+     */
+    public Order asc(String column, Direction direction) {
+        return by(column, direction == null ? Direction.ASC : direction);
     }
 
     /**
@@ -122,7 +149,25 @@ public class Order {
      * @return
      */
     public Order desc(String column) {
-        return this.by(column, Direction.DESC);
+        return by(column, Direction.DESC);
+    }
+
+    /**
+     * 默认为降序, 如果设置了 direction 参数, 则以 direction 为准
+     *
+     * <pre>{@code
+     *  sql.orderBy(order -> {
+     * 	  order.desc("user_id", newDir);// 字段匹配, 默认为降序
+     *  });
+     *  }</pre>
+     *
+     * @param column    表列名
+     * @param direction 排序
+     * @return
+     * @since 0.2.25
+     */
+    public Order desc(String column, Direction direction) {
+        return by(column, direction == null ? Direction.DESC : direction);
     }
 
     /**

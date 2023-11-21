@@ -3,12 +3,16 @@ package hwp.sqlte.codegen;
 
 import hwp.sqlte.util.NameUtils;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Example:
@@ -24,14 +28,14 @@ public class CodeGenerator {
     private String packageName;
     private String output = "./";
     private String jdbcUrl;
-    private String username;
-    private String password;
+    private String username = "root";
+    private String password = "";
 
-/*    private DataSource dataSource;
+    private Function<String, Boolean> tableFilter;
 
-    public CodeGenerator(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }*/
+    private List<BiConsumer<String, String>> listeners = new ArrayList<>();
+
+    private DataSource dataSource;
 
     private DatabaseMetaData metaData;
 
@@ -46,6 +50,28 @@ public class CodeGenerator {
         this.packageName = packageName;
     }
 
+    /**
+     * <pre>{@code
+     *   MysqlDataSource source = new MysqlDataSource();
+     *   source.setServerName("localhost");
+     *   source.setDatabaseName("db_name");
+     *   source.setUser("root");
+     *   source.setPassword("");
+     *   source.setPort(3306);
+     *   generator.setDataSource(source):
+     * } </pre>
+     *
+     * @param dataSource
+     */
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    /**
+     * eg: {@code jdbc:mysql://localhost:3306/db_name }
+     *
+     * @param jdbcUrl
+     */
     public void setJdbcUrl(String jdbcUrl) {
         this.jdbcUrl = jdbcUrl;
     }
@@ -58,9 +84,22 @@ public class CodeGenerator {
         this.username = username;
     }
 
+    public void setTableFilter(Function<String, Boolean> tableFilter) {
+        this.tableFilter = tableFilter;
+    }
+
     public void generate() {
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password)) {
-//        try (Connection conn = dataSource.getConnection()) {
+        Connection conn = null;
+        try {
+            if (dataSource != null) {
+                conn = dataSource.getConnection();
+            } else if (jdbcUrl != null) {
+                conn = DriverManager.getConnection(jdbcUrl, username, password);
+            }
+            if (conn == null) {
+                System.err.println("dataSource and jdbcUrl need to set at least one");
+                return;
+            }
             this.metaData = conn.getMetaData();
             ResultSet tables = metaData.getTables(null, null, "%", new String[]{"TABLE"});
 
@@ -70,7 +109,15 @@ public class CodeGenerator {
                 generateClass(conn, tableName);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

@@ -81,6 +81,37 @@ public class Sort extends LinkedHashMap<String, Direction> {
     }
 
     /**
+     * <pre>{@code
+     * sql.orderBy(order -> {
+     * 	order.by("user_id", sort.get("enabled")); // 如果为 null 则忽略
+     * 	order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
+     * }); }</pre>
+     *
+     * @param key the key whose associated value is to be returned
+     * @return
+     */
+    @Override
+    public Direction get(Object key) {
+        return super.get(key);
+    }
+
+    /**
+     * <pre>{@code
+     * sql.orderBy(order -> {
+     * 	order.by("user_id", sort.get("enabled")); // 如果为 null 则忽略
+     * 	order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
+     * }); }</pre>
+     *
+     * @param key          the key whose associated value is to be returned
+     * @param defaultValue the default mapping of the key
+     * @return
+     */
+    @Override
+    public Direction getOrDefault(Object key, Direction def) {
+        return super.getOrDefault(key, def);
+    }
+
+    /**
      * 根据名称自动匹配排序 (表列名 -> 字段名), 适合单表或无列名冲突的多表
      *
      * <pre>{@code
