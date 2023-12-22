@@ -59,7 +59,7 @@ public class Condition {
     }
 
     /**
-     * begin and end values are included.
+     * 使用 {@code BETWEEN <begin> AND <end>} 条件查询。 查询区间：[begin, end]
      *
      * @param column 列名
      * @param begin  开始值(包含), 如果为 null 或 空 则变为 {@code <= end }
@@ -89,7 +89,7 @@ public class Condition {
     }
 
     /**
-     * range.start and range.end values are included.
+     * 使用 {@code BETWEEN <start> AND <end>} 条件查询。 查询区间：[start, end]
      *
      * @param column 列名
      * @param range  如果 {@code range.start = null} 则变为 {@code column <= end};
@@ -101,9 +101,7 @@ public class Condition {
     }
 
     /**
-     * 基于通配符的 LIKE 搜索
-     * <p>
-     * 通配符(wildcards)说明:
+     * 基于通配符的 LIKE 搜索, 通配符(wildcards)使用说明:
      * <ul>
      *     <li> %  - 替换零个或多个字符, 例如: wild% </li>
      *     <li> _  - 替换单个字符, 例如: wildca_d </li>
@@ -137,21 +135,52 @@ public class Condition {
      * @return
      */
     public static Condition rlike(String column, String regex) {
+        // PostgreSQL: WHERE column_name SIMILAR TO 'pattern';
+        // SQLite: WHERE column_name REGEXP 'pattern';
+        // Oracle: WHERE REGEXP_LIKE(column_name, 'pattern');
         return new Condition(column, " RLIKE ", regex);
     }
 
+    /**
+     * 使用 NOT LIKE 条件查询, 生成 SQL: NOT LIKE value
+     *
+     * @param column 列名
+     * @param value  值
+     * @return
+     */
     public static Condition notLike(String column, String value) {
         return new Condition(column, " NOT LIKE ", value);
     }
 
+    /**
+     * 使用 LIKE 条件查询, 生成 SQL: LIKE value%
+     *
+     * @param column 列名
+     * @param value  值, 自动添加后缀 '%'
+     * @return
+     */
     public static Condition startWith(String column, String value) {
         return like(column, value + "%");
     }
 
+    /**
+     * 使用 LIKE 条件查询, 生成 SQL: LIKE %value
+     *
+     * @param column 列名
+     * @param value  值, 自动添加前缀 '%'
+     * @return
+     */
     public static Condition endWith(String column, String value) {
         return like(column, "%" + value);
     }
 
+    /**
+     * 使用 LIKE 条件查询, 生成 SQL: LIKE %value%
+     *
+     * @param column 列名
+     * @param value  值, 前后会自动添加 '%'
+     * @return
+     */
     public static Condition contains(String column, String value) {
         // SQL Server 可以使用函数: CONTAINS(column, value)
         // MySQL InnoDB 不支持 CONTAINS 函数, 可以使用 INSTR
@@ -180,35 +209,58 @@ public class Condition {
         return builder.toString();
     }
 
-    public static Condition in(String column, String[] values) {
+    /**
+     * 使用 IN 条件查询
+     *
+     * @param column 列名
+     * @param values 字符串数组。
+     * @return
+     * @throws IllegalArgumentException 如果参数值为空抛出异常
+     */
+    public static Condition in(String column, String[] values) throws IllegalArgumentException {
 //        Object[] args = new Object[values.length];
 //        System.arraycopy(values, 0, args, 0, values.length);
         return _in(false, column, (Object[]) values);
     }
 
     /**
+     * 使用 IN 条件查询
+     *
      * @param column 列名
-     * @param values 可变数组, 也可以是 Array 或 Collection
+     * @param values 可变数组，也可以是 Array 或 Collection。
      * @return
+     * @throws IllegalArgumentException 如果参数值为空抛出异常
      */
-    public static <T> Condition in(String column, T... values) {
-        return _in(false, column, values);
-    }
-
-    public static <E> Condition in(String column, Iterable<E> values) {
+    public static <T> Condition in(String column, T... values) throws IllegalArgumentException {
         return _in(false, column, values);
     }
 
     /**
+     * 使用 IN 条件查询
+     *
      * @param column 列名
-     * @param values 可变数组, 也可以是 Array, Collection 或 Stream
+     * @param values 参数值
+     * @param <E>
      * @return
+     * @throws IllegalArgumentException 如果参数值为空抛出异常
      */
-    public static Condition notIn(String column, Object... values) {
+    public static <E> Condition in(String column, Iterable<E> values) throws IllegalArgumentException {
+        return _in(false, column, values);
+    }
+
+    /**
+     * 使用 NOT IN 条件查询
+     *
+     * @param column 列名
+     * @param values 参数值, 可以是 Array, Collection 或 Stream
+     * @return
+     * @throws IllegalArgumentException 如果参数值为空抛出异常
+     */
+    public static Condition notIn(String column, Object... values) throws IllegalArgumentException {
         return _in(true, column, values);
     }
 
-    private static <T> Condition _in(boolean notIn, String column, T... values) {
+    private static <T> Condition _in(boolean notIn, String column, T... values) throws IllegalArgumentException {
         // 展开数组和集合
         List<Object> args = new ArrayList<>(values.length);
         for (Object value : values) {

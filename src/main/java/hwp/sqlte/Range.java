@@ -4,9 +4,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * 值范围包括 start 和 end , 意思等同 SQL BETWEEN 中的 begin 和 end.
+ * 范围查询包括 start 和 end，意思等同 SQL BETWEEN 中的 begin 和 end。
  * <p>
- * 转换为SQL时如: <code>BETWEEN ? AND ?</code>
+ * 生成 SQL “{@code BETWEEN ? AND ?}”，查询区间为: [start, end]
  *
  * @param <T>
  */

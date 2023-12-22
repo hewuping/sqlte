@@ -58,6 +58,13 @@ class BeanMapper<T> implements RowMapper<T> {
                         entry.getValue().set(obj, dbValue.toString());
                         continue;
                     }
+//                    Table fieldTable = field.getAnnotation(Table.class);
+//                    if (fieldTable == null) {
+//                        fieldTable = field.getType().getAnnotation(Table.class);
+//                    }
+//                    if (fieldTable != null) {
+//                         需要 new Row(ColumnMetaData)
+//                    }
                     // 否则转换
                     ConversionService conversionService = Config.getConfig().getConversionService();
                     if (conversionService.canConvert(dbValue.getClass(), field.getType())) {
