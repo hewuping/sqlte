@@ -83,7 +83,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
     /**
      * <pre>{@code
      * sql.orderBy(order -> {
-     * 	order.by("user_id", sort.get("enabled")); // 如果为 null 则忽略
+     * 	order.by("name", sort.get("name")); // 如果为 null 则忽略
      * 	order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
      * }); }</pre>
      *
@@ -98,7 +98,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
     /**
      * <pre>{@code
      * sql.orderBy(order -> {
-     * 	order.by("user_id", sort.get("enabled")); // 如果为 null 则忽略
+     * 	order.by("name", sort.get("name")); // 如果为 null 则忽略
      * 	order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
      * }); }</pre>
      *

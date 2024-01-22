@@ -98,6 +98,20 @@ public interface SqlConnection extends AutoCloseable {
         return queryPage(consumer, Helper.toSupplier(clazz));
     }
 
+/*    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> resultClass, long maxCount) throws SqlteException {
+        SqlBuilder sb = new SqlBuilder();
+        consumer.accept(sb);
+        String sql = sb.sql();
+        int form = sql.lastIndexOf("LIMIT ");
+        if (form == -1) {
+            throw new IllegalArgumentException("Limit clause not found: " + sql);
+        }
+        List<T> list = query(sql, sb.args()).list(resultClass);
+        String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + " LIMIT " + maxCount + ") AS _t";
+        Long count = query(countSql, sb.args()).first(Long.class);
+        return new Page<>(list, count);
+    }*/
+
     /**
      * 分页查询
      *
@@ -1206,25 +1220,25 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      * @since 0.2.24
     default <T> void batchUpdate(T query, Consumer<T> update) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(query.getClass());
-        Field[] fields = info.getFields();
-        List<String> columns = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
-        try {
-            for (Field field : fields) {
-                String column = info.getColumn(field);
-                Object value = field.get(update);
-                if (value != null) {
-                    columns.add(column);
-                    values.add(value);
-                }
-            }
-        } catch (IllegalAccessException e) {
+    ClassInfo info = ClassInfo.getClassInfo(query.getClass());
+    Field[] fields = info.getFields();
+    List<String> columns = new ArrayList<>();
+    List<Object> values = new ArrayList<>();
+    try {
+    for (Field field : fields) {
+    String column = info.getColumn(field);
+    Object value = field.get(update);
+    if (value != null) {
+    columns.add(column);
+    values.add(value);
+    }
+    }
+    } catch (IllegalAccessException e) {
 
-        }
-        executeUpdate(sql -> {
-            sql.update(info.getTableName(), String.join(",", columns), values.toArray()).where(query);
-        });
+    }
+    executeUpdate(sql -> {
+    sql.update(info.getTableName(), String.join(",", columns), values.toArray()).where(query);
+    });
     }*/
 
 

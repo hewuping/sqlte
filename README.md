@@ -206,25 +206,42 @@ sql.select("*").from("user").where(where -> {
 
 ## Pageable
 
+这是一个实现复杂查询与分页的接口
+
+例子：创建一个 GlossaryQuery 类接收前端查询参数
+
 ```java
 public class GlossaryQuery extends PageQuery {
 
-    @Like(columns = {"name", "description"})
+    @Like(columns = {"name", "description"}) // 查询参数名为 name, 但是对 name 和 description 列进行模糊查询
     public String name;
-    public String srcLang;
+    public String srcLang; // 精确查询 (src_lang = ?)
     public String trgLang;
     public Integer userId;
     public Integer domainId;
-    public Range<Date> createdAt;
-
+    @Gt
+    public Integer size; // 范围查询 (size > ?)
+    public Range<Date> createdAt; // 范围查询 (BETWEEN ? AND ?)
+    // 其他注解: @StartWith, @EndWith, @Gte, @Lt, @Lte
 }
 
 public Page<Glossary> getList(GlossaryQuery query) {
     return db.queryPage(sql -> {
-        sql.select(Glossary.class).where(query).orderBy("created_at DESC").paging(query);
+        // 查询条件由 GlossaryQuery 类中定义的字段和注解生成
+        sql.select(Glossary.class).where(query);
+        // PageQuery 类中包含一个可选参数 sort，用于实现对指定字段进行排序 
+        sql.orderBy(order -> {
+            order.by("name", sort.get("name")); // 如果为 null 则忽略 (建议设置默认排序)
+            // created_at 为表列名, 必须一致
+            // createdAt 为接收前端传入值的参数名, 为自定义名称
+            order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
+        });
+        // 这里是 sql.limit(query.getPage(), query.getPageSize()) 的简写
+        sql.paging(query);
     }, Glossary::new);
 }
 ```
+
 
 ## Spring
 
