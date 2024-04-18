@@ -1,5 +1,8 @@
 package hwp.sqlte;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -12,6 +15,8 @@ import java.util.function.Function;
  * Created on 2017/3/21.
  */
 public class SqlBuilder implements Builder, Sql {
+
+    private static final Logger logger = LoggerFactory.getLogger(SqlBuilder.class);
     private char separator = ' ';
 
     private final List<Object> args = new ArrayList<>();
@@ -39,7 +44,7 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     /**
-     * 用于构建 CTE（Common Table Expressions，公共表达式）
+     * 用于构建 CTE（Common Table Expressions，公用表表达式）
      * <p>
      * CTE 例子:
      * <pre>{@code
@@ -70,19 +75,46 @@ public class SqlBuilder implements Builder, Sql {
 
 
     /**
-     * 用于构建 CTE（Common Table Expressions，公共表达式）
+     * 用于构建 CTE（Common Table Expressions，公用表表达式）
      * <p>
      * CTE 例子:
+     * <ul>
+     *     <li>每个客户的总订单数、总订单金额以及平均订单金额</li>
+     *     <li>前五个平均订单金额最高的客户姓名和平均订单金额</li>
+     * </ul>
+     *
+     * <pre>{@code
+     *  WITH customer_orders AS (
+     *   SELECT customer_id,
+     *          COUNT(*) AS order_count,
+     *          SUM(total_amount) AS total_amount,
+     *          AVG(total_amount) AS avg_amount
+     *   FROM orders
+     *   GROUP BY customer_id
+     * ), -- 多个使用 逗号 分割
+     * ranked_customers AS (
+     *   SELECT c.name, o.avg_amount,
+     *          DENSE_RANK() OVER (ORDER BY o.avg_amount DESC) AS rank
+     *   FROM customer_orders o
+     *   JOIN customers c ON o.customer_id = c.id
+     * ) -- 最后一个不要添加逗号
+     * SELECT name, avg_amount
+     * FROM ranked_customers
+     * WHERE rank <= 5;
+     * } </pre>
+     * <p>
+     * 下面写法同上:
      * <pre>{@code
      *    conn.with(cte -> {
-     *         cte.set("xxx", sql -> {
+     *         cte.set("customer_orders", sql -> {
      *
      *         });
-     *         cte.set("yyy", sql -> {
+     *         cte.set("ranked_customers", sql -> {
      *
      *         });
      *     });
      * }</pre>
+     * 对于没有 where 的语句, 建议直接使用"文本块"可读性更高
      *
      * @param consumer
      * @return
@@ -105,6 +137,13 @@ public class SqlBuilder implements Builder, Sql {
         this.append("\n");
         return this;
     }
+
+//    public SqlBuilder with(String sql) {
+//        this.append("WITH ");
+//        this.append(sql);
+//        this.append("\n");
+//        return this;
+//    }
 
 
     /**
@@ -314,6 +353,9 @@ public class SqlBuilder implements Builder, Sql {
         if (where != null && !where.isEmpty()) {
             this.append("WHERE ").append(where.sql());
             this.args.addAll(where.args());
+        }
+        if (!where.disableWarnings && where.isEmpty()) {
+            logger.warn("Missing condition in where");
         }
         return this;
     }

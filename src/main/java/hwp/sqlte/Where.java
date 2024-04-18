@@ -16,8 +16,10 @@ public class Where {
     private final StringBuilder whereBuilder = new StringBuilder();
     private final List<Object> whereArgs = new ArrayList<>(4);
 
-    public static final Consumer<Where> EMPTY = where -> {
+    protected boolean disableWarnings;
 
+    public static final Consumer<Where> EMPTY = where -> {
+        where.disableWarnings = true;
     };
 
     public Where() {

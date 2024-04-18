@@ -984,7 +984,7 @@ public interface SqlConnection extends AutoCloseable {
      * 批量插入
      *
      * @param beans 不能为 null
-     * @param table 如果为 null, 会取 list 中的第一个对象映射的表名
+     * @param table 如果为 null, 默认值为 list 中的第一个值的类映射的表名
      * @return 返回 BatchUpdateResult
      * @throws SqlteException
      */
@@ -1243,9 +1243,10 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 批量保存
+     * 批量保存(批量插入或更新)
      * <p>
-     * 批量插入或更新, 生成的 SQL 是插入还是更新还是混合由第二个参数决定, 如果同时存在插入和更新, 会分组再执行
+     * 生成的 SQL 是插入还是更新还是混合由第二个参数的返回值决定, 如果同时存在插入和更新,
+     * 会分别执行插入和更新语句
      *
      * @param list     保存对象列表, 必需是同一类型
      * @param isInsert 返回 true 表示插入, false 表示更新

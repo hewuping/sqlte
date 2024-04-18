@@ -165,6 +165,7 @@ final class DefaultConversionService implements ConversionService {
         register(LocalDateTime.class, Instant.class, dateTime -> Instant.ofEpochSecond(dateTime.toEpochSecond(zoneOffset)));
         register(LocalDateTime.class, OffsetDateTime.class, dateTime -> OffsetDateTime.of(dateTime, zoneOffset));
         register(LocalDateTime.class, ZonedDateTime.class, dateTime -> ZonedDateTime.of(dateTime, zoneId));
+        register(LocalDateTime.class, LocalDate.class, LocalDateTime::toLocalDate);
         register(LocalDateTime.class, java.util.Date.class, dateTime -> {
             Instant instant = dateTime.atZone(timeZone.toZoneId()).toInstant();
             return java.util.Date.from(instant);
