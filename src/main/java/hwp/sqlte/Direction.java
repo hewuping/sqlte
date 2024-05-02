@@ -8,12 +8,16 @@ public enum Direction {
     ASC, DESC;
 
     public static Direction find(String str) {
+        return find(str, null);
+    }
+
+    public static Direction find(String str, Direction defValue) {
         for (Direction value : values()) {
             if (value.name().equalsIgnoreCase(str)) {
                 return value;
             }
         }
-        return null;
+        return defValue;
     }
 
 }

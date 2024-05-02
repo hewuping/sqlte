@@ -17,6 +17,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
      * @param mapper
      * @return
      */
+    @Deprecated
     public Order mapper(Consumer<Map<String, String>> mapper) {
         Map<String, String> map = new LinkedHashMap<>();
         mapper.accept(map);
@@ -70,6 +71,7 @@ public class Sort extends LinkedHashMap<String, Direction> {
      * @param name     字段名 (一般是前端传递过来的参数名)
      * @param consumer
      */
+    @Deprecated
     public void on(String name, Consumer<Direction> consumer) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(consumer);
@@ -109,6 +111,28 @@ public class Sort extends LinkedHashMap<String, Direction> {
     @Override
     public Direction getOrDefault(Object key, Direction def) {
         return super.getOrDefault(key, def);
+    }
+
+    /**
+     * 同 {@code getOrDefault(key, Direction.ASC);}
+     *
+     * @param key
+     * @return
+     * @since 0.2.25
+     */
+    public Direction asc(Object key) {
+        return getOrDefault(key, Direction.ASC);
+    }
+
+    /**
+     * 同 {@code getOrDefault(key, Direction.DESC);}
+     *
+     * @param key
+     * @return
+     * @since 0.2.25
+     */
+    public Direction desc(Object key) {
+        return getOrDefault(key, Direction.DESC);
     }
 
     /**

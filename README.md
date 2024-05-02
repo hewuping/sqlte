@@ -235,6 +235,8 @@ public Page<Glossary> getList(GlossaryQuery query) {
             // created_at 为表列名, 必须一致
             // createdAt 为接收前端传入值的参数名, 为自定义名称
             order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
+            // order.by("created_at", sort.asc("createdAt")); // 同上
+            // order.asc("created_at", sort.get("createdAt")); // 同上
         });
         // 这里是 sql.limit(query.getPage(), query.getPageSize()) 的简写
         sql.paging(query);

@@ -98,7 +98,10 @@ final class DefaultConversionService implements ConversionService {
 
         // date & time
         TimeZone timeZone = Config.getConfig().getDatabaseTimeZone();
-        ZoneOffset zoneOffset = OffsetDateTime.now().getOffset();
+        int rawOffset = timeZone.getRawOffset();
+        int secondsOffset = rawOffset / 1000;
+        ZoneOffset zoneOffset = ZoneOffset.ofTotalSeconds(secondsOffset);
+//        ZoneOffset zoneOffset = OffsetDateTime.now().getOffset();
         ZoneId zoneId = timeZone.toZoneId();
 
         register(Timestamp.class, String.class, timestamp -> timestamp.toInstant().toString());

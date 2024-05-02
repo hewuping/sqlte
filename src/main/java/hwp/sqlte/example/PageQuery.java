@@ -9,23 +9,20 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+/**
+ * 该类作为复杂查询(分页, 排序, 搜索, 过滤)的基类
+ */
 public class PageQuery implements Pageable {
 
-    private Sort sort;
+    private Sort sort = new Sort();
     private int page = 0;
     private int pageSize = 10;
 
     public Sort getSort() {
-        if (sort == null) {
-            sort = new Sort();
-        }
         return sort;
     }
 
     public Direction getSort(String name) {
-        if (sort == null) {
-            return null;
-        }
         return sort.get(name);
     }
 
@@ -40,15 +37,27 @@ public class PageQuery implements Pageable {
         this.sort = sort;
     }
 
-
-//    public Direction sort(String column) {
-//        Objects.requireNonNull(column, "column cannot be null");
-//        if (sort == null) {
-//            return null;
-//        }
-//        return this.sort.match(column, null);
-//    }
-
+    /**
+     * Spring Web 中如果通过URL传递参数并绑定实体, 参数名会比较奇怪, 比如: sort["name"]=DESC。
+     * <p>
+     * 这里提供更优雅的方案, sort=name:desc;age:asc;xxx;
+     */
+    public void setSort(String sortStr) {
+        if (sortStr == null || sortStr.isEmpty()) {
+            return;
+        }
+        for (String entry : sortStr.split(";")) {
+            String[] item = entry.split(":", 2);
+            if (item.length == 1) {
+                sort.put(item[0], Direction.ASC);
+                continue;
+            }
+            if (item.length == 2) {
+                sort.put(item[0], Direction.find(item[1], Direction.ASC));
+                continue;
+            }
+        }
+    }
 
     public int getPage() {
         return page;
@@ -66,12 +75,16 @@ public class PageQuery implements Pageable {
         this.pageSize = pageSize;
     }
 
-    public void acceptSort(Consumer<Sort> consumer) {
-        if (sort != null) {
-            consumer.accept(sort);
-        }
+    public void sort(Consumer<Sort> consumer) {
+        consumer.accept(sort);
     }
 
+    @Deprecated
+    public void acceptSort(Consumer<Sort> consumer) {
+        consumer.accept(sort);
+    }
+
+    @Deprecated
     public void acceptPage(BiConsumer<Integer, Integer> consumer) {
         consumer.accept(page, pageSize);
     }
