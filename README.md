@@ -35,7 +35,7 @@ Maven
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.24</version>
+        <version>0.2.25</version>
     </dependency>
 </dependencies>
 ```
@@ -46,7 +46,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.24'
+    implementation 'com.github.hewuping:sqlte:0.2.25'
 }
 ```
 
@@ -231,12 +231,14 @@ public Page<Glossary> getList(GlossaryQuery query) {
         sql.select(Glossary.class).where(query);
         // PageQuery 类中包含一个可选参数 sort，用于实现对指定字段进行排序 
         sql.orderBy(order -> {
+            Sort sort = query.getSort();
             order.by("name", sort.get("name")); // 如果为 null 则忽略 (建议设置默认排序)
             // created_at 为表列名, 必须一致
             // createdAt 为接收前端传入值的参数名, 为自定义名称
             order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
             // order.by("created_at", sort.asc("createdAt")); // 同上
             // order.asc("created_at", sort.get("createdAt")); // 同上
+            // order.asc("created_at", query.getSort("createdAt")); // 同上 (推荐)
         });
         // 这里是 sql.limit(query.getPage(), query.getPageSize()) 的简写
         sql.paging(query);
