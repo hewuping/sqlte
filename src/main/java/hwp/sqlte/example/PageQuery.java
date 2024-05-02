@@ -2,10 +2,8 @@ package hwp.sqlte.example;
 
 import hwp.sqlte.Direction;
 import hwp.sqlte.Pageable;
-import hwp.sqlte.util.Sort;
+import hwp.sqlte.Sort;
 
-import java.util.Collections;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 

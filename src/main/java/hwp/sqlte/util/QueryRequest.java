@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import hwp.sqlte.Direction;
+import hwp.sqlte.Sort;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
