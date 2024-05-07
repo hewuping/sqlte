@@ -698,7 +698,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean            更新内容
      * @param table           表名, 可以为 null
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
+     * @param ignoreNullValue 是否忽略值为 null 的字段
      * @param where           条件
      * @return
      * @throws SqlteException
@@ -724,7 +724,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean            更新对象
      * @param table           表名, 可以为 null
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
+     * @param ignoreNullValue 是否忽略值为 null 的字段
      * @return 更新成功返回 true
      * @throws SqlteException
      */
@@ -737,7 +737,7 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param bean            更新对象
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
+     * @param ignoreNullValue 是否忽略值为 null 的字段
      * @return 更新成功返回 true
      * @throws SqlteException
      */
@@ -761,7 +761,7 @@ public interface SqlConnection extends AutoCloseable {
      * 更新单条记录
      *
      * @param bean            更新对象
-     * @param ignoreNullValue 是否 bean 中忽略值为 null 的字段
+     * @param ignoreNullValue 是否忽略值为 null 的字段
      * @return 更新成功返回 true
      * @throws SqlteException
      */

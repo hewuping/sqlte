@@ -334,14 +334,12 @@ public class Where {
                     continue;
                 }
                 String column = info.getColumn(field);
-                if (Range.class.isInstance(value)) {
-                    Range<?> range = (Range<?>) value;
-                    Objects.requireNonNull(range.getStart(), field.getName() + ".start 不能为NULL");
-                    Objects.requireNonNull(range.getEnd(), field.getName() + ".end 不能为NULL");
-                    where.and(Condition.between(column, range.getStart(), range.getEnd()));
+//                if (Range.class.isInstance(value)) {
+                if (value instanceof IRange) {
+                    where.and(Condition.between(column, (IRange<?>) value));
                     continue;
                 }
-                if (value.getClass().isArray() || value instanceof Condition || value instanceof Stream) {
+                if (value.getClass().isArray() || value instanceof Iterable || value instanceof Stream) {
                     where.and(Condition.in(column, value));
                     continue;
                 }

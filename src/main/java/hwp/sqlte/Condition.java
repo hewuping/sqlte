@@ -33,6 +33,14 @@ public class Condition {
         this.args = new Object[]{value};
     }
 
+    public static Condition isNull(String column) {
+        return new Condition(column + " IS NULL", new Object[0]);
+    }
+
+    public static Condition isNotNull(String column) {
+        return new Condition(column + " IS NOT NULL", new Object[0]);
+    }
+
     public static Condition eq(String column, Object value) {
         return new Condition(column, " = ", value);
     }
@@ -96,7 +104,7 @@ public class Condition {
      *               如果 {@code range.end = null}  则变为 {@code column <= begin}
      * @return
      */
-    public static Condition between(String column, Range<?> range) {
+    public static Condition between(String column, IRange<?> range) {
         return between(column, range.getStart(), range.getEnd());
     }
 

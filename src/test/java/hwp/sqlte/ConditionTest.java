@@ -10,6 +10,19 @@ import java.util.Arrays;
  * Created on 2021/2/19.
  */
 public class ConditionTest {
+
+    @Test
+    public void testIsNull() {
+        Condition con = Condition.isNull("name");
+        Assert.assertEquals("name IS NULL", con.sql());
+    }
+
+    @Test
+    public void testIsNotNull() {
+        Condition con = Condition.isNotNull("name");
+        Assert.assertEquals("name IS NOT NULL", con.sql());
+    }
+
     @Test
     public void testEq() {
         Condition con = Condition.eq("name", "Zero");

@@ -103,8 +103,9 @@ conn.batchInsert(users);
 
 **Query by ID**
 ```
-User user = conn.tryGet(User::new, 123);
-User user = conn.mustGet(User::new, 123);
+User user = conn.tryGet(User.class, 123);
+
+User user = conn.mustGet(User.class, 123);
 ```
 
 **Query first**

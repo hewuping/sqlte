@@ -1,6 +1,5 @@
 package hwp.sqlte;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -10,7 +9,7 @@ import java.util.Objects;
  *
  * @param <T>
  */
-public final class Range<T> implements Serializable {
+public final class Range<T> implements IRange<T> {
 
     private T start;
     private T end;
@@ -19,9 +18,9 @@ public final class Range<T> implements Serializable {
     public Range() {
     }
 
-    private Range(T start, T to) {
+    private Range(T start, T end) {
         this.start = start;
-        this.end = to;
+        this.end = end;
     }
 
     public static <T> Range<T> of(T start, T end) {
@@ -33,6 +32,12 @@ public final class Range<T> implements Serializable {
         return start;
     }
 
+    /**
+     * 获取 start, 如果 end 为null 则使用默认值
+     *
+     * @param def 默认值
+     * @return
+     */
     public T getStart(T def) {
         Objects.requireNonNull(def, "默认值不能为 NULL");
         return start == null ? def : start;
@@ -46,6 +51,12 @@ public final class Range<T> implements Serializable {
         return end;
     }
 
+    /**
+     * 获取 end, 如果 end 为null 则使用默认值
+     *
+     * @param def 默认值
+     * @return
+     */
     public T getEnd(T def) {
         Objects.requireNonNull(def, "默认值不能为 NULL");
         return end == null ? def : end;
@@ -55,10 +66,20 @@ public final class Range<T> implements Serializable {
         this.end = end;
     }
 
+    /**
+     * start 和 end 是否都为空(null和空字符串都认为是空)
+     *
+     * @return
+     */
     public boolean isEmpty() {
         return (start == null || "".equals(start)) && (end == null || "".equals(end));
     }
 
+    /**
+     * start 和 end 是都不为空
+     *
+     * @return
+     */
     public boolean isNotEmpty() {
         return !isEmpty();
     }
