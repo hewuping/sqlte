@@ -7,6 +7,9 @@ import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.FIELD;
 
+/**
+ * 小于或等于
+ */
 @Documented
 @Target({FIELD})
 @Retention(RetentionPolicy.RUNTIME)
