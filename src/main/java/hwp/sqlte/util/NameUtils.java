@@ -79,6 +79,17 @@ public class NameUtils {
         return builder.toString();
     }
 
+    public static String upperFisrt(String name) {
+        char c = name.charAt(0);
+        if (Character.isUpperCase(c)) {
+            return name;
+        }
+        if (name.length() == 1) {
+            return String.valueOf(Character.toUpperCase(c));
+        }
+        return Character.toUpperCase(c) + name.substring(1);
+    }
+
     public static void main(String[] args) {
         System.out.println(toUnderscore("upperCamel"));
         System.out.println(toUnderscore("UpperCamel"));

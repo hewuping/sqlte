@@ -331,7 +331,7 @@ public class Where {
                 if (value instanceof String && ((String) value).trim().isEmpty()) {
                     continue;
                 }
-                String column = info.getColumn(field);
+                String column = info.getColumn(field.getName());
 //                if (Range.class.isInstance(value)) {
                 if (value instanceof IRange) {
                     where.and(Condition.between(column, (IRange<?>) value));

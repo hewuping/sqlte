@@ -167,7 +167,7 @@ class SqlConnectionImpl implements SqlConnection {
             String[] pkColumns = info.getPkColumns();
             Where where = new Where();
             for (String k : pkColumns) {
-                where.and(k + "=?", info.getField(k).get(bean));
+                where.and(k + "=?", info.getFieldByColumn(k).get(bean));
             }
             Row first = query(sql -> sql.from(Objects.toString(table, info.getTableName())).where(where)).first();
             if (first == null) {
@@ -324,7 +324,7 @@ class SqlConnectionImpl implements SqlConnection {
             table = info.getTableName();
         }
         Map<String, Field> columnFieldMap = info.getColumnFieldMap();
-        if (columnFieldMap.size() == 0) {
+        if (columnFieldMap.isEmpty()) {
             throw new IllegalArgumentException("The bean must contain public fields");
         }
         List<String> columns = new ArrayList<>(columnFieldMap.size());
@@ -435,7 +435,7 @@ class SqlConnectionImpl implements SqlConnection {
                 loader.accept(bean -> {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
-                        Field field = info.getField(columns[i]);
+                        Field field = info.getFieldByColumn(columns[i]);
                         args[i] = Helper.getSerializedValue(bean, field);
                     }
                     executor.exec(args);
@@ -563,7 +563,7 @@ class SqlConnectionImpl implements SqlConnection {
             int nullCount = 0;
             for (int i = 0; i < _columns.length; i++) {
                 String column = _columns[i];
-                Field field = info.getField(column);
+                Field field = info.getFieldByColumn(column);
                 if (field == null) {
                     throw new IllegalArgumentException("No field mapping: " + column);
                 }
@@ -605,7 +605,7 @@ class SqlConnectionImpl implements SqlConnection {
                     throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
                 }
                 for (String k : pkColumns) {
-                    Field field = info.getField(k);
+                    Field field = info.getFieldByColumn(k);
                     Object idValue = field.get(bean);
                     if (idValue == null) {
                         throw new IllegalArgumentException("Key field value is null: " + field.getName());
@@ -767,12 +767,12 @@ class SqlConnectionImpl implements SqlConnection {
         return batchUpdate(sql, beans, (executor, item) -> {
             List<Object> args = new ArrayList<>(columns.length + pkColumns.length);
             for (String column : columns) {
-                Field field = info.getField(column);
+                Field field = info.getFieldByColumn(column);
                 Object value = Helper.getSerializedValue(item, field);
                 args.add(value);
             }
             for (String column : pkColumns) {
-                Field field = info.getField(column);
+                Field field = info.getFieldByColumn(column);
                 Object value = Helper.getSerializedValue(item, field);
                 args.add(value);
             }
@@ -854,7 +854,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             String sql = builder.toString();
             return this.batchUpdate(sql, beans, (executor, bean) -> {
-                Object[] values = info.getValuesByColumn(bean, pkColumns);
+                Object[] values = info.getValueByColumns(bean, pkColumns);
                 for (Object value : values) {
                     Objects.requireNonNull(value, "value must not be null");
                 }
@@ -1218,7 +1218,7 @@ class SqlConnectionImpl implements SqlConnection {
             String name = metaData.getColumnLabel(i);
             if (isOnlyGenerateID()) {
                 String idColumn = returnColumns[0];
-                Field f = info.getField(idColumn);
+                Field f = info.getFieldByColumn(idColumn);
                 if (f != null) {
                     Object id = keys.getObject(1, f.getType());//bug: MySQL driver 5.1.6 is not support
                     f.set(bean, id);
@@ -1227,7 +1227,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             for (String column : info.getColumns()) {
                 if (column.equalsIgnoreCase(name)) {
-                    Field f = info.getField(column);
+                    Field f = info.getFieldByColumn(column);
                     if (f != null) {
                         Object id = keys.getObject(i, f.getType());
                         f.set(bean, id);

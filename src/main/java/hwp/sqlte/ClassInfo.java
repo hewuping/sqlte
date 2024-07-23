@@ -24,8 +24,7 @@ public class ClassInfo {
     private String[] insertColumns;//排除自动生成的列
     private String[] updateColumns;
 
-    private final Map<Field, String> fieldColumnMap = new HashMap<>();
-    private final Map<String, String> fieldNameColumnMap = new HashMap<>();
+    private final Map<String, String> fieldColumnNameMap = new HashMap<>();
     private final Map<String, Field> columnFieldMap = new LinkedHashMap<>();
 
 //    private Map<String, Class<?>> typeMap = new HashMap<>();
@@ -67,8 +66,7 @@ public class ClassInfo {
                 columnName = column.name();
             }
             this.columnFieldMap.put(columnName, field);
-            this.fieldColumnMap.put(field, columnName);
-            this.fieldNameColumnMap.put(field.getName(), columnName);
+            this.fieldColumnNameMap.put(field.getName(), columnName);
             Id id = field.getAnnotation(Id.class);
             if (id != null) {
                 pkColumnList.add(columnName);
@@ -86,14 +84,8 @@ public class ClassInfo {
         }
 
         //columns, fields
-        Counter index = new Counter();
-        this.columns = new String[columnFieldMap.size()];
-        this.fields = new Field[columnFieldMap.size()];
-        columnFieldMap.forEach((column, field) -> {
-            this.columns[index.get()] = column;
-            this.fields[index.get()] = field;
-            index.add(1);
-        });
+        this.columns = columnFieldMap.keySet().toArray(new String[0]);
+        this.fields = columnFieldMap.values().toArray(new Field[0]);
         this.pkColumns = pkColumnList.toArray(new String[0]);
         this.autoGenerateColumns = autoGenerateColumnList.toArray(new String[0]);
         //insert Columns
@@ -140,8 +132,16 @@ public class ClassInfo {
      * @param column
      * @return
      */
-    public Field getField(String column) {
+    public Field getFieldByColumn(String column) {
         return columnFieldMap.get(column);
+    }
+
+    public Field[] getFieldByColumns(String[] columns) {
+        Field[] fields = new Field[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            fields[i] = getFieldByColumn(columns[i]);
+        }
+        return fields;
     }
 
     /**
@@ -151,38 +151,43 @@ public class ClassInfo {
      * @param columns
      * @return
      */
-    Object[] getValuesByColumn(Object obj, String[] columns) {
+    Object[] getValueByColumns(Object obj, String[] columns) {
         Objects.requireNonNull(obj, "'obj' is null");
         Objects.requireNonNull(columns, "'columns' is null");
         Object[] values = new Object[columns.length];
         for (int i = 0; i < columns.length; i++) {
             String column = columns[i];
-            Field field = this.getField(column);
+            Field field = this.getFieldByColumn(column);
             Object value = Helper.getSerializedValue(obj, field);
             values[i] = value;
         }
         return values;
     }
 
-    Object getValueByColumn(Object obj, String column) {
-        Objects.requireNonNull(obj, "'obj' is null");
-        Objects.requireNonNull(column, "'column' is null");
-        Field field = this.getField(column);
-        return Helper.getSerializedValue(obj, field);
-    }
-
-    public String getColumn(Field field) {
-        return fieldColumnMap.get(field);
-    }
-
+    /**
+     * 根据类字段名获取表列名
+     *
+     * @param fieldName
+     * @return
+     */
     public String getColumn(String fieldName) {
-        return fieldNameColumnMap.get(fieldName);
+        return fieldColumnNameMap.get(fieldName);
     }
 
+    /**
+     * 获取类中所有与表列映射的字段
+     *
+     * @return
+     */
     public Field[] getFields() {
         return fields;
     }
 
+    /**
+     * 获取表所有列名
+     *
+     * @return
+     */
     public String[] getColumns() {
         return columns;
     }

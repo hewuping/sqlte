@@ -219,4 +219,14 @@ class Helper {
         }
     }*/
 
+    public static Object[] getFieldValues(Object instance, Field[] fields) {
+        Objects.requireNonNull(instance, "'instance' is null");
+        Objects.requireNonNull(fields, "'fields' is null");
+        Object[] values = new Object[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            values[i] = getSerializedValue(instance, fields[i]);
+        }
+        return values;
+    }
+
 }

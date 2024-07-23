@@ -34,14 +34,15 @@ public class ConversionServiceTest {
 
     @Test
     public void testBoolean() {
-        Boolean b = service.convert(Boolean.TRUE, Boolean.TYPE);
-        Assert.assertTrue(b);
+        Assert.assertTrue(service.convert(Boolean.TRUE, Boolean.class));
+        Assert.assertTrue(service.convert(true, Boolean.class));
     }
 
     @Test
-    public void testBoolean2Boolean() {
-        Boolean b = service.convert(Boolean.TRUE, Boolean.class);
-        Assert.assertTrue(b);
+    public void testInteger2Boolean() {
+        Assert.assertTrue(service.convert(2, Boolean.TYPE));
+        Assert.assertTrue(service.convert(1, Boolean.TYPE));
+        Assert.assertFalse(service.convert(0, Boolean.TYPE));
     }
 
     @Test

@@ -75,8 +75,10 @@ final class DefaultConversionService implements ConversionService {
         register(Byte.class, String.class, Object::toString);
         register(Short.class, String.class, Object::toString);
         register(Short.class, Boolean.class, v -> v > 0);
+        register(Short.class, Boolean.TYPE, v -> v > 0);
         register(Integer.class, String.class, Object::toString);
         register(Integer.class, Boolean.class, v -> v > 0);
+        register(Integer.class, Boolean.TYPE, v -> v > 0);
         register(Integer.class, LocalTime.class, seconds -> LocalTime.ofSecondOfDay(seconds));
         register(Long.class, String.class, Object::toString);
         register(Long.class, Boolean.class, v -> v > 0);
