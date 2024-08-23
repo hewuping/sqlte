@@ -27,8 +27,6 @@ public class ClassInfo {
     private final Map<String, String> fieldColumnNameMap = new HashMap<>();
     private final Map<String, Field> columnFieldMap = new LinkedHashMap<>();
 
-//    private Map<String, Class<?>> typeMap = new HashMap<>();
-
     public static ClassInfo getClassInfo(Class<?> clazz) {
         Objects.requireNonNull(clazz);
         ClassInfo info = map.get(clazz);
@@ -114,9 +112,9 @@ public class ClassInfo {
         return pkColumns[0];
     }
 
-    boolean hasIds() {
-        return pkColumns.length > 0;
-    }
+//    boolean hasPrimaryKeys() {
+//        return pkColumns.length > 0;
+//    }
 
     String[] getPkColumns() {
         return pkColumns;

@@ -50,7 +50,16 @@ dependencies {
 }
 ```
 
+## 约定
+
+- 字段必须使用 `public` 声明, 不使用 `get`/`set`
+
 ## Example
+
+```java
+var config = Sql.config();
+config.setDataSource(dataSource);
+```
 
 ```java
 @Table(name = "users")
@@ -110,9 +119,11 @@ User user = conn.mustGet(User.class, 123);
 
 **Query first**
 ```java
-SqlConnection conn = Sql.open();
-User user = conn.query("select * from users where email=? limit 1", "xxx@xxx.com").first(User::new);
-conn.close();
+conn.query("select * from users where email=? limit 1", "xxx@xxx.com").first(User::new);
+
+conn.first(User.class, user -> { user.username="xxx"; });
+
+conn.firstExample(new User("username"))
 ```
 
 **Query by Example**
@@ -151,22 +162,47 @@ User user = conn.query(sql->sql.select(User.class)).where(new User("Active"));
 
 ```java
 conn.delete(user)
+conn.delete(user, "table_name")
+conn.delete(User.class, where->{})
+conn.delete("table_name", where->{})
+conn.deleteByExample(example)
 ```
 
 **Update**
 
 ```java
+user.uername = "new name";
+conn.update(user);
+```
+
+```java
+// Update specified fields
+conn.update(user, "column1, column2, column3...");// true: ignoreNullValue
+// Update specified fields and ignore null values
+conn.update(user, "column1, column2, column3...", true);
+
+conn.update("table_name", map, where->{});
+
 conn.update("users", row -> {
     row.set("username", "zero00").set("email", "zero@example.com");
 }, where -> {
     where.and("id = ?", 123);
 });
+
+// For more update operations, see SqlConnection.java
 ```
 
+**Batch Update**
+
 ```java
-user.uername = "new name";
-conn.update(user, "username", true);
+List<User> users=...
+conn.batchUpdate(users)
+conn.batchUpdate(users, "table_name")
+conn.batchUpdate(users, null, "column1, column2, column3...")
+
 ```
+
+
 
 ## SqlBuilder
 
@@ -248,7 +284,7 @@ public Page<Glossary> getList(GlossaryQuery query) {
 ```
 
 
-## Spring
+## Spring Integration
 
 ```java
 @Bean

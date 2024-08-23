@@ -4,7 +4,6 @@ import hwp.sqlte.util.ClassUtils;
 
 import java.io.Reader;
 import java.io.Serializable;
-import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 import java.util.function.*;
@@ -298,7 +297,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * <blockquote><pre>
      * first(User.class, user -> {
-     *     user.username=="xxx";
+     *     user.username="xxx";
      * });
      * </pre></blockquote>
      *
@@ -319,7 +318,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * <blockquote><pre>
      * firstExample(User::new, user -> {
-     *     user.username=="xxx";
+     *     user.username="xxx";
      * });
      * </pre></blockquote>
      *
@@ -1096,7 +1095,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @return
      * @throws SqlteException
+     * @Deprecated 这是一个错误的设计
      */
+    @Deprecated
     BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
@@ -1212,35 +1213,6 @@ public interface SqlConnection extends AutoCloseable {
         });
         action.end();
     }
-
-    /**
-     * @param query  查询条件 Example
-     * @param update 更新字段, 非 null 值
-     * @param <T>
-     * @throws SqlteException
-     * @since 0.2.24
-    default <T> void batchUpdate(T query, Consumer<T> update) throws SqlteException {
-    ClassInfo info = ClassInfo.getClassInfo(query.getClass());
-    Field[] fields = info.getFields();
-    List<String> columns = new ArrayList<>();
-    List<Object> values = new ArrayList<>();
-    try {
-    for (Field field : fields) {
-    String column = info.getColumn(field);
-    Object value = field.get(update);
-    if (value != null) {
-    columns.add(column);
-    values.add(value);
-    }
-    }
-    } catch (IllegalAccessException e) {
-
-    }
-    executeUpdate(sql -> {
-    sql.update(info.getTableName(), String.join(",", columns), values.toArray()).where(query);
-    });
-    }*/
-
 
     /**
      * 批量保存(批量插入或更新)
