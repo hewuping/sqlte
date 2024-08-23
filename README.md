@@ -126,6 +126,20 @@ conn.first(User.class, user -> { user.username="xxx"; });
 conn.firstExample(new User("username"))
 ```
 
+**Query list**
+
+```java
+conn.query(sql).list(User.class);// by sql string
+conn.query(sql->{}).list(User.class); // by SqlBuilder
+
+conn.list(User.class, where -> {});
+conn.list(User.class, List.of(100, 101, 102));// by ID
+
+conn.listExample(User.class, query->{});// by example
+conn.listExample(User.class, new UserQuery());// by example
+conn.listExample(new User());// by example
+```
+
 **Query by Example**
 
 ```java
@@ -149,12 +163,13 @@ class UserQuery {
     public String status = "Active"; // status = "Active"
 }
 
-User user = conn.query(sql->sql.select(User.class)).where(new UserQuery());
+List<User> list = conn.query(sql->sql.select(User.class).where(new UserQuery())).list(User.class);
 
 // sql:  SELECT * FROM user WHERE (id BETWEEN ? AND ?) AND name LIKE ? AND deposit <= ? AND age IN (?, ?, ?) AND status = ?
 // args: [10, 30, z%, 1000, 16, 18, 20, Active]
 
-User user = conn.query(sql->sql.select(User.class)).where(new User("Active"));
+conn.query(sql->sql.select(User.class).where(new User("Active"))).list(User.class);
+conn.query(sql->sql.select(User.class).where(new User("Active"))).list(UserVo.class);
 ```
 
 
@@ -199,7 +214,6 @@ List<User> users=...
 conn.batchUpdate(users)
 conn.batchUpdate(users, "table_name")
 conn.batchUpdate(users, null, "column1, column2, column3...")
-
 ```
 
 
