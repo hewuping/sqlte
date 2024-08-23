@@ -266,17 +266,17 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, null));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler, psConsumer));
     }
 

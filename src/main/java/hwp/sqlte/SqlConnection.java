@@ -1039,7 +1039,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return 返回 BatchUpdateResult
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
+    default <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return batchInsert(loader, clazz, table, null, null);
     }
 
@@ -1065,14 +1065,14 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
+    default <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
         return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      */
-    <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
+    <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
 
     /**
      * 批量更新

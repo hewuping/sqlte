@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -277,17 +276,17 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return delegate.batchInsert(loader, clazz, table);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
         return delegate.batchInsert(loader, clazz, table, sqlHandler);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         return delegate.batchInsert(loader, clazz, table, sqlHandler, psConsumer);
     }
 

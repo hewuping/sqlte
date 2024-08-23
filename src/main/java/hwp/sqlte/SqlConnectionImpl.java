@@ -410,12 +410,12 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
         return this.batchInsert(loader, clazz, table, null);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
 //        ClassInfo info = ClassInfo.getClassInfo(clazz);
 //        boolean hasGks = info.getAutoGenerateColumns().length > 0;
         //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
@@ -423,7 +423,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(Loader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
         ClassInfo info = ClassInfo.getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
@@ -432,7 +432,7 @@ class SqlConnectionImpl implements SqlConnection {
         String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
             return batchUpdate(stat, 500, executor -> {
-                loader.accept(bean -> {
+                loader.load(bean -> {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
                         Field field = info.getFieldByColumn(columns[i]);
