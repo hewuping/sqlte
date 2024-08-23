@@ -291,11 +291,6 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(table, columns, whereConsumer, consumer));
-    }
-
-    @Override
     public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
         return run(conn -> conn.batchInsert(table, columns, consumer));
     }

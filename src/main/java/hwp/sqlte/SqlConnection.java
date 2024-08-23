@@ -1002,6 +1002,23 @@ public interface SqlConnection extends AutoCloseable {
     <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException;
 
     /**
+     * 批量插入, 例如:
+     * <blockquote><pre>
+     * conn.batchInsert("users", "email, username", executor -> {
+     *      executor.exec("bb@example.com", "bb");
+     *      executor.exec("aa@example.com", "aa");
+     * });
+     * </pre></blockquote>
+     *
+     * @param table
+     * @param columns
+     * @param consumer
+     * @return
+     * @throws SqlteException
+     */
+    BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException;
+
+    /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      *
      * <pre>{@code
@@ -1071,11 +1088,19 @@ public interface SqlConnection extends AutoCloseable {
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
 
     /**
-     * 批量更新
+     * 批量插入或更新
      * <blockquote><pre>
      * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
      *      executor.exec("bb@example.com", "bb");
      *      executor.exec("aa@example.com", "aa");
+     * });
+     * </pre></blockquote>
+     * <p>
+     * 批量更新
+     * <blockquote><pre>
+     * conn.batchUpdate("UPDATE xxx SET locked=? WHERE id=?", executor -> {
+     *      executor.exec(true, "101");
+     *      executor.exec(false, "102");
      * });
      * </pre></blockquote>
      *
@@ -1086,36 +1111,7 @@ public interface SqlConnection extends AutoCloseable {
      */
     BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException;
 
-    /**
-     * 批量更新
-     *
-     * @param table
-     * @param columns
-     * @param whereConsumer
-     * @param consumer
-     * @return
-     * @throws SqlteException
-     * @Deprecated 这是一个错误的设计
-     */
-    @Deprecated
-    BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException;
 
-    /**
-     * 批量插入, 例如:
-     * <blockquote><pre>
-     * conn.batchInsert("users", "email, username", executor -> {
-     *      executor.exec("bb@example.com", "bb");
-     *      executor.exec("aa@example.com", "aa");
-     * });
-     * </pre></blockquote>
-     *
-     * @param table
-     * @param columns
-     * @param consumer
-     * @return
-     * @throws SqlteException
-     */
-    BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException;
 
     /**
      * 批量更新

@@ -302,11 +302,6 @@ class SqlConnectionCacheWrapper implements SqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String table, String columns, Consumer<Where> whereConsumer, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return delegate.batchUpdate(table, columns, whereConsumer, consumer);
-    }
-
-    @Override
     public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
         return delegate.batchInsert(table, columns, consumer);
     }
