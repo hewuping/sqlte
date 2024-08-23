@@ -14,10 +14,12 @@ public class Where {
     private final StringBuilder whereBuilder = new StringBuilder();
     private final List<Object> whereArgs = new ArrayList<>(4);
 
-    protected boolean disableWarnings;
+    protected boolean warnOnEmpty;//当条件为空时, 输出警告信息
+    protected boolean canBeEmpty;//可以为空
 
     public static final Consumer<Where> EMPTY = where -> {
-        where.disableWarnings = true;
+        where.warnOnEmpty = false;
+        where.canBeEmpty = true;
     };
 
     public Where() {
@@ -431,6 +433,16 @@ public class Where {
     @Override
     public String toString() {
         return sql();
+    }
+
+    protected void check() {
+        if (canBeEmpty) {
+            return;
+        }
+        if (isEmpty()) {
+            // Unconditional deletion of data is not allowed
+            throw new WhereException("The WHERE clause is empty");
+        }
     }
 
 }

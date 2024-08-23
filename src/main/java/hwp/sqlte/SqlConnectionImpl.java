@@ -615,6 +615,7 @@ class SqlConnectionImpl implements SqlConnection {
             } else {
                 where.accept(where0);
             }
+            where0.check();
             builder.where(where0);
             return executeUpdate(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
@@ -829,7 +830,7 @@ class SqlConnectionImpl implements SqlConnection {
             }
             String[] pkColumns = info.getPkColumns();
             if (pkColumns.length == 0) {
-                throw new IllegalArgumentException("The class unspecified ID field: " + info.className());
+                throw new SqlteException("The class unspecified ID field: " + info.className());
             }
             StringBuilder builder = new StringBuilder();
             builder.append("DELETE FROM ").append(table);
@@ -849,13 +850,15 @@ class SqlConnectionImpl implements SqlConnection {
                 executor.exec(values);
             });
         } catch (Exception e) {
-            throw new SqlteException(e);
+            throw SqlteException.warp(e);
         }
     }
 
 
     @Override
     public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
+        Objects.requireNonNull(where, "where must not be null");
+        where.check();
         SqlBuilder builder = new SqlBuilder();
         builder.append("UPDATE ").append(table).append(" SET ");
         Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();

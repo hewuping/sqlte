@@ -354,7 +354,7 @@ public class SqlBuilder implements Builder, Sql {
             this.append("WHERE ").append(where.sql());
             this.args.addAll(where.args());
         }
-        if (!where.disableWarnings && where.isEmpty()) {
+        if (where.warnOnEmpty && where.isEmpty()) {
             logger.warn("Missing condition in where");
         }
         return this;

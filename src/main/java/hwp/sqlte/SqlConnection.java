@@ -692,20 +692,20 @@ public interface SqlConnection extends AutoCloseable {
     void insertIgnore(Object bean, String table) throws SqlteException;
 
     /**
-     * 根据条件更新多条记录
+     * 根据条件更新多条记录 (安全更新)
      *
      * @param bean            更新内容
      * @param table           表名, 可以为 null
      * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
      * @param ignoreNullValue 是否忽略值为 null 的字段
-     * @param where           条件
+     * @param where           更新条件, 条件不能为空
      * @return
      * @throws SqlteException
      */
     boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException;
 
     /**
-     * 根据条件更新多条记录
+     * 根据条件更新多条记录 (安全更新)
      *
      * @param bean  更新内容
      * @param table 表名, 可以为 null
@@ -718,7 +718,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 更新单条记录
+     * 更新单条记录 (安全更新)
      *
      * @param bean            更新对象
      * @param table           表名, 可以为 null
@@ -835,7 +835,7 @@ public interface SqlConnection extends AutoCloseable {
     boolean delete(Object bean, String table) throws SqlteException;
 
     /**
-     * 根据条件删除多条记录
+     * 根据条件删除多条记录 (安全删除)
      *
      * @param table         表名, 必须
      * @param whereConsumer 条件, 必须
@@ -847,9 +847,7 @@ public interface SqlConnection extends AutoCloseable {
         Objects.requireNonNull(whereConsumer);
         Where where = new Where();
         whereConsumer.accept(where);
-        if (where.isEmpty() && whereConsumer != Where.EMPTY) {
-            throw new IllegalArgumentException("Dangerous deletion without cause is not supported");
-        }
+        where.check();
         return this.executeUpdate(sql -> {
             sql.delete(table).where(where);
         });
@@ -857,7 +855,7 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 根据条件删除多条记录
+     * 根据条件删除多条记录 (安全删除)
      *
      * @param clazz
      * @param whereConsumer 条件, 必须
@@ -870,7 +868,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 根据条件删除多条记录, 全部条件使用 = 和 AND
+     * 根据条件删除多条记录 (安全删除), 全部条件使用 = 和 AND
      * <pre>{@code
      *  conn.deleteByMap(User.class, map->{
      *      map.put("age", 18);
@@ -892,7 +890,7 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 删除相似数据
+     * 删除相似数据 (安全删除)
      *
      * @param example
      * @return
@@ -903,7 +901,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 删除相似数据
+     * 删除相似数据 (安全删除)
      *
      * @param clazz
      * @param consumer
@@ -958,11 +956,11 @@ public interface SqlConnection extends AutoCloseable {
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
 
     /**
-     * 批量更新
+     * 批量插入/更新
      *
-     * @param sql
-     * @param it
-     * @param consumer
+     * @param sql      自定义 SQL
+     * @param it       待更新或插入的数据
+     * @param consumer 设置 SQL 中的参数值
      * @param <T>
      * @throws SqlteException
      */
@@ -994,7 +992,7 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param beans      不能为 null
      * @param table      如果为 null, 会取 list 中的第一个对象映射的表名
-     * @param sqlHandler
+     * @param sqlHandler SQL 处理器
      * @param <T>
      * @return
      * @throws SqlteException
@@ -1059,8 +1057,8 @@ public interface SqlConnection extends AutoCloseable {
      *
      * @param loader
      * @param clazz
-     * @param table
-     * @param sqlHandler
+     * @param table      表名, 可以为 null, 默认通过类名/注解获取
+     * @param sqlHandler SQL 处理器, 可以为 null
      * @param <T>
      * @return
      * @throws SqlteException
@@ -1071,6 +1069,26 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
+     *
+     * <pre>{@code
+     * conn.batchInsert(it -> {
+     *      for (int i = 0; i < size; i++) {
+     *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
+     *          user.id = i;
+     *          user.updated_time = new Date();
+     *          it.accept(user);
+     *      }
+     * }, User.class, "users", null, null);
+     * } </pre>
+     *
+     * @param loader
+     * @param clazz
+     * @param table      表名, 可以为 null, 默认通过类名/注解获取
+     * @param sqlHandler SQL 处理器, 可以为 null
+     * @param psConsumer 可以获取每个批次受影响行数
+     * @param <T>
+     * @return
+     * @throws SqlteException
      */
     <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
 
@@ -1088,7 +1106,9 @@ public interface SqlConnection extends AutoCloseable {
     <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
 
     /**
-     * 批量插入或更新
+     * 批量更新(插入/更新/删除), 比忘了添加条件
+     * <p>
+     * 批量插入例子
      * <blockquote><pre>
      * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
      *      executor.exec("bb@example.com", "bb");
@@ -1096,7 +1116,7 @@ public interface SqlConnection extends AutoCloseable {
      * });
      * </pre></blockquote>
      * <p>
-     * 批量更新
+     * 批量更新例子
      * <blockquote><pre>
      * conn.batchUpdate("UPDATE xxx SET locked=? WHERE id=?", executor -> {
      *      executor.exec(true, "101");
@@ -1104,7 +1124,7 @@ public interface SqlConnection extends AutoCloseable {
      * });
      * </pre></blockquote>
      *
-     * @param sql      更新 SQL 语句
+     * @param sql      自定义 SQL 语句
      * @param consumer 设置参数
      * @return
      * @throws SqlteException
@@ -1112,13 +1132,28 @@ public interface SqlConnection extends AutoCloseable {
     BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException;
 
 
-
     /**
-     * 批量更新
+     * 批量更新(插入/更新/删除), 比忘了添加条件
+     * <p>
+     * 批量插入例子
+     * <blockquote><pre>
+     * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", 1000, executor -> {
+     *      executor.exec("bb@example.com", "bb");
+     *      executor.exec("aa@example.com", "aa");
+     * });
+     * </pre></blockquote>
+     * <p>
+     * 批量更新例子
+     * <blockquote><pre>
+     * conn.batchUpdate("UPDATE xxx SET locked=? WHERE id=?", 1000, executor -> {
+     *      executor.exec(true, "101");
+     *      executor.exec(false, "102");
+     * });
+     * </pre></blockquote>
      *
-     * @param sql
-     * @param batchSize
-     * @param consumer
+     * @param sql       自定义 SQL 语句
+     * @param batchSize 批次大小
+     * @param consumer  设置参数
      * @return
      * @throws SqlteException
      */
