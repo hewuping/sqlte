@@ -10,7 +10,7 @@ H2|1.4.197
 
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
-## install
+## Install from Source
 
 ```bash
 ./gradlew build
@@ -21,9 +21,8 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
  compile group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
 ```
 
-**use jitpack**
+## Install from Maven
 
-Maven
 ```xml
 <repositories>
     <repository>
@@ -39,7 +38,9 @@ Maven
     </dependency>
 </dependencies>
 ```
-Gradle
+
+## Install from Gradle
+
 ```groovy
 repositories {
     mavenCentral()
@@ -53,13 +54,14 @@ dependencies {
 ## 注意事项
 
 - 字段必须使用 `public` 声明, 否则字段会被忽略, 不使用 `get`/`set` 方法
-- 这不是 ORM 框架, 这里用到的都是表的的列名, 而不是类属性名
+- 不同于 ORM 框架, `sqlte`用到的都是表的列名, 而不是类属性名
 
-## Example
+## Tutorial
 
 ```java
 var config = Sql.config();
 config.setDataSource(dataSource);
+SqlConnection conn = Sql.open();
 ```
 
 ```java
@@ -187,14 +189,18 @@ conn.update(user);
 
 ```java
 // Update specified fields
-conn.update(user, "column1, column2, column3...");// true: ignoreNullValue
+conn.update(user, "column1, column2, column3...");
 // Update specified fields and ignore null values
-conn.update(user, "column1, column2, column3...", true);
-
+conn.update(user, "column1, column2, column3...", true); // ignoreNullValue = true
+// Use map
+map.put("foo1", "bar1");
+map.put("foo2", "bar2");
 conn.update("table_name", map, where->{});
-
+// Use lambda
 conn.update("users", row -> {
-    row.set("username", "zero00").set("email", "zero@example.com");
+    // row.set("foo1", "bar2").set("foo2", "bar2");
+    row.set("foo1", "bar1");
+    row.set("foo2", "bar2");
 }, where -> {
     where.and("id = ?", 123);
 });
@@ -207,11 +213,9 @@ conn.update("users", row -> {
 ```java
 List<User> users=...
 conn.batchUpdate(users)
-conn.batchUpdate(users, "table_name")
-conn.batchUpdate(users, null, "column1, column2, column3...")
+conn.batchUpdate(users, "table_02") // 特定表
+conn.batchUpdate(users, "table_02", "column1, column2, column3...") // 特定表, 且仅更新指定的列 
 ```
-
-
 
 ## SqlBuilder
 
@@ -237,6 +241,22 @@ sql.orderBy(order -> {
 sql.limit(1, 20);
 
 List<User> users = conn.query(sql).list(User::new);
+```
+虽然 `SqlBuilder` 中提供了 `select` `from` 等关键字方法, 但不强制使用, 很多时候 Java 文本块会是更好的选择
+
+比如:
+```java
+SqlBuilder sql = new SqlBuilder();
+// 在 Navicat 中写好的SQL直接复制过来
+sql.sql("""
+SELECT orders.order_id, customers.customer_name, orders.order_date
+FROM orders
+INNER JOIN customers ON orders.customer_id=customers.customer_id
+""");
+// 如果查询条件也不需要动态构建, WHERE 也可以直接添加到上面的文本块中 
+sql.where(where -> {
+    // ...
+});
 ```
 
 `Where` 动态构建查询条件
@@ -273,10 +293,60 @@ where.of(Object example) // 根据对象生成查询条件, 忽略值为 null �
 ...
 ```
 
-## QuerySql
+`CTE` 的用法
+```sql
+WITH customer_orders AS (
+  SELECT customer_id, 
+         COUNT(*) AS order_count, 
+         SUM(total_amount) AS total_amount, 
+         AVG(total_amount) AS avg_amount
+  FROM orders
+  GROUP BY customer_id
+),
+ranked_customers AS (
+  SELECT c.name, o.avg_amount, 
+         DENSE_RANK() OVER (ORDER BY o.avg_amount DESC) AS rank
+  FROM customer_orders o 
+  JOIN customers c ON o.customer_id = c.id
+)
+SELECT name, avg_amount
+FROM ranked_customers
+WHERE rank <= 5;
+```
 
 ```java
-QuerySql sql = new QuerySql();
+conn.query(sql -> {
+    // with 中的查询不需要动态构建查询条件, 建议使用Java 文本块而不是通过 with() 方法构建SQL
+    sql.with(cte -> {
+        cte.set("customer_orders", sb -> {
+            //SELECT customer_id,
+            //       COUNT(*) AS order_count,
+            //       SUM(total_amount) AS total_amount,
+            //       AVG(total_amount) AS avg_amount
+            //FROM orders
+            //GROUP BY customer_id
+        });
+        cte.set("ranked_customers", sb -> {
+            //SELECT c.name, o.avg_amount,
+            //       DENSE_RANK() OVER (ORDER BY o.avg_amount DESC) AS rank
+            //FROM customer_orders o
+            //JOIN customers c ON o.customer_id = c.id
+        });
+    });
+    sql.select("name, avg_amount");
+    sql.from("ranked_customers");
+    sql.where(where -> {
+        where.and("rank <= ?", 5);
+    });
+});
+```
+
+## Query
+
+建议使用功能更完善的 `SqlBuilder`
+
+```java
+Query sql = new Query();
 sql.select("*").from("user").where(where -> {
     where.and("created_at > ?", new Date());
     where.and("age > ?", 10);
@@ -333,8 +403,94 @@ public Page<Glossary> getList(GlossaryQuery query) {
 }
 ```
 
+## Json Serializer
+
+配置 `JsonSerializer`，使得数据存储时，将字段值转为 JSON。
+
+注意：由于Java的泛型不是真正的泛型，在JSON反序列化时可能会出现问题。 也许使用数组代替集合会是更好的选择。
+
+```java
+var config = Sql.config();
+config.setJsonSerializer(new JacksonSerializer());
+```
+
+```java
+public class GsonSerializer implements JsonSerializer {
+    private final Gson gson;
+
+    public GsonSerializer() {
+        this.gson = new Gson();
+    }
+
+    public GsonSerializer(Gson gson) {
+        this.gson = gson;
+    }
+
+    public <T> T fromJson(String json, Class<T> aClass) {
+        return this.gson.fromJson(json, aClass);
+    }
+
+    public String toJson(Object o) {
+        return this.gson.toJson(o);
+    }
+}
+```
+
+```java
+public class JacksonSerializer implements JsonSerializer {
+
+    private ObjectMapper instance = new ObjectMapper();
+
+    public JacksonSerializer() {
+        mapper.registerModule(new SimpleModule());
+        mapper.registerModule(new JavaTimeModule());
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);//ISO
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        // 其他配置
+    }
+
+    @Override
+    public <T> T fromJson(String json, Class<T> classOfT) {
+        try {
+            return instance.readValue(json, classOfT);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public String toJson(Object src) {
+        try {
+            return instance.writeValueAsString(src);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}
+```
+
+用法
+
+```java
+public class Foo {
+    public String f1;
+    public String f2;
+}
+
+@Table(name="bar")
+public class Bar {
+    @Column(json=true)
+    public Foo foo;
+}
+// 存储 Bar 时, foo 的值会被转为 JSON
+```
 
 ## Spring Integration
+
+`SqlteTemplate` 实现了 `SqlConnection` 接口, 但是每次查询/更新操作都会通过`open()`获取连接, 执行完后自动关闭连接,
+这里将两个方法的实现委托给 Spring JDBC  DataSourceUtils 对应的方法, 以便使用 Spring 的事务管理
 
 ```java
 @Bean
@@ -356,3 +512,4 @@ public SqlteTemplate sqlteTemplate(DataSource dataSource) {
     };
 }
 ```
+
