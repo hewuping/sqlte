@@ -78,8 +78,8 @@ public class User {
 
 ```java
 User user = new User("May", "may@xxx.com", "123456");
-conn.insert(user);
-conn.insert(user, "users");
+conn.insert(user); // 插入到默认表
+conn.insert(user, "users_1"); // 插入到特定表
 ```
 
 **Batch insert**
@@ -99,22 +99,16 @@ conn.batchInsert("users", "email, username", executor -> {
 OR
 ```java
 List<User> users = new ArrayList<>();
-int size = 20;
-for (int i = 0; i < size; i++) {
-    User user = new User("zero" + i, "zero@xxx.com", "123456");
-    user.id = i;
-    user.password_salt = "***";
-    users.add(user);
-}
-conn.batchInsert(users);
-// conn.batchInsert(users, "users");
+// ...
+conn.batchInsert(users); // 插入到默认表
+conn.batchInsert(users, "users_1"); // 插入到特定表
 ```
 
 **Query by ID**
 ```
-User user = conn.tryGet(User.class, 123);
+User user = conn.tryGet(User.class, 123); // 不存在返回 null
 
-User user = conn.mustGet(User.class, 123);
+User user = conn.mustGet(User.class, 123); // 不存在抛异常
 ```
 
 **Query first**
@@ -149,7 +143,6 @@ class User {
     public Integer deposit;
     public Integet age;
     public String status;
-    
     //...
 }
 
@@ -255,9 +248,18 @@ sql.select("*").from("user").where(where -> {
 }).groupBy("uid").orderBy("name desc");
 ```
 
-## Pageable
+## Pageable 接口
 
-这是一个实现复杂查询与分页的接口
+```java
+public interface Pageable {
+
+    int getPage();
+
+    int getPageSize();
+    
+}
+```
+`PageQuery` 是一个实现 `Pageable` 接口, 并支持排序的工具类, 也可以自己实现 `Pageable`
 
 例子：创建一个 GlossaryQuery 类接收前端查询参数
 
@@ -287,12 +289,11 @@ public Page<Glossary> getList(GlossaryQuery query) {
             // created_at 为表列名, 必须一致
             // createdAt 为接收前端传入值的参数名, 为自定义名称
             order.by("created_at", sort.getOrDefault("createdAt", Direction.ASC)); // 如果为 null 则使用 升序
-            // order.by("created_at", sort.asc("createdAt")); // 同上
-            // order.asc("created_at", sort.get("createdAt")); // 同上
-            // order.asc("created_at", query.getSort("createdAt")); // 同上 (推荐)
+            // order.by("created_at", sort.asc("createdAt")); // 同上, 默认使用升序
+            // order.asc("created_at", sort.get("createdAt")); // 同上, 默认使用升序
+            // order.asc("created_at", query.getSort("createdAt")); // 同上, 默认使用升序 (推荐)
         });
-        // 这里是 sql.limit(query.getPage(), query.getPageSize()) 的简写
-        sql.paging(query);
+        sql.paging(query); // sql.limit(query.getPage(), query.getPageSize()) 的简写
     }, Glossary::new);
 }
 ```
