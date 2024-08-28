@@ -11,10 +11,10 @@ H2|1.4.197
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
 ## install
+
 ```bash
 ./gradlew build
 ./gradlew publishToMavenLocal
-
 ```
 
 ```groovy
@@ -50,9 +50,10 @@ dependencies {
 }
 ```
 
-## 约定
+## 注意事项
 
-- 字段必须使用 `public` 声明, 不使用 `get`/`set`
+- 字段必须使用 `public` 声明, 否则字段会被忽略, 不使用 `get`/`set` 方法
+- 这不是 ORM 框架, 这里用到的都是表的的列名, 而不是类属性名
 
 ## Example
 
@@ -146,6 +147,7 @@ class User {
     //...
 }
 
+// UserQuery 可以很方便的作为 API 的查询参数(POST + JSON)
 class UserQuery {
     public Range<Integer> id = new Range<>(10, 30);// id BETWEEN 10 AND 30
     @StartWith
@@ -237,6 +239,39 @@ sql.limit(1, 20);
 List<User> users = conn.query(sql).list(User::new);
 ```
 
+`Where` 动态构建查询条件
+
+```java
+sql.where(where -> {
+    if (username != null) {
+        where.and("username=?", username);
+    }
+    if (deleted) {
+        where.and("deleted=?", deleted);
+    }
+});
+// 这里提供更优雅的写法
+sql.where(where -> {
+    // 如果参数值为 null 或 空字符串, 该查询条件会被移除
+    where.andIf("username=?", username); // 推荐
+    // where.andIf("username=?", username, StringUtils::isNotBlank);// 同上
+    // where.and(StringUtils.isNotBlank(username), "username=?", username)// 同上
+    where.andIf("deleted=?", deleted); // deleted 为 null 时, 该查询条件会被移除
+});
+
+// or() 和 orIf() 类似
+```
+
+`Where` 类的其他方法
+
+```java
+where.or(Condition... conditions) // OR (xxx OR xxx OR xxx)
+where.andOr(Condition... conditions) // AND (xxx OR xxx OR xxx)
+where.orAnd(Condition... conditions) // OR (xxx AND xxx AND xxx)
+where.and(Map<String, ?> map)  // AND (key1=value1 AND key2=value2 AND key3=value3)
+where.of(Object example) // 根据对象生成查询条件, 忽略值为 null 或 空字符串的字段
+...
+```
 
 ## QuerySql
 
