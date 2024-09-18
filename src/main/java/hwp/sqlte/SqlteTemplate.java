@@ -369,7 +369,8 @@ public class SqlteTemplate implements SqlConnection {//sql
 
     @Override
     public void close() throws SqlteException {
-        throw new UnsupportedOperationException("Manual close is not allowed");
+        // 这里不再抛异常, Spring 销毁Bean时, 会调用 close() 等方法, 这里直接忽略就行
+        // throw new UnsupportedOperationException("Manual close is not allowed");
     }
 
     @Override
