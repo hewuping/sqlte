@@ -40,7 +40,8 @@ public class PageQuery implements Pageable {
      * <p>
      * 这里提供更优雅的方案, sort=name:desc;age:asc;xxx;
      */
-    public void setSort(String sortStr) {
+    public void setSortString(String sortStr) {
+        // 方法名 setSort -> setSortString, 避免 Jackson 反序列化失败 (Gson 正确)
         if (sortStr == null || sortStr.isEmpty()) {
             return;
         }

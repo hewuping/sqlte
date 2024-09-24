@@ -370,7 +370,7 @@ class SqlConnectionImpl implements SqlConnection {
                 throw new SqlteException(e);
             }
         } catch (SQLException e) {
-//            e.printStackTrace();
+            //java.sql.SQLSyntaxErrorException: Unknown column 'xxx' in 'field list'
             throw new SqlteException(e);
         }
     }

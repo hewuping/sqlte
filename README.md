@@ -3,10 +3,10 @@
 [![Java CI with Gradle](https://github.com/hewuping/sqlte/actions/workflows/ci.yml/badge.svg)](https://github.com/hewuping/sqlte/actions/workflows/ci.yml)
 
 
-Database|Minimum driver version
---|--
-MySQL|5.1.37
-H2|1.4.197
+| Database | Minimum driver version |
+|----------|------------------------|
+| MySQL    | 5.1.37                 |
+| H2       | 1.4.197                |
 
 https://mvnrepository.com/artifact/mysql/mysql-connector-java
 
@@ -34,7 +34,7 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
     <dependency>
         <groupId>com.github.hewuping</groupId>
         <artifactId>sqlte</artifactId>
-        <version>0.2.26</version>
+        <version>0.2.27</version>
     </dependency>
 </dependencies>
 ```
@@ -47,7 +47,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.26'
+    implementation 'com.github.hewuping:sqlte:0.2.27'
 }
 ```
 
@@ -401,6 +401,34 @@ public Page<Glossary> getList(GlossaryQuery query) {
         sql.paging(query); // sql.limit(query.getPage(), query.getPageSize()) 的简写
     }, Glossary::new);
 }
+```
+
+前端例子
+```ts
+let tableModel = reactive({
+  page: 1,
+  pageSize: 30,
+  rowCount: 0,
+  data: []
+});
+
+export interface Page {
+  data: never[];
+  rowCount: number;
+}
+
+export interface PageQuery {
+  page?: number,
+  pageSize?: number;
+  sort?: { [key: string]: 'ASC' | 'DESC' };
+  [key: string]: any;
+}
+
+export function getGlossaries(query: PageQuery): Promise<Page> {
+  return http.post("/api/glossaries", query)
+}
+
+getGlossaries({"sort": {"createdAt": "DESC"}}).then(rs=> xxx)
 ```
 
 ## Json Serializer
