@@ -405,13 +405,6 @@ public Page<Glossary> getList(GlossaryQuery query) {
 
 前端例子
 ```ts
-let tableModel = reactive({
-  page: 1,
-  pageSize: 30,
-  rowCount: 0,
-  data: []
-});
-
 export interface Page {
   data: never[];
   rowCount: number;
@@ -428,7 +421,15 @@ export function getGlossaries(query: PageQuery): Promise<Page> {
   return http.post("/api/glossaries", query)
 }
 
-getGlossaries({"sort": {"createdAt": "DESC"}}).then(rs=> xxx)
+let query: PageQuery = reactive({
+  page: 1,
+  pageSize: 30,
+  sort:{
+    "createdAt": "DESC"
+  }
+});
+
+getGlossaries(query).then(rs=>{})
 ```
 
 ## Json Serializer
