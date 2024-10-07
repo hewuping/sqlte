@@ -182,6 +182,7 @@ conn.deleteByExample(example)
 
 **Update**
 
+基于对象模型更新数据
 ```java
 user.uername = "new name";
 conn.update(user);
@@ -208,13 +209,31 @@ conn.update("users", row -> {
 // For more update operations, see SqlConnection.java
 ```
 
+基于SQL更新/删除
+```java
+db.executeUpdate(String sql, args)
+db.executeUpdate(sql -> {
+    
+})
+```
+
 **Batch Update**
 
+"批次更新"跟"单次更新多条记录"是有区别的, 批次更新是多条sql, 但是参数值不一样.
+
 ```java
+// 基于对象模型更新
 List<User> users=...
 conn.batchUpdate(users)
 conn.batchUpdate(users, "table_02") // 特定表
 conn.batchUpdate(users, "table_02", "column1, column2, column3...") // 特定表, 且仅更新指定的列 
+
+// 基于SQL, 该例子效果同 IN 关键字
+db.batchUpdate("UPDATE users SET status='RESET_REQUIRED' WHERE id=?", executor -> {
+    for (Integer id : userIds) {
+        executor.exec(id);
+	}
+});
 ```
 
 ## SqlBuilder
@@ -417,8 +436,8 @@ export interface PageQuery {
   [key: string]: any;
 }
 
-export function getGlossaries(query: PageQuery): Promise<Page> {
-  return http.post("/api/glossaries", query)
+export function getOrders(query: PageQuery): Promise<Page> {
+  return http.post("/api/orders", query)
 }
 
 let query: PageQuery = reactive({
@@ -429,7 +448,7 @@ let query: PageQuery = reactive({
   }
 });
 
-getGlossaries(query).then(rs=>{})
+getOrders(query).then(rs=>{})
 ```
 
 ## Json Serializer
