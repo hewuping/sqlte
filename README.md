@@ -186,17 +186,20 @@ conn.deleteByExample(example)
 ```java
 user.uername = "new name";
 conn.update(user);
+
+// Update specified fields
+conn.update(user, "column1, column2, column3...");
+
+// Update specified fields and ignore null values
+conn.update(user, "column1, column2, column3...", true); // ignoreNullValue = true
 ```
 
 ```java
-// Update specified fields
-conn.update(user, "column1, column2, column3...");
-// Update specified fields and ignore null values
-conn.update(user, "column1, column2, column3...", true); // ignoreNullValue = true
 // Use map
 map.put("foo1", "bar1");
 map.put("foo2", "bar2");
 conn.update("table_name", map, where->{});
+
 // Use lambda
 conn.update("users", row -> {
     // row.set("foo1", "bar2").set("foo2", "bar2");
