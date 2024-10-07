@@ -235,7 +235,7 @@ conn.batchUpdate(users, "table_02", "column1, column2, column3...") // 特定表
 db.batchUpdate("UPDATE users SET status='RESET_REQUIRED' WHERE id=?", executor -> {
     for (Integer id : userIds) {
         executor.exec(id);
-	}
+    }
 });
 ```
 
