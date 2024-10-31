@@ -379,14 +379,18 @@ sql.select("*").from("user").where(where -> {
 
 ```java
 public interface Pageable {
-
     int getPage();
-
     int getPageSize();
-    
 }
+
+public class PageQuery implements Pageable {
+    private Sort sort = new Sort();
+    private int page = 0;
+    private int pageSize = 10;
+    // ...
+}    
 ```
-`PageQuery` 是一个实现 `Pageable` 接口, 并支持排序的工具类, 也可以自己实现 `Pageable`
+`PageQuery` 是一个实现 `Pageable` 接口并支持排序的工具类，主要是为了统一分页接口编码规范。
 
 例子：创建一个 UserQuery 类接收前端查询参数
 
@@ -402,10 +406,10 @@ public class UserQuery extends PageQuery {
     // 其他注解: @StartWith, @EndWith, @Gte, @Lt, @Lte
 }
 
-public Page<UserQuery> getList(UserQuery query) {
+public Page<User> getList(UserQuery query) {
     return db.queryPage(sql -> {
         // 查询条件由 UserQuery 类中定义的字段和注解生成
-        sql.select(UserQuery.class).where(query);
+        sql.select(User.class).where(query);// select * from users
         // PageQuery 类中包含一个可选参数 sort，用于实现对指定字段进行排序 
         sql.orderBy(order -> {
             Sort sort = query.getSort();
@@ -418,7 +422,7 @@ public Page<UserQuery> getList(UserQuery query) {
             // order.asc("created_at", query.getSort("createdAt")); // 同上, 默认使用升序 (推荐)
         });
         sql.paging(query); // sql.limit(query.getPage(), query.getPageSize()) 的简写
-    }, User::new);
+    }, User::new);// 查询到的数据转为 User 对象, 这里也可以是其他类, 比如 UserVo
 }
 ```
 
