@@ -245,16 +245,13 @@ db.batchUpdate("UPDATE users SET status='RESET_REQUIRED' WHERE id=?", executor -
 SqlBuilder sql = new SqlBuilder();
 sql.from("users"); // select * from users
 sql.where(where -> {
-    if ("zero".startsWith("z")) {
-        where.and("username=?", "zero");
-    }
-    where.and(Condition.startWith("username", "Z"));
-    where.and("password=?", "123456");
-    where.and(Condition.in("age", 12, 13, 15, 17));
+    where.and(Condition.startWith("username", "Z"));//同: where.and("username LIKE ?", "Z%")
+    where.and(Condition.eq("password", "123456");//同: where.and("password=?", "123456")
+    where.and(Condition.in("age", 12, 15, 18));//同: where.and("age in (?,?,?)", 12, 15, 18)
 });
 sql.groupBy("age", having -> {
-    having.and("age < ?", 18);
-    having.and(Condition.eq("username", "Zero"), Condition.eq("username", "Frank"));
+    having.and(Condition.lt("age", 18));//同: where.and("age<?", 18)
+    having.andOr(Condition.eq("username", "Zero"), Condition.eq("username", "Frank"));
 });
 sql.orderBy(order -> {
     order.asc("username");
@@ -271,10 +268,9 @@ List<User> users = conn.query(sql).list(User::new);
 SqlBuilder sql = new SqlBuilder();
 // 在 Navicat 中写好的SQL直接复制过来
 sql.sql("""
-SELECT orders.order_id, customers.customer_name, orders.order_date
-FROM orders
-INNER JOIN customers ON orders.customer_id=customers.customer_id
-""");
+    SELECT orders.order_id, customers.customer_name, orders.order_date
+    FROM orders
+    INNER JOIN customers ON orders.customer_id=customers.customer_id""");
 // 如果查询条件也不需要动态构建, WHERE 也可以直接添加到上面的文本块中 
 sql.where(where -> {
     // ...
@@ -292,7 +288,7 @@ sql.where(where -> {
         where.and("deleted=?", deleted);
     }
 });
-// 这里提供更优雅的写法
+// 这里提供更优雅的写法 andIf(), 减少不为 null 的判断
 sql.where(where -> {
     // 如果参数值为 null 或 空字符串, 该查询条件会被移除
     where.andIf("username=?", username); // 推荐
@@ -301,7 +297,7 @@ sql.where(where -> {
     where.andIf("deleted=?", deleted); // deleted 为 null 时, 该查询条件会被移除
 });
 
-// or() 和 orIf() 类似
+// or() 和 orIf() 类似 and() 和 andIf()
 ```
 
 `Where` 类的其他方法
@@ -311,7 +307,7 @@ where.or(Condition... conditions) // OR (xxx OR xxx OR xxx)
 where.andOr(Condition... conditions) // AND (xxx OR xxx OR xxx)
 where.orAnd(Condition... conditions) // OR (xxx AND xxx AND xxx)
 where.and(Map<String, ?> map)  // AND (key1=value1 AND key2=value2 AND key3=value3)
-where.of(Object example) // 根据对象生成查询条件, 忽略值为 null 或 空字符串的字段
+where.of(Object example) // 根据对象生成查询条件, 会忽略值为 null 或 空字符串的字段
 ...
 ```
 
