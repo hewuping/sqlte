@@ -246,7 +246,7 @@ SqlBuilder sql = new SqlBuilder();
 sql.from("users"); // select * from users
 sql.where(where -> {
     where.and(Condition.startWith("username", "Z"));//同: where.and("username LIKE ?", "Z%")
-    where.and(Condition.eq("password", "123456");//同: where.and("password=?", "123456")
+    where.and(Condition.eq("password", "123456"));//同: where.and("password=?", "123456")
     where.and(Condition.in("age", 12, 15, 18));//同: where.and("age in (?,?,?)", 12, 15, 18)
 });
 sql.groupBy("age", having -> {

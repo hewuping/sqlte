@@ -1,6 +1,7 @@
 package hwp.sqlte;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -95,12 +96,47 @@ public class SqlResultSet implements Iterable<Row> {
         return this.first(String.class);
     }
 
+    /**
+     * 多行数据转为对象列表
+     * <pre>{@code
+     * list(row -> {
+     *     User user = new User();
+     *     user.username = row.getString("username");
+     *     ...
+     *     return user;
+     * })
+     * } </pre>
+     * <p>
+     * 或者
+     * <pre>{@code
+     * list(row -> {
+     *     User user = row.copyTo(new User());
+     *     user.group = getGroup(row.getInteger("group_id"));
+     *     return user;
+     * })
+     * } </pre>
+     *
+     * @param mapper
+     * @param <T>
+     * @return
+     */
     public <T> List<T> list(RowMapper<T> mapper) {
         List<T> list = new ArrayList<>(this.rows.size());
         this.rows.forEach(row -> list.add(mapper.map(row)));
         return list;
     }
 
+    /**
+     * 多行数据转为对象列表
+     *
+     * <pre>{@code
+     *  List<User> users = list(User.class)
+     * } </pre>
+     *
+     * @param clazz
+     * @param <T>
+     * @return
+     */
     public <T> List<T> list(Class<T> clazz) {
         RowMapper<T> mapper = RowMapper.getRegistry().getRowMapper(clazz);
         if (mapper != null) {
@@ -112,18 +148,48 @@ public class SqlResultSet implements Iterable<Row> {
         return this.list(new BeanMapper<T>(clazz));
     }
 
-    public <T> List<T> list(Supplier<T> supplier) {
-        return this.list(supplier, null);
+    /**
+     * 多行数据转为对象列表, 然后二次处理对象
+     * <pre>{@code
+     * rs.list(User.class, (user, row) -> {
+     *     user.group = getGroup(row.getInteger("group_id"));
+     *     ...
+     *     return user;
+     * })
+     * } </pre>
+     *
+     * @param clazz
+     * @param then
+     * @param <T>
+     * @return
+     */
+    public <T> List<T> list(Class<T> clazz, BiConsumer<T, Row> then) {
+        List<T> list = this.list(clazz);
+        for (int i = 0; i < list.size(); i++) {
+            then.accept(list.get(i), rows.get(i));
+        }
+        return list;
     }
 
-    public <T> List<T> list(Supplier<T> supplier, Consumer<T> consumer) {
+    public <T> List<T> list(Supplier<T> supplier) {
         List<T> list = new ArrayList<>(this.rows.size());
         BeanMapper<T> mapper = new BeanMapper<>(supplier);
         this.rows.forEach(row -> list.add(mapper.map(row)));
-        if (consumer != null) {
-            for (T obj : list) {
-                consumer.accept(obj);
-            }
+        return list;
+    }
+
+    public <T> List<T> list(Supplier<T> supplier, BiConsumer<T, Row> then) {
+        List<T> list = this.list(supplier);
+        for (int i = 0; i < list.size(); i++) {
+            then.accept(list.get(i), rows.get(i));
+        }
+        return list;
+    }
+
+    public <T> List<T> list(Supplier<T> supplier, Consumer<T> then) {
+        List<T> list = this.list(supplier);
+        for (int i = 0; i < list.size(); i++) {
+            then.accept(list.get(i));
         }
         return list;
     }

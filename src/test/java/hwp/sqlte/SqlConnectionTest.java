@@ -434,6 +434,16 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testListThen() {
+        insertUser3();
+        List<User3> users = conn.query("select * from users").list(User3::new, (user, row) -> {
+            System.out.println(user);
+            System.out.println(row);
+        });
+        Assert.assertEquals(1, users.size());
+    }
+
+    @Test
     public void testSqlBuilder() {
         insertUser();
         String username = "May";
