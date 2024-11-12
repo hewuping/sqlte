@@ -56,6 +56,14 @@ public interface SqlConnection extends AutoCloseable {
         return query(sql, (Object[]) null);
     }
 
+    default SqlResultSet query(String sql, Consumer<Where> consumer) throws SqlteException {
+        SqlBuilder sb = new SqlBuilder();
+        Where where = new Where();
+        consumer.accept(where);
+        sb.sql(sql).where(where);
+        return query(sb);
+    }
+
     /**
      * 查询
      *
@@ -508,6 +516,11 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 更新内容
+     * <pre>{@code
+     * conn.update("users", Map.of("email", "foo@bar.com"), where -> {
+     *    where.and("id", 123);
+     * });
+     * } </pre>
      *
      * @param table 表名
      * @param map   更新内容
@@ -781,15 +794,29 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 插入或更新
+     * <pre>{@code
+     * conn.save(user, it -> {
+     *   return it.id == null ? Action.INSERT : Action.UPDATE;
+     * });
+     * } </pre>
+     * <p>
+     * 效果等同下面代码
+     * <pre>{@code
+     * if (user.id == null) {
+     *    onn.insert(user);
+     * } else {
+     *    conn.update(user);
+     * }
+     * } </pre>
      *
      * @param bean 数据对象
      * @param fn   自定义函数, 返回 true 表示插入, 返回 false 表示更新
      * @param <T>
      */
-    default <T> void save(T bean, Function<T, Boolean> fn) {
+    default <T> void save(T bean, Function<T, Action> fn) {
         Objects.requireNonNull(bean);
         Objects.requireNonNull(fn);
-        if (fn.apply(bean)) {
+        if (fn.apply(bean) == Action.INSERT) {
             this.insert(bean);
         } else {
             this.update(bean);
@@ -798,12 +825,18 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 插入或更新, 如果明确是插入/更新, 请使用 batchInsert()/batchUpdate() 方法
+     * <pre>{@code
+     * List<User> users = ...;
+     * conn.saveAll(users, user -> {
+     *   return user.id == null ? Action.INSERT : Action.UPDATE;
+     * });
+     * } </pre>
      *
      * @param beans
      * @param fn
      * @param <T>
      */
-    default <T> void save(List<T> beans, Function<T, Boolean> fn) {
+    default <T> void saveAll(List<T> beans, Function<T, Action> fn) {
         Objects.requireNonNull(beans);
         Objects.requireNonNull(fn);
         for (T bean : beans) {

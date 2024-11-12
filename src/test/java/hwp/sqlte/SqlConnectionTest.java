@@ -310,6 +310,19 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testQueryWhere() {
+        insertUser();
+        List<User> list1 = conn.query("select * from users", where -> {
+            where.and("username=?", "May");
+        }).list(User.class);
+        List<User> list2 = conn.query("select * from users", where -> {
+            where.and("username=?", "foo");
+        }).list(User.class);
+        Assert.assertEquals(1, list1.size());
+        Assert.assertEquals(0, list2.size());
+    }
+
+    @Test
     public void testListClassIds() {
 //        conn.query(sql -> sql.select(""));
         User3 user1 = insertUser3();
