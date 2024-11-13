@@ -40,10 +40,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(returnType);
-        return query(sql -> sql.from(info.getTableName()).where(where)).list(returnType);
-    }
+    <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws SqlteException;
 
     /**
      * 查询
@@ -261,10 +258,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> List<T> list(Class<T> clazz, Consumer<Where> consumer) {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        return query(sql -> sql.from(info.getTableName()).where(consumer)).list(clazz);
-    }
+    <T> List<T> list(Class<T> clazz, Consumer<Where> consumer);
 
     /**
      * 根据 ID 列表查询表数据并返回 List
@@ -279,16 +273,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @since 0.2.16
      */
-    default <T> List<T> list(Class<T> clazz, Collection<? extends Serializable> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return Collections.emptyList();
-        }
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        String pkColumn = info.getPKColumn();
-        return list(clazz, where -> {
-            where.and(Condition.in(pkColumn, ids));
-        });
-    }
+    <T> List<T> list(Class<T> clazz, Collection<? extends Serializable> ids);
 
     /**
      * 是否存在相似对象
@@ -314,14 +299,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> T first(Class<T> clazz, Consumer<T> consumer) {
-        Objects.requireNonNull(clazz);
-        Objects.requireNonNull(consumer);
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        T query = ClassUtils.newInstance(clazz);
-        consumer.accept(query);
-        return query(sql -> sql.from(info.getTableName()).where(query).limit(1)).first(clazz);
-    }
+    <T> T first(Class<T> clazz, Consumer<T> consumer);
 
     /**
      * <blockquote><pre>
@@ -335,14 +313,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> T first(Supplier<T> supplier, Consumer<T> consumer) {
-        Objects.requireNonNull(supplier);
-        Objects.requireNonNull(consumer);
-        T example = supplier.get();
-        consumer.accept(example);
-        ClassInfo info = ClassInfo.getClassInfo(example.getClass());
-        return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(supplier);
-    }
+    <T> T first(Supplier<T> supplier, Consumer<T> consumer);
 
     /**
      * 通过 Example 查询最先匹配到的记录
@@ -351,12 +322,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> T firstExample(T example) {
-        Objects.requireNonNull(example, "example can't be null");
-        Class<T> clazz = (Class<T>) example.getClass();
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        return query(sql -> sql.from(info.getTableName()).where(example).limit(1)).first(clazz);
-    }
+    <T> T firstExample(T example);
 
 
     /**
@@ -366,10 +332,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> List<T> listExample(T example) {
-        Class<T> aClass = (Class<T>) example.getClass();
-        return query(aClass, where -> where.of(example));
-    }
+    <T> List<T> listExample(T example);
 
     /**
      * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
@@ -379,11 +342,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      */
-    default <T> List<T> listExample(Class<T> clazz, Consumer<T> consumer) {
-        T example = ClassUtils.newInstance(clazz);
-        consumer.accept(example);
-        return listExample(example);
-    }
+    <T> List<T> listExample(Class<T> clazz, Consumer<T> consumer);
 
     /**
      * 查找相似数据并返回 List (谨慎使用, 确保数据量小)
@@ -507,12 +466,14 @@ public interface SqlConnection extends AutoCloseable {
      * 更新内容
      *
      * @param table 表名
-     * @param map   更新内容
+     * @param data  更新内容
      * @param where 查询条件
      * @return
      * @throws SqlteException
      */
-    int update(String table, Map<String, Object> map, Where where) throws SqlteException;
+    int update(String table, Map<String, Object> data, Where where) throws SqlteException;
+
+    int update(Class<?> clazz, Map<String, Object> map, Where where) throws SqlteException;
 
     /**
      * 更新内容
@@ -895,10 +856,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        return this.delete(info.getTableName(), whereConsumer);
-    }
+    int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws SqlteException;
 
     /**
      * 根据条件删除多条记录 (安全删除), 全部条件使用 = 和 AND
@@ -914,12 +872,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
-        Map<String, Object> map = new LinkedHashMap<>();
-        whereConsumer.accept(map);
-        return this.delete(info.getTableName(), where -> where.and(map));
-    }
+    int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException;
 
 
     /**

@@ -34,7 +34,7 @@ import java.util.function.Supplier;
  * @author Zero
  * Created on 2018/11/5.
  */
-public class SqlteTemplate implements SqlConnection {//sql
+public class SqlteTemplate extends AbstractSqlConnection {//sql
 
     private boolean cacheable;
 
@@ -335,8 +335,8 @@ public class SqlteTemplate implements SqlConnection {//sql
     }
 
     @Override
-    public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
-        return run(conn -> conn.update(table, map, where));
+    public int update(String table, Map<String, Object> data, Where where) throws SqlteException {
+        return run(conn -> conn.update(table, data, where));
     }
 
     @Override

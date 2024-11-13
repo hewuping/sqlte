@@ -18,12 +18,13 @@ import java.util.function.Supplier;
  * @author Zero
  * Created by Zero on 2017/6/4 0004.
  */
-class SqlConnectionImpl implements SqlConnection {
+class SqlConnectionImpl extends AbstractSqlConnection {
 
     private static final Logger logger = LoggerFactory.getLogger(SqlConnection.class);
 
+    private static final int defalutBatchSize = 1000;
+    
     private final Connection conn;
-    private int defalutBatchSize = 1000;
 
     SqlConnectionImpl(Connection conn) {
         this.conn = conn;
@@ -41,12 +42,12 @@ class SqlConnectionImpl implements SqlConnection {
     @Override
     public void executeSqlScript(Reader reader, boolean ignoreError) {
         ScriptRunner runner = new ScriptRunner(!ignoreError, getAutoCommit());
-        runner.runScript(connection(), reader);
+        runner.runScript(conn, reader);
     }
 
     @Override
     public void statement(Consumer<Statement> consumer) throws SqlteException {
-        try (Statement stat = connection().createStatement()) {
+        try (Statement stat = conn.createStatement()) {
             consumer.accept(stat);
         } catch (SQLException e) {
             throw new SqlteException(e);
@@ -55,7 +56,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public void prepareStatement(String sql, Consumer<PreparedStatement> consumer) throws SqlteException {
-        try (PreparedStatement stat = connection().prepareStatement(toSql(sql))) {
+        try (PreparedStatement stat = conn.prepareStatement(toSql(sql))) {
             consumer.accept(stat);
         } catch (SQLException e) {
             throw new SqlteException(e);
@@ -97,7 +98,7 @@ class SqlConnectionImpl implements SqlConnection {
     }
 
     private Row first(Class<?> clazz, Object id) {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        ClassInfo info = getClassInfo(clazz);
         String pkColumn = info.getPKColumn();
         return query("SELECT * FROM " + info.getTableName() + " WHERE " + pkColumn + "=?", id).first();
     }
@@ -125,7 +126,7 @@ class SqlConnectionImpl implements SqlConnection {
     public <T> T tryGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException {
         Objects.requireNonNull(clazz);
         Objects.requireNonNull(consumer);
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        ClassInfo info = getClassInfo(clazz);
         String pkColumn = info.getPKColumn();
         Map<String, Object> map = new HashMap<>();
         consumer.accept(map);
@@ -416,7 +417,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
-//        ClassInfo info = ClassInfo.getClassInfo(clazz);
+//        ClassInfo info = getClassInfo(clazz);
 //        boolean hasGks = info.getAutoGenerateColumns().length > 0;
         //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
         return batchInsert(loader, clazz, table, sqlHandler, null);
@@ -424,7 +425,7 @@ class SqlConnectionImpl implements SqlConnection {
 
     @Override
     public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
+        ClassInfo info = getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
         }
@@ -856,12 +857,12 @@ class SqlConnectionImpl implements SqlConnection {
 
 
     @Override
-    public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
+    public int update(String table, Map<String, Object> data, Where where) throws SqlteException {
         Objects.requireNonNull(where, "where must not be null");
         where.check();
         SqlBuilder builder = new SqlBuilder();
         builder.append("UPDATE ").append(table).append(" SET ");
-        Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
+        Iterator<Map.Entry<String, Object>> it = data.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
             builder.append(entry.getKey()).append("=?", entry.getValue());

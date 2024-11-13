@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  * @author Zero
  * Created on 2019/9/12.
  */
-class SqlConnectionCacheWrapper implements SqlConnection {
+class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     private Cache cache;
     private SqlConnection delegate;
 
