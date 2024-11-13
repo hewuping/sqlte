@@ -6,9 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * @author Zero
@@ -235,6 +233,25 @@ public class SqlBuilder implements Builder, Sql {
             }
             this.append(column.trim() + "=?");
             addArgs(values[i]);
+        }
+        return this;
+    }
+
+    public SqlBuilder update(String table, Consumer<Map<String, Object>> consumer) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        consumer.accept(data);
+        return update(table, data);
+    }
+
+    public SqlBuilder update(String table, Map<String, Object> data) {
+        this.append("UPDATE ").append(table).append(" SET ");
+        Iterator<Map.Entry<String, Object>> it = data.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            this.append(entry.getKey()).append("=?", entry.getValue());
+            if (it.hasNext()) {
+                this.append(", ");
+            }
         }
         return this;
     }

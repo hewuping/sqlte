@@ -310,6 +310,15 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testQueryPage() {
+        for (int i = 0; i < 100; i++) {
+            insertUser3();
+        }
+        Page<User3> page = conn.queryPage(User3.class, sql -> sql.select(User3.class).paging(2, 10));
+        Assert.assertEquals(10, page.getData().size());
+    }
+
+    @Test
     public void testQueryWhere() {
         insertUser();
         List<User> list1 = conn.query("select * from users", where -> {
@@ -454,6 +463,16 @@ public class SqlConnectionTest {
             System.out.println(row);
         });
         Assert.assertEquals(1, users.size());
+    }
+
+    @Test
+    public void testFirstThen() {
+        insertUser3();
+        User3 result = conn.query("select * from users").first(User3::new, (user, row) -> {
+            System.out.println(user);
+            System.out.println(row);
+        });
+        Assert.assertNotNull(result);
     }
 
     @Test
@@ -730,6 +749,18 @@ public class SqlConnectionTest {
         User3 _user = conn.tryGet(User3::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
+    }
+
+    @Test
+    public void testUpdateMap() {
+        User3 user1 = insertUser3();
+        conn.update("users", row -> {
+            row.put("email", "foo@example.com");
+        }, where -> {
+            where.and("id=?", user1.id);
+        });
+        User3 user2 = conn.tryGet(User3::new, user1.id);
+        Assert.assertNotEquals(user1.email, user2.email);
     }
 
     public void testUpdate2_2() {

@@ -81,10 +81,9 @@ public abstract class AbstractSqlConnection implements SqlConnection {
 
     @Override
     public int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(clazz);
         Map<String, Object> map = new LinkedHashMap<>();
         whereConsumer.accept(map);
-        return this.delete(info.getTableName(), where -> where.and(map));
+        return this.delete(getTableName(clazz), where -> where.and(map));
     }
 
     protected String getTableName(Class<?> clazz) {

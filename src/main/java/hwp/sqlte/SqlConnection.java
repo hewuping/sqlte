@@ -90,6 +90,26 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
+     * <pre>{@code
+     * conn.queryPage(Group.class, sql -> {
+     *     sql.select(Group.class).paging(1, 10);
+     * }, (group, row) -> {
+     *     group.users = getUsers(row.getInteger("group_id"));
+     * });
+     * }</pre>
+     *
+     * @param clazz
+     * @param consumer
+     * @param then
+     * @param <T>
+     * @return
+     * @throws SqlteException
+     */
+    default <T> Page<T> queryPage(Class<T> clazz, Consumer<SqlBuilder> consumer, BiConsumer<T, Row> then) throws SqlteException {
+        return queryPage(consumer, Helper.toSupplier(clazz), then);
+    }
+
+    /**
      * 分页查询
      *
      * @param consumer
@@ -126,6 +146,20 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier) throws SqlteException {
+        return this.queryPage(consumer, supplier, null);
+    }
+
+    /**
+     * 分页查询
+     *
+     * @param consumer
+     * @param supplier
+     * @param then     对查询结果再处理
+     * @param <T>
+     * @return
+     * @throws SqlteException
+     */
+    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Supplier<T> supplier, BiConsumer<T, Row> then) throws SqlteException {
         SqlBuilder sb = new SqlBuilder();
         consumer.accept(sb);
         String sql = sb.sql();
@@ -133,7 +167,7 @@ public interface SqlConnection extends AutoCloseable {
         if (form == -1) {
             throw new IllegalArgumentException("Limit clause not found: " + sql);
         }
-        List<T> list = query(sql, sb.args()).list(supplier);
+        List<T> list = query(sql, sb.args()).list(supplier, then);
         String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + ") AS _t";
         Long count = query(countSql, sb.args()).first(Long.class);
         return new Page<>(list, count);
@@ -496,7 +530,16 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 更新内容
+     * 更新一行或多行数据
+     * <p>
+     * 例子:
+     * <pre>{@code
+     * conn.update("users", data -> {
+     *    data.set("email", "zero@example.com");
+     * }, where -> {
+     *    where.and("user_id=?", 123);
+     * });
+     * } </pre>
      *
      * @param table    表名
      * @param consumer 更新内容

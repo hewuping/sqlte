@@ -23,7 +23,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     private static final Logger logger = LoggerFactory.getLogger(SqlConnection.class);
 
     private static final int defalutBatchSize = 1000;
-    
+
     private final Connection conn;
 
     SqlConnectionImpl(Connection conn) {
@@ -861,16 +861,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         Objects.requireNonNull(where, "where must not be null");
         where.check();
         SqlBuilder builder = new SqlBuilder();
-        builder.append("UPDATE ").append(table).append(" SET ");
-        Iterator<Map.Entry<String, Object>> it = data.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, Object> entry = it.next();
-            builder.append(entry.getKey()).append("=?", entry.getValue());
-            if (it.hasNext()) {
-                builder.append(", ");
-            }
-        }
-        builder.where(where);
+        builder.update(table, data).where(where);
         try (PreparedStatement statement = conn.prepareStatement(builder.sql())) {
             if (logger.isDebugEnabled()) {
                 logger.debug("update: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));

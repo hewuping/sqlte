@@ -18,7 +18,7 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
 ```
 
 ```groovy
- compile group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
+implementation group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
 ```
 
 ## Install from Maven
@@ -31,11 +31,11 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
     </repository>
 </repositories>
 <dependencies>
-    <dependency>
-        <groupId>com.github.hewuping</groupId>
-        <artifactId>sqlte</artifactId>
-        <version>0.2.27</version>
-    </dependency>
+<dependency>
+    <groupId>com.github.hewuping</groupId>
+    <artifactId>sqlte</artifactId>
+    <version>0.2.27</version>
+</dependency>
 </dependencies>
 ```
 
@@ -56,7 +56,7 @@ dependencies {
 - 字段必须使用 `public` 声明, 否则字段会被忽略, 不使用 `get`/`set` 方法
 - 不同于 ORM 框架, `sqlte`用到的都是表的列名, 而不是类属性名
 
-## Tutorial
+# Tutorial
 
 ```java
 var config = Sql.config();
@@ -77,6 +77,9 @@ public class User {
     ...
 }
 ```
+
+## 插入数据
+
 **Insert One**
 
 ```java
@@ -87,25 +90,96 @@ conn.insert(user, "users_1"); // 插入到特定表
 
 **Batch insert**
 ```java
+// 更接近原生的写法
 conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
     executor.exec("bb@example.com", "bb");
     executor.exec("aa@example.com", "aa");
 });
-```
-OR
-```java
+
+// 简化后的写法
 conn.batchInsert("users", "email, username", executor -> {
     executor.exec("bb@example.com", "bb");
     executor.exec("aa@example.com", "aa");
 });
-```
-OR
-```java
+
+// 基于映射对象的写法
 List<User> users = new ArrayList<>();
 // ...
 conn.batchInsert(users); // 插入到默认表
 conn.batchInsert(users, "users_1"); // 插入到特定表
 ```
+
+## 删除数据
+
+```java
+conn.delete(user)
+conn.delete(user, "table_name")
+conn.delete(User.class, where->{})
+conn.delete("table_name", where->{})
+conn.deleteByExample(example)
+conn.executeUpdate(String sql, args)
+```
+
+## 更新数据
+
+基于对象模型更新数据
+```java
+user.uername = "new name";
+conn.update(user);
+
+// Update specified fields
+conn.update(user, "column1, column2, column3...");
+
+// Update specified fields and ignore null values
+conn.update(user, "column1, column2, column3...", true); // ignoreNullValue = true
+```
+
+```java
+// Use map
+map.put("foo1", "bar1");
+map.put("foo2", "bar2");
+conn.update("table_name", map, where->{});
+
+// Use lambda
+conn.update("users", row -> {
+    // row.set("foo1", "bar2").set("foo2", "bar2");
+    row.set("foo1", "bar1");
+    row.set("foo2", "bar2");
+}, where -> {
+    where.and("id = ?", 123);
+});
+
+// For more update operations, see SqlConnection.java
+```
+
+基于SQL更新/删除
+```java
+conn.executeUpdate(String sql, args)
+conn.executeUpdate(sql -> {
+    
+})
+```
+
+**Batch Update**
+
+"批次更新"跟"单次更新多条记录"是有区别的, 批次更新是多条sql, 但是参数值不一样.
+
+```java
+// 基于对象模型更新
+List<User> users=...
+conn.batchUpdate(users)
+conn.batchUpdate(users, "table_02") // 特定表
+conn.batchUpdate(users, "table_02", "column1, column2, column3...") // 特定表, 且仅更新指定的列 
+
+// 基于SQL, 该例子效果同 IN 关键字
+db.batchUpdate("UPDATE users SET status='RESET_REQUIRED' WHERE id=?", executor -> {
+    for (Integer id : userIds) {
+        executor.exec(id);
+    }
+});
+```
+
+## 查询数据
 
 **Query by ID**
 ```
@@ -170,76 +244,7 @@ conn.query(sql->sql.select(User.class).where(new User("Active"))).list(UserVo.cl
 ```
 
 
-**Delete**
-
-```java
-conn.delete(user)
-conn.delete(user, "table_name")
-conn.delete(User.class, where->{})
-conn.delete("table_name", where->{})
-conn.deleteByExample(example)
-```
-
-**Update**
-
-基于对象模型更新数据
-```java
-user.uername = "new name";
-conn.update(user);
-
-// Update specified fields
-conn.update(user, "column1, column2, column3...");
-
-// Update specified fields and ignore null values
-conn.update(user, "column1, column2, column3...", true); // ignoreNullValue = true
-```
-
-```java
-// Use map
-map.put("foo1", "bar1");
-map.put("foo2", "bar2");
-conn.update("table_name", map, where->{});
-
-// Use lambda
-conn.update("users", row -> {
-    // row.set("foo1", "bar2").set("foo2", "bar2");
-    row.set("foo1", "bar1");
-    row.set("foo2", "bar2");
-}, where -> {
-    where.and("id = ?", 123);
-});
-
-// For more update operations, see SqlConnection.java
-```
-
-基于SQL更新/删除
-```java
-db.executeUpdate(String sql, args)
-db.executeUpdate(sql -> {
-    
-})
-```
-
-**Batch Update**
-
-"批次更新"跟"单次更新多条记录"是有区别的, 批次更新是多条sql, 但是参数值不一样.
-
-```java
-// 基于对象模型更新
-List<User> users=...
-conn.batchUpdate(users)
-conn.batchUpdate(users, "table_02") // 特定表
-conn.batchUpdate(users, "table_02", "column1, column2, column3...") // 特定表, 且仅更新指定的列 
-
-// 基于SQL, 该例子效果同 IN 关键字
-db.batchUpdate("UPDATE users SET status='RESET_REQUIRED' WHERE id=?", executor -> {
-    for (Integer id : userIds) {
-        executor.exec(id);
-    }
-});
-```
-
-## SqlBuilder
+### SqlBuilder 的用法
 
 ```java
 SqlBuilder sql = new SqlBuilder();
@@ -359,7 +364,7 @@ conn.query(sql -> {
 });
 ```
 
-## Query
+### Query 的用法
 
 建议使用功能更完善的 `SqlBuilder`
 
@@ -371,7 +376,9 @@ sql.select("*").from("user").where(where -> {
 }).groupBy("uid").orderBy("name desc");
 ```
 
-## Pageable 接口
+## 其他
+
+### Pageable 接口
 
 ```java
 public interface Pageable {
@@ -451,6 +458,19 @@ let query: PageQuery = reactive({
 });
 
 getUsers(query).then(rs=>{})
+```
+
+### 一对多与多对一
+
+本库不提供`@ManyToOne`和`@OneToMany`映射实体关系，所以查询也不会自动查询关联数据。
+
+可以使用下列方法实现类似功能：
+```java
+conn.queryPage(Group.class, sql -> {
+    sql.select(Group.class).paging(1, 10);
+}, (group, row) -> {
+    group.users = getUsers(row.getInteger("group_id"));
+});
 ```
 
 ## Json Serializer

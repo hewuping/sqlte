@@ -168,13 +168,24 @@ public class SqlBuilderTest {
     }
 
     @Test
-    public void testUpdateSql() {
+    public void testUpdate1() {
         SqlBuilder builder = new SqlBuilder();
         builder.update("users", "age,username", 12, "zero")
                 .where(where -> where.and(Condition.eq("id", 123456)));
         Assert.assertEquals("UPDATE users SET age=?, username=? WHERE id = ?", builder.sql());
         System.out.println(builder);
         Assert.assertEquals(3, builder.args().length);
+    }
+
+    @Test
+    public void testUpdate2() {//Map
+        SqlBuilder sql = new SqlBuilder();
+        sql.update("users", data -> {
+            data.put("age", 18);
+            data.put("email", "zero@example.com");
+        });
+        sql.where(where -> where.and(Condition.eq("id", 123456)));
+        Assert.assertEquals("UPDATE users SET age =?, email =? WHERE id = ?", sql.sql());
     }
 
     @Test

@@ -229,4 +229,8 @@ class Helper {
         return values;
     }
 
+    public static ConversionService conversionService() {
+        return Config.getConfig().getConversionService();
+    }
+
 }

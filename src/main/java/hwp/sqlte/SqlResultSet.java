@@ -45,7 +45,7 @@ public class SqlResultSet implements Iterable<Row> {
     }
 
     public Row first() {
-        if (this.rows != null && this.rows.size() > 0) {
+        if (this.rows != null && !this.rows.isEmpty()) {
             return this.rows.get(0);
         }
         return null;
@@ -56,11 +56,26 @@ public class SqlResultSet implements Iterable<Row> {
         if (row == null) {
             return null;
         }
-        return row.map(new BeanMapper<>(supplier));
+//        return row.map(new BeanMapper<>(supplier));
+        return row.copyTo(supplier.get());
+    }
+
+    public <T> T first(Supplier<T> supplier, BiConsumer<T, Row> then) {
+        T obj = first(supplier);
+        Row row = first();
+        then.accept(obj, row);
+        return obj;
     }
 
     public <T> T first(Class<T> clazz) {
-        return first(clazz, null);
+        return first(clazz, (T) null);
+    }
+
+    public <T> T first(Class<T> clazz, BiConsumer<T, Row> then) {
+        T obj = first(clazz);
+        Row row = first();
+        then.accept(obj, row);
+        return obj;
     }
 
     public <T> T first(Class<T> clazz, T def) {
@@ -68,7 +83,7 @@ public class SqlResultSet implements Iterable<Row> {
         if (row == null || row.values().isEmpty()) {
             return def;
         }
-        if (row.keySet().size() == 1) {
+        if (row.size() == 1) {
             ConversionService service = Config.getConfig().getConversionService();
             Object v = row.values().iterator().next();
             if (v == null) {
@@ -84,10 +99,20 @@ public class SqlResultSet implements Iterable<Row> {
         return row.map(new BeanMapper<>(clazz));
     }
 
+    /**
+     * 返回第一行的第一个值 (注意这里默认值为0)
+     *
+     * @return
+     */
     public Integer asInt() {
         return this.first(Integer.class, 0);
     }
 
+    /**
+     * 返回第一行的第一个值 (注意这里默认值为0L)
+     *
+     * @return
+     */
     public Long asLong() {
         return this.first(Long.class, 0L);
     }
@@ -107,12 +132,12 @@ public class SqlResultSet implements Iterable<Row> {
      * })
      * } </pre>
      * <p>
-     * 或者
+     * 比如查询关联数据
      * <pre>{@code
      * list(row -> {
-     *     User user = row.copyTo(new User());
-     *     user.group = getGroup(row.getInteger("group_id"));
-     *     return user;
+     *     Group group = row.map(Group.class);
+     *     group.users = getUsers(row.getInteger("group_id"));
+     *     return group;
      * })
      * } </pre>
      *
@@ -130,7 +155,7 @@ public class SqlResultSet implements Iterable<Row> {
      * 多行数据转为对象列表
      *
      * <pre>{@code
-     *  List<User> users = list(User.class)
+     * List<User> users = list(User.class)
      * } </pre>
      *
      * @param clazz
@@ -151,10 +176,8 @@ public class SqlResultSet implements Iterable<Row> {
     /**
      * 多行数据转为对象列表, 然后二次处理对象
      * <pre>{@code
-     * rs.list(User.class, (user, row) -> {
-     *     user.group = getGroup(row.getInteger("group_id"));
-     *     ...
-     *     return user;
+     * list(Group.class, (group, row) -> {
+     *     group.users = getUsers(row.getInteger("group_id"));
      * })
      * } </pre>
      *
@@ -178,18 +201,35 @@ public class SqlResultSet implements Iterable<Row> {
         return list;
     }
 
+    /**
+     * 多行数据转为对象列表, 然后二次处理对象
+     * <pre>{@code
+     * list(Group::new, (group, row) -> {
+     *     group.users = getUsers(row.getInteger("group_id"));
+     * })
+     * } </pre>
+     *
+     * @param supplier
+     * @param then
+     * @param <T>
+     * @return
+     */
     public <T> List<T> list(Supplier<T> supplier, BiConsumer<T, Row> then) {
         List<T> list = this.list(supplier);
-        for (int i = 0; i < list.size(); i++) {
-            then.accept(list.get(i), rows.get(i));
+        if (then != null) {
+            for (int i = 0; i < list.size(); i++) {
+                then.accept(list.get(i), rows.get(i));
+            }
         }
         return list;
     }
 
     public <T> List<T> list(Supplier<T> supplier, Consumer<T> then) {
         List<T> list = this.list(supplier);
-        for (int i = 0; i < list.size(); i++) {
-            then.accept(list.get(i));
+        if (then != null) {
+            for (int i = 0; i < list.size(); i++) {
+                then.accept(list.get(i));
+            }
         }
         return list;
     }
