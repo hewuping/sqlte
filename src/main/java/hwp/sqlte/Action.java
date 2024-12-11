@@ -1,5 +1,5 @@
 package hwp.sqlte;
 
-enum Action {
+public enum Action {//SqlAction
     INSERT, UPDATE
 }

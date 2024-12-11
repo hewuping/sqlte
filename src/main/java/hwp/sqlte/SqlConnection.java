@@ -814,7 +814,7 @@ public interface SqlConnection extends AutoCloseable {
      * } </pre>
      *
      * @param bean 数据对象
-     * @param fn   自定义函数, 返回 true 表示插入, 返回 false 表示更新
+     * @param fn   自定义函数, 返回 Action.INSERT 表示对该对象执行插入操作, 返回 Action.UPDATE 表示该对对象执行更新操作
      * @param <T>
      */
     default <T> void save(T bean, Function<T, Action> fn) {
@@ -1280,16 +1280,16 @@ public interface SqlConnection extends AutoCloseable {
      * 生成的 SQL 是插入还是更新还是混合由第二个参数的返回值决定, 如果同时存在插入和更新,
      * 会分别执行插入和更新语句
      *
-     * @param list     保存对象列表, 必需是同一类型
-     * @param isInsert 返回 true 表示插入, false 表示更新
+     * @param list 保存对象列表, 必需是同一类型
+     * @param fn   返回 Action.INSERT 表示对该对象执行插入操作, 返回 Action.UPDATE 表示该对对象执行更新操作
      * @param <T>
      */
-    default <T> void batchSave(List<T> list, Function<T, Boolean> isInsert) {
+    default <T> void batchSave(List<T> list, Function<T, Action> fn) {
         List<T> inserts = new ArrayList<>();
         List<T> updates = new ArrayList<>();
         for (T obj : list) {
-            Boolean b = isInsert.apply(obj);
-            if (b != null && b) {
+            Action action = fn.apply(obj);
+            if (Action.INSERT == action) {
                 inserts.add(obj);
             } else {
                 updates.add(obj);
