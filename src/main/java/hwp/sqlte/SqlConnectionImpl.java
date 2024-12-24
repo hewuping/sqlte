@@ -516,14 +516,22 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     @Override
     public int executeUpdate(String sql, Object... args) throws SqlteException {
-        sql = toSql(sql);
-        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+        try {
+            sql = toSql(sql);
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
-            Helper.fillStatement(statement, args);
-            return statement.executeUpdate();
-        } catch (SQLException e) {
+            if (sql.contains("?")) {
+                try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                    Helper.fillStatement(statement, args);
+                    return statement.executeUpdate();
+                }
+            } else {
+                try (Statement statement = conn.createStatement()) {
+                    return statement.executeUpdate(sql);
+                }
+            }
+        } catch (Exception e) {
             throw new SqlteException(e);
         }
     }

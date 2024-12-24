@@ -2,7 +2,6 @@ package hwp.sqlte;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -68,6 +67,10 @@ public class Condition {
 
     /**
      * 使用 {@code BETWEEN <begin> AND <end>} 条件查询。 查询区间：[begin, end]
+     * <p>类似:
+     * {@code
+     * where.and("xxx BETWEEN ? AND ?", begin, end)
+     * }
      *
      * @param column 列名
      * @param begin  开始值(包含), 如果为 null 或 空 则变为 {@code <= end }
