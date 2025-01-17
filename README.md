@@ -53,8 +53,8 @@ dependencies {
 
 ## 注意事项
 
-- 字段必须使用 `public` 声明, 否则字段会被忽略, 不使用 `get`/`set` 方法
-- 不同于 ORM 框架, `sqlte`用到的都是表的列名, 而不是类属性名
+- 字段必须使用 `public` 声明, 否则该字段会被忽略, 不使用 `get`/`set` 方法
+- 不同于 ORM 框架, `sqlte` 构建 SQL 时使用的是表的列名, 而不是类属性名
 
 # Tutorial
 
@@ -293,9 +293,9 @@ sql.where(where -> {
         where.and("deleted=?", deleted);
     }
 });
-// 这里提供更优雅的写法 andIf(), 减少不为 null 的判断
+// 这里提供更简单优雅的写法 andIf(), 减少不为空的判断
 sql.where(where -> {
-    // 如果参数值为 null 或 空字符串, 该查询条件会被移除
+    // 当参数值为空时(包括: null, "", []), 忽略该查询条件
     where.andIf("username=?", username); // 推荐
     // where.andIf("username=?", username, StringUtils::isNotBlank);// 同上
     // where.and(StringUtils.isNotBlank(username), "username=?", username)// 同上
@@ -339,7 +339,7 @@ WHERE rank <= 5;
 
 ```java
 conn.query(sql -> {
-    // with 中的查询不需要动态构建查询条件, 建议使用Java 文本块而不是通过 with() 方法构建SQL
+    // 当 with 中的查询不需要动态构建查询条件时, 本人建议使用 Java 文本块构建 SQL
     sql.with(cte -> {
         cte.set("customer_orders", sb -> {
             //SELECT customer_id,
@@ -395,7 +395,7 @@ public class PageQuery implements Pageable {
 ```
 `PageQuery` 是一个实现 `Pageable` 接口并支持排序的工具类，主要是为了统一分页接口编码规范。
 
-例子：创建一个 UserQuery 类接收前端查询参数
+例子：创建一个 UserQuery 类接收前端查询参数, 虽然是查询操作, 但还是推荐 POST + JSON Body 进行前后端交互
 
 ```java
 public class UserQuery extends PageQuery {
@@ -466,10 +466,10 @@ getUsers(query).then(rs=>{})
 
 可以使用下列方法实现类似功能：
 ```java
-conn.queryPage(Group.class, sql -> {
-    sql.select(Group.class).paging(1, 10);
-}, (group, row) -> {
-    group.users = getUsers(row.getInteger("group_id"));
+conn.queryPage(UserGroup.class, sql -> {
+    sql.select(UserGroup.class).paging(1, 10);
+}, (userGroup, row) -> {
+    userGroup.users = getUsersByGroupId(userGroup.id);
 });
 ```
 

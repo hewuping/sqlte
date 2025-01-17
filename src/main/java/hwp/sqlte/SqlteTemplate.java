@@ -12,24 +12,27 @@ import java.util.function.Supplier;
 
 /**
  * for Spring:
- * <blockquote><pre>
- * &#64;Bean
+ *
+ *
+ *
+ * <pre>{@code
+ * @Bean
  * public SqlteTemplate getSqlteTemplate(DataSource dataSource) {
  *     Sql.config().setDataSource(dataSource)
  *     SqlteTemplate template = new SqlteTemplate() {
- *        &#64;Override
+ *        @Override
  *        protected Connection open(DataSource dataSource) {
  *            return DataSourceUtils.getConnection(dataSource);
  *        }
  *
- *        &#64;Override
+ *        @Override
  *         protected void close(Connection connection) {
  *            DataSourceUtils.releaseConnection(connection, dataSource);
  *        }
  *    };
  *    return template;
  * }
- * </pre></blockquote>
+ * } </pre>
  *
  * @author Zero
  * Created on 2018/11/5.

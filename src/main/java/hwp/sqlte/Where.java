@@ -34,7 +34,7 @@ public class Where {
      *
      * @param sql  SQL 片段, 任意占位符数量
      * @param args 参数值, 数量与占位符保持一致
-     * @return
+     * @return 该对象的引用
      */
     public Where append(String sql, Object... args) {
         whereBuilder.append(sql);
@@ -47,7 +47,7 @@ public class Where {
      *
      * @param sql  SQL 片段, 任意占位符数量
      * @param args 参数值, 数量与占位符保持一致
-     * @return
+     * @return 该对象的引用
      */
     public Where and(String sql, Object... args) {
         return and(true, sql, args);
@@ -59,7 +59,7 @@ public class Where {
      * @param sql  SQL 片段, 任意占位符数量
      * @param arg  如果参数值为  null 或 空字符串, 该 SQL片段 会被丢弃
      * @param test 如果返回 false 则忽略 SQL 片段
-     * @return
+     * @return 该对象的引用
      */
     public <T> Where andIf(String sql, T arg, Predicate<T> test) {
         return and(test.test(arg), sql, arg);
@@ -70,7 +70,7 @@ public class Where {
      *
      * @param sql SQL 片段, 有且仅有一个占位符
      * @param arg 如果参数值为  null 或 空字符串, 该 SQL 片段会被丢弃
-     * @return
+     * @return 该对象的引用
      */
     public Where andIf(String sql, Object arg) {
         return this.and(ObjectUtils.isNotEmpty(arg), sql, arg);
@@ -81,7 +81,7 @@ public class Where {
      *
      * @param sql  SQL 片段, 任意占位符数量
      * @param args 参数值, 数量与占位符保持一致
-     * @return
+     * @return 该对象的引用
      */
     public Where or(String sql, Object... args) {
         return or(true, sql, args);
@@ -93,7 +93,7 @@ public class Where {
      * @param sql  SQL 片段, 有且仅有一个占位符
      * @param arg  如果参数值为  null 或 空字符串, 该 SQL 片段会被丢弃
      * @param test 如果返回 false 则忽略 SQL 片段
-     * @return
+     * @return 该对象的引用
      */
     public <T> Where orIf(String sql, T arg, Predicate<T> test) {
         return or(test.test(arg), sql, arg);
@@ -104,7 +104,7 @@ public class Where {
      *
      * @param sql SQL 片段, 有且仅有一个占位符
      * @param arg 如果参数值为  null 或 空字符串, 该 SQL 片段 会被丢弃
-     * @return
+     * @return 该对象的引用
      */
     public Where orIf(String sql, Object arg) {
         return or(ObjectUtils.isNotEmpty(arg), sql, arg);
@@ -116,7 +116,7 @@ public class Where {
      * @param when 当条件为 true 时才拼接 SQL, 否则丢弃该 SQL 片段
      * @param sql  SQL 片段, 任意占位符数量
      * @param args 参数值, 数量与占位符保持一致
-     * @return
+     * @return 该对象的引用
      */
     public Where and(boolean when, String sql, Object... args) {
         return append("AND", when, sql, args);
@@ -128,7 +128,7 @@ public class Where {
      * @param when 当条件为 true 时才拼接 SQL, 否则丢弃该 SQL 片段
      * @param sql  SQL 片段, 任意占位符数量
      * @param args 参数值, 数量与占位符保持一致
-     * @return
+     * @return 该对象的引用
      */
     public Where or(boolean when, String sql, Object... args) {
         return append("OR", when, sql, args);
@@ -153,7 +153,7 @@ public class Where {
      * @param when     当为 true 时, 后面的 sql 和 参数才会添加到 Builder 中
      * @param sql
      * @param args
-     * @return
+     * @return 该对象的引用
      */
     public Where append(String operator, boolean when, String sql, Object... args) {
         if (when) {
@@ -220,20 +220,47 @@ public class Where {
 
 
     /**
-     * 生成SQL: AND (xxx AND xxx AND xxx)
+     * <p> 通过 AND 操作符和 多个 {@link Condition } 生成构建 SQL
+     * <p> 生成的 SQL类似: {@code AND (xxx AND xxx AND xxx) }
      *
      * @param conditions
-     * @return
+     * @return 该对象的引用
      */
     public Where and(Condition... conditions) {
+        if (conditions.length == 0) {
+            return this;
+        }
         return conditions("AND", "AND", conditions);
+    }
+
+    /**
+     * <p> 通过 AND 操作符和单个 {@link Condition } 生成构建 SQL
+     * <p> 当条件的参数值为空(包括: null, "", [])时, 会忽略该条件
+     *
+     * <pre>{@code
+     *   where.andIf(Condition.eq("column_name", param_value));
+     *   // 等同于
+     *   if (param_value != null) {
+     *     where.and(Condition.eq("column_name", param_value));
+     *   }
+     * } </pre>
+     *
+     * @param condition
+     * @return 该对象的引用
+     * @since 0.2.28
+     */
+    public Where andIf(Condition condition) {
+        if (ObjectUtils.isEmpty(condition.args())) {
+            return this;
+        }
+        return and(condition);
     }
 
     /**
      * 生成SQL: AND (key1=value1 AND key2=value2 AND key3=value3)
      *
-     * @param map
-     * @return
+     * @param map 通过 AND 连接的多个查询条件
+     * @return 该对象的引用
      */
     public Where and(Map<String, ?> map) {
         map.forEach((key, value) -> {
@@ -243,30 +270,47 @@ public class Where {
     }
 
     /**
+     * <p> 生成SQL: AND (key1=value1 AND key2=value2 AND key3=value3)
+     * <p> 如果某个条件的值为空(包括: null, "", []), 则忽略该条件
+     *
+     * @param map 通过 AND 连接的多个查询条件
+     * @return 该对象的引用
+     * @since 0.2.28
+     */
+    public Where andIf(Map<String, ?> map) {
+        map.forEach((key, value) -> {
+            if (ObjectUtils.isNotEmpty(value)) {
+                and(key + "=?", value);
+            }
+        });
+        return this;
+    }
+
+    /**
      * OR (xxx OR xxx OR xxx)
      *
-     * @param conditions
-     * @return
+     * @param conditions 通过 OR 连接的多个条件
+     * @return 该对象的引用
      */
     public Where or(Condition... conditions) {
         return conditions("OR", "OR", conditions);
     }
 
     /**
-     * AND (xxx OR xxx OR xxx)
+     * 通过 AND 和 OR 操作符构建 SQL : {@code AND (xxx OR xxx OR xxx) }
      *
-     * @param conditions
-     * @return
+     * @param conditions 通过 OR 连接的多个条件
+     * @return 该对象的引用
      */
     public Where andOr(Condition... conditions) {
         return conditions("AND", "OR", conditions);
     }
 
     /**
-     * OR (xxx AND xxx AND xxx)
+     * 通过 OR 和  AND 操作符构建 SQL: {@code OR (xxx AND xxx AND xxx) }
      *
-     * @param conditions
-     * @return
+     * @param conditions 通过 AND 连接的多个条件
+     * @return 该对象的引用
      */
     public Where orAnd(Condition... conditions) {
         return conditions("OR", "AND", conditions);
@@ -298,8 +342,8 @@ public class Where {
     /**
      * 根据对象构建条件
      *
-     * @param example
-     * @return
+     * @param example 查询条件
+     * @return 该对象的引用
      */
     public Where of(Object example) {
         apply(Where.ofExample(example));
@@ -309,7 +353,7 @@ public class Where {
     /**
      * 返回带占位符的 SQL
      *
-     * @return
+     * @return SQL
      */
     public String sql() {
         return whereBuilder.toString();
@@ -319,7 +363,7 @@ public class Where {
      * 根据对象构造查询条件
      *
      * @param example
-     * @return
+     * @return Where 对象
      * @since 0.2.15
      */
     public static Where ofExample(Object example) {
@@ -401,6 +445,12 @@ public class Where {
         return where;
     }
 
+    /**
+     * 使用已存在的 Map 创建新的 Where 对象
+     *
+     * @param map 查询条件
+     * @return 该对象的引用
+     */
     public static Where ofMap(Map<String, Object> map) {
         Where where = new Where();
         map.forEach((col, val) -> {
@@ -411,6 +461,12 @@ public class Where {
         return where;
     }
 
+    /**
+     * 通过构建 Map 方式创建新的 Where 对象
+     *
+     * @param map 查询条件
+     * @return 该对象的引用
+     */
     public static Where ofMap(Consumer<Map<String, Object>> consumer) {
         Map<String, Object> map = new LinkedHashMap<>();
         consumer.accept(map);

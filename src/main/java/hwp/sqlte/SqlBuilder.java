@@ -457,19 +457,54 @@ public class SqlBuilder implements Builder, Sql {
         return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
     }
 
+    /**
+     * LIMIT 分页
+     *
+     * @param pageable
+     * @return
+     */
     public SqlBuilder paging(Pageable pageable) {
         return paging(pageable.getPage(), pageable.getPageSize());
     }
 
-    public SqlBuilder limit(int first, int size) {
-        this.append("LIMIT ").append(first).append(", ").append(size);
+    /**
+     * <p> 适用 MySQL: {@code LIMIT offset, size }, {@code LIMIT size OFFSET offset}
+     * <p> 注意: SQL Server / Oracle 不适用
+     *
+     * @param offset
+     * @param size
+     * @return
+     */
+    public SqlBuilder limit(int offset, int size) {
+        this.append("LIMIT ").append(size);
+        if (offset > 0) {
+            this.append(" OFFSET ").append(offset);
+        }
         return this;
     }
 
+    /**
+     * LIMIT size
+     *
+     * @param size
+     * @return
+     */
     public SqlBuilder limit(int size) {
         this.append("LIMIT ").append(size);
         return this;
     }
+
+    /**
+     * 使用 LIMIT 分页
+     *
+     * @param pageable
+     * @return
+     * @since 0.2.28
+     */
+    public SqlBuilder limit(Pageable pageable) {
+        return paging(pageable);
+    }
+
 
     /**
      * 排序, 例子:
@@ -478,7 +513,7 @@ public class SqlBuilder implements Builder, Sql {
      * </pre>
      *
      * @param orderSql
-     * @return
+     * @return 该对象的引用
      */
     public SqlBuilder orderBy(String orderSql) {
         Objects.requireNonNull(orderSql);
@@ -493,7 +528,7 @@ public class SqlBuilder implements Builder, Sql {
      * </pre>
      *
      * @param order
-     * @return
+     * @return 该对象的引用
      */
     public SqlBuilder orderBy(Order order) {
         if (order != null && !order.isEmpty()) {
@@ -511,7 +546,7 @@ public class SqlBuilder implements Builder, Sql {
      * } </pre>
      *
      * @param consumer
-     * @return
+     * @return 该对象的引用
      */
     public SqlBuilder orderBy(Consumer<Order> consumer) {
         Order order = new Order();
@@ -520,12 +555,25 @@ public class SqlBuilder implements Builder, Sql {
     }
 
 
+    /**
+     * 通过 GROUP BY 拼接 SQL
+     *
+     * @param groupSql SQL 片段
+     * @return 该对象的引用
+     */
     public SqlBuilder groupBy(String groupSql) {
         Objects.requireNonNull(groupSql);
         this.append("GROUP BY ").append(groupSql);
         return this;
     }
 
+    /**
+     * 通过 GROUP BY 拼接 SQL
+     *
+     * @param groupSql SQL 片段
+     * @param having
+     * @return 该对象的引用
+     */
     public SqlBuilder groupBy(String groupSql, Consumer<Having> having) {
         Objects.requireNonNull(groupSql);
         this.append("GROUP BY ").append(groupSql);
@@ -546,6 +594,12 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 直接拼接 SQL, 不会添加任何关键字
+     *
+     * @param sql SQL 片段
+     * @return 该对象的引用
+     */
     public SqlBuilder append(CharSequence sql) {
         // 仅该方法可使用 this.sql.append()
         Objects.requireNonNull(sql);
@@ -563,6 +617,13 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 直接拼接 SQL, 不会添加任何关键字
+     *
+     * @param sql  SQL 片段
+     * @param args SQL 片段中占位符对于的参数值
+     * @return 该对象的引用
+     */
     public SqlBuilder append(String sql, Object... args) {
         Objects.requireNonNull(sql);
         this.append(sql);

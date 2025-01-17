@@ -37,7 +37,8 @@ public class SqlBuilderTest {
             order.desc("age");
         });
         sql.limit(1, 20);
-        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username ASC, age DESC LIMIT 1, 20";
+//        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username ASC, age DESC LIMIT 1, 20";
+        String expected = "SELECT * FROM users WHERE username=? AND username LIKE ? AND password=? AND age IN (?, ?, ?, ?) GROUP BY age HAVING age < ? AND (username = ? OR username = ?) ORDER BY username ASC, age DESC LIMIT 20 OFFSET 1";
         Assert.assertEquals(expected, sql.sql());
 //        System.out.println(sql);
     }
@@ -96,17 +97,17 @@ public class SqlBuilderTest {
     public void testPaging() {
         SqlBuilder sql = new SqlBuilder();
         sql.select("age, COUNT(*)").from("users").paging(1, 10);
-        String expected = "SELECT age, COUNT(*) FROM users LIMIT 0, 10";
+        String expected = "SELECT age, COUNT(*) FROM users LIMIT 10";
         Assert.assertEquals(expected, sql.sql());
 
         sql = new SqlBuilder();
         sql.select("age, COUNT(*)").from("users").paging(3, 15);
-        expected = "SELECT age, COUNT(*) FROM users LIMIT 30, 15";
+        expected = "SELECT age, COUNT(*) FROM users LIMIT 15 OFFSET 30";
         Assert.assertEquals(expected, sql.sql());
 
         sql = new SqlBuilder();
         sql.select("age, COUNT(*)").from("users").limit(30, 15);
-        expected = "SELECT age, COUNT(*) FROM users LIMIT 30, 15";
+        expected = "SELECT age, COUNT(*) FROM users LIMIT 15 OFFSET 30";
         Assert.assertEquals(expected, sql.sql());
     }
 
