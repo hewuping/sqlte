@@ -199,11 +199,11 @@ public class SqlConnectionTest {
             users.add(user);
         }
         conn.batchInsert(users);
-        List<User2> list1 = conn.list(User2.class, Where.EMPTY);
+        List<User2> list1 = conn.listAll(User2.class);
         Assert.assertEquals(size, list1.size());
         BatchUpdateResult result = conn.batchDelete(users);
         Assert.assertEquals(users.size(), result.affectedRows);
-        List<User2> list2 = conn.list(User2.class, Where.EMPTY);
+        List<User2> list2 = conn.listAll(User2.class);
         Assert.assertEquals(0, list2.size());
     }
 
@@ -213,7 +213,7 @@ public class SqlConnectionTest {
         user.passwordSalt = "***";
         conn.insert(user, "users");
         conn.delete(User2.class, Where.EMPTY);
-        Assert.assertTrue(conn.list(User2.class, Where.EMPTY).isEmpty());
+        Assert.assertTrue(conn.listAll(User2.class).isEmpty());
     }
 
     @Test
@@ -222,7 +222,7 @@ public class SqlConnectionTest {
         user.passwordSalt = "***";
         conn.insert(user, "users");
         conn.deleteByExample(user);
-        Assert.assertTrue(conn.list(User2.class, Where.EMPTY).isEmpty());
+        Assert.assertTrue(conn.listAll(User2.class).isEmpty());
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -231,26 +231,6 @@ public class SqlConnectionTest {
     public void testQuery() {
         User user = conn.query("select * from users u where  u.username =?", "Frank").first(User::new);
         Assert.assertNull(user);
-    }
-
-    @Test
-    public void testQueryClass_List() {
-        insertUser3();
-        List<User3> users1 = conn.query(User3.class, where -> {
-            where.and("username = ?", "May");
-        });
-        Assert.assertEquals(1, users1.size());
-        List<User3> users2 = conn.query(User3.class, where -> {
-            where.and("username = ?", "Frank");
-        });
-        Assert.assertEquals(0, users2.size());
-    }
-
-    @Test
-    public void testQueryBean() {
-//        User user = conn.query(User.class, where -> {
-//        }).first(User::new);
-//        Assert.assertNull(user);
     }
 
     @Test
@@ -316,19 +296,6 @@ public class SqlConnectionTest {
         }
         Page<User3> page = conn.queryPage(User3.class, sql -> sql.select(User3.class).paging(2, 10));
         Assert.assertEquals(10, page.getData().size());
-    }
-
-    @Test
-    public void testQueryWhere() {
-        insertUser();
-        List<User> list1 = conn.query("select * from users", where -> {
-            where.and("username=?", "May");
-        }).list(User.class);
-        List<User> list2 = conn.query("select * from users", where -> {
-            where.and("username=?", "foo");
-        }).list(User.class);
-        Assert.assertEquals(1, list1.size());
-        Assert.assertEquals(0, list2.size());
     }
 
     @Test
@@ -442,7 +409,7 @@ public class SqlConnectionTest {
     public void testListAll() {
         insertUser3();
         insertUser3();
-        List<User3> users = conn.list(User3.class, Where.EMPTY);
+        List<User3> users = conn.listAll(User3.class);
         Assert.assertEquals(2, users.size());
     }
 
@@ -784,7 +751,7 @@ public class SqlConnectionTest {
         }
         BatchUpdateResult result = conn.batchUpdate(users);
         Assert.assertEquals(users.size(), result.affectedRows);
-        List<User2> list = conn.list(User2.class, Where.EMPTY);
+        List<User2> list = conn.listAll(User2.class);
         for (User2 user : list) {
             Assert.assertTrue(user.username.endsWith(".changed"));
         }

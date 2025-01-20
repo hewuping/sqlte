@@ -59,7 +59,7 @@ public abstract class AbstractSqlConnection implements SqlConnection {
     @Override
     public <T> List<T> listExample(T example) {
         Class<T> aClass = (Class<T>) example.getClass();
-        return query(aClass, where -> where.of(example));
+        return list(aClass, where -> where.of(example));
     }
 
     @Override

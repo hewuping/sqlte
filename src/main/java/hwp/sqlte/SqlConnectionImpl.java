@@ -164,7 +164,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     @Override
     public <T> T reload(T bean, String table) throws SqlteException {
         try {
-            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            ClassInfo info = getClassInfo(bean.getClass());
             String[] pkColumns = info.getPkColumns();
             Where where = new Where();
             for (String k : pkColumns) {
@@ -202,12 +202,8 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     @Override
     public long selectCount(Object example) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(example.getClass());
-        return query(sql -> sql.selectCount(info.getTableName()).where(example)).asLong();
-   /*     return query(sql -> {
-            sql.select("COUNT(*)").from(info.getTableName()).where(example);
-        }).asLong();*/
-
+        String table = getTableName(example.getClass());
+        return query(sql -> sql.selectCount(table).where(Where.ofExample(example).allowEmpty())).asLong();
     }
 
 
@@ -320,7 +316,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
     private void insert(String insert, Object bean, String table) throws SqlteException {
-        ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+        ClassInfo info = getClassInfo(bean.getClass());
         if (table == null) {
             table = info.getTableName();
         }
@@ -395,7 +391,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             }
         }
         Class<T> aClass = (Class<T>) first.getClass();
-        ClassInfo info = ClassInfo.getClassInfo(aClass);
+        ClassInfo info = getClassInfo(aClass);
         Iterator<T> it = beans.iterator();
         return batchInsert(consumer -> beans.forEach(consumer::accept), aClass, table, sqlHandler, (stat, ints) -> {
             try {
@@ -555,7 +551,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     @Override
     public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
         try {
-            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
+            ClassInfo info = getClassInfo(bean.getClass());
 
             String[] _columns;
             if (columns == null) {
@@ -747,7 +743,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             return BatchUpdateResult.EMPTY;
         }
         Object first = beans.get(0);
-        ClassInfo info = ClassInfo.getClassInfo(first.getClass());
+        ClassInfo info = getClassInfo(first.getClass());
         if (table == null) {
             table = info.getTableName();
         }
@@ -833,7 +829,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 return BatchUpdateResult.EMPTY;
             }
             Object first = beans.get(0);
-            ClassInfo info = ClassInfo.getClassInfo(first.getClass());
+            ClassInfo info = getClassInfo(first.getClass());
             if (table == null) {
                 table = info.getTableName();
             }
@@ -1189,7 +1185,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             while (generatedKeys.next() && it.hasNext()) {
                 T bean = it.next();
                 if (info == null) {
-                    info = ClassInfo.getClassInfo(bean.getClass());
+                    info = getClassInfo(bean.getClass());
                 }
                 getGeneratedKeysAndSet(info, bean, generatedKeys);
             }

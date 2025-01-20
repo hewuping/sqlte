@@ -19,30 +19,6 @@ public interface SqlConnection extends AutoCloseable {
     SqlResultSet query(String sql, Object... args) throws SqlteException;
 
     /**
-     * <pre>{@code
-     *   List<Employee> list= query(Employee.class, where -> {
-     *       where.and("salary >= ?", 5000);
-     *   });
-     * } </pre>
-     * <p>
-     * <p>
-     * 请使用 list 代替
-     *
-     * <pre>{@code
-     *   List<Employee> list= list(Employee.class, where -> {
-     *       where.and("salary >= ?", 5000);
-     *   });
-     * } </pre>
-     *
-     * @param returnType
-     * @param where
-     * @param <T>
-     * @return
-     * @throws SqlteException
-     */
-    <T> List<T> query(Class<T> returnType, Consumer<Where> where) throws SqlteException;
-
-    /**
      * 查询
      *
      * @param sql
@@ -51,14 +27,6 @@ public interface SqlConnection extends AutoCloseable {
      */
     default SqlResultSet query(String sql) throws SqlteException {
         return query(sql, (Object[]) null);
-    }
-
-    default SqlResultSet query(String sql, Consumer<Where> consumer) throws SqlteException {
-        SqlBuilder sb = new SqlBuilder();
-        Where where = new Where();
-        consumer.accept(where);
-        sb.sql(sql).where(where);
-        return query(sb);
     }
 
     /**
@@ -121,20 +89,6 @@ public interface SqlConnection extends AutoCloseable {
     default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> clazz) throws SqlteException {
         return queryPage(consumer, Helper.toSupplier(clazz));
     }
-
-/*    default <T> Page<T> queryPage(Consumer<SqlBuilder> consumer, Class<T> resultClass, long maxCount) throws SqlteException {
-        SqlBuilder sb = new SqlBuilder();
-        consumer.accept(sb);
-        String sql = sb.sql();
-        int form = sql.lastIndexOf("LIMIT ");
-        if (form == -1) {
-            throw new IllegalArgumentException("Limit clause not found: " + sql);
-        }
-        List<T> list = query(sql, sb.args()).list(resultClass);
-        String countSql = "SELECT COUNT(*) FROM (" + sql.substring(0, form) + " LIMIT " + maxCount + ") AS _t";
-        Long count = query(countSql, sb.args()).first(Long.class);
-        return new Page<>(list, count);
-    }*/
 
     /**
      * 分页查询
@@ -397,7 +351,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      */
     default <T> List<T> listExample(Class<T> clazz, Object example) {
-        return query(clazz, where -> where.of(example));
+        return list(clazz, where -> where.of(example));
     }
 
     /**
@@ -639,7 +593,11 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> T mustGet(Class<T> clazz, Consumer<Map<String, Object>> consumer) throws SqlteException {
-        return tryGet(clazz, consumer);
+        T obj = tryGet(clazz, consumer);
+        if (obj == null) {
+            throw new NotFoundException("Can't found " + clazz.getSimpleName());
+        }
+        return obj;
     }
 
     /**
@@ -1132,7 +1090,19 @@ public interface SqlConnection extends AutoCloseable {
     <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
 
     /**
-     * 批量更新
+     * 批量插入或更新
+     * <p>
+     * 一般情况下 {@link #batchInsert(List)} 和 {@link #batchInsert(List)} 方法已能够满足大部分场景
+     *
+     * <pre>{@code
+     *  List<User> users = new ArrayList<>();
+     *  // ...
+     *  conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", 1000, users, user -> {
+     *      for(User user : users){
+     *          executor.exec(user.email, user.username);
+     *      }
+     * });
+     * } </pre>
      *
      * @param sql       更新 SQL 语句
      * @param batchSize 批次大小

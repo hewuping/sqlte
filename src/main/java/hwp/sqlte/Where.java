@@ -15,7 +15,7 @@ public class Where {
     private final List<Object> whereArgs = new ArrayList<>(4);
 
     // 目前, allowEmpty 当为 false 时, 空条件在删除和更新操作中被禁止, 在查询中会输出警告日志
-    protected boolean allowEmpty;
+    private boolean allowEmpty;
 
     public static final Consumer<Where> EMPTY = where -> {
         where.allowEmpty = true;
@@ -33,6 +33,7 @@ public class Where {
      * 允许查询条件为空(不包含任何条件)
      *
      * @return
+     * @since 0.2.28
      */
     public Where allowEmpty() {
         allowEmpty = true;
