@@ -145,7 +145,7 @@ public class QueryRequest {
                 String[] kv = value.split("~", 2);
                 if (kv.length == 2) {
                     JsonObject v = new JsonObject();
-                    if (StringUtils.isNumber(kv[0]) && StringUtils.isNumber(kv[1])) {
+                    if (StringUtils.isNumeric(kv[0]) && StringUtils.isNumeric(kv[1])) {
                         v.addProperty("start", Long.valueOf(kv[0]));
                         v.addProperty("end", Long.valueOf(kv[1]));
                     } else {

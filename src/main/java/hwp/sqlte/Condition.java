@@ -1,7 +1,10 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.ObjectUtils;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -224,7 +227,7 @@ public class Condition {
      * 使用 IN 条件查询
      *
      * @param column 列名
-     * @param values 字符串数组。
+     * @param values 字符串数组, 数组长度不能为 0
      * @return
      * @throws IllegalArgumentException 如果参数值为空抛出异常
      */
@@ -250,7 +253,7 @@ public class Condition {
      * 使用 IN 条件查询
      *
      * @param column 列名
-     * @param values 参数值
+     * @param values 参数值, 大小不能为 0
      * @param <E>
      * @return
      * @throws IllegalArgumentException 如果参数值为空抛出异常
@@ -263,7 +266,7 @@ public class Condition {
      * 使用 NOT IN 条件查询
      *
      * @param column 列名
-     * @param values 参数值, 可以是 Array, Collection 或 Stream
+     * @param values 参数值, 可以是 Array, Collection 或 Stream, 大小不能为 0
      * @return
      * @throws IllegalArgumentException 如果参数值为空抛出异常
      */
@@ -312,6 +315,20 @@ public class Condition {
         return new Condition(builder.toString(), args.toArray());
     }
 
+    /**
+     * 检查参数值是否为空, 如果为空则抛异常
+     *
+     * @return
+     * @since 0.2.28
+     */
+    public Condition check() {
+        // 这里不通过 args 大小判断, args 中的值可能是可展开类型
+        if (sql.contains("?") && ObjectUtils.isEmpty(args)) {
+            throw new IllegalArgumentException("Invalid query condition: " + this);
+        }
+        return this;
+    }
+
     public String sql() {
         return sql;
     }
@@ -319,4 +336,14 @@ public class Condition {
     public Object[] args() {
         return args;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Condition{");
+        sb.append("sql='").append(sql).append('\'');
+        sb.append(", args=").append(Arrays.toString(args));
+        sb.append('}');
+        return sb.toString();
+    }
+
 }
