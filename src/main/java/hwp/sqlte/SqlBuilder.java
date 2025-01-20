@@ -1,5 +1,6 @@
 package hwp.sqlte;
 
+import hwp.sqlte.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,8 +177,14 @@ public class SqlBuilder implements Builder, Sql {
     }*/
 
     /**
-     * 如果在调用 from() 前没有构建任何 SQL则生成: {@code SELECT * FROM table_name} (在 FROM 前插入 SELECT *),
-     * 否则直接作为 sql 片段追加到 FROM 关键字后面
+     * <p> 构建 SQL {@code FROM table_name}
+     * <p> 如果前序没有内容则生成 {@code SELECT * FROM table_name}
+     *
+     * <p> table 也可以是不带参数的子查询, 例如:
+     * <pre>{@code
+     * SqlBuilder sb = new SqlBuilder();
+     * sb.from("(SELECT * FROM xxx WHERE xxx=yyy)"); // 注意需要前后使用括号包裹
+     * }</pre>
      *
      * @param table 表名 或 SQL
      * @return
@@ -188,6 +195,43 @@ public class SqlBuilder implements Builder, Sql {
             this.append("SELECT *");
         }
         this.append("FROM ").append(table);
+        return this;
+    }
+
+    /**
+     * 从子查询中查询
+     * <p>
+     * 例如: {@code SELECT * FROM ( SELECT * FROM users WHERE tenant_id=? ) WHERE email=? }
+     * 我们可以使用如下方法动态构建子查询:
+     *
+     * <pre>{@code
+     * SqlBuilder sql = new SqlBuilder();
+     * sql.select("*").from(sub -> {
+     *     sub.from("users").where(where -> {
+     *          where.and("tenant_id=?", 10000);
+     *     });
+     * });
+     * sql.where(where -> {
+     *     where.and("email=?", "zero@example.com");
+     * });
+     * } </pre>
+     *
+     * @param consumer
+     * @return
+     * @since 0.2.28
+     */
+    public SqlBuilder from(Consumer<SqlBuilder> consumer) {
+        Objects.requireNonNull(consumer);
+        SqlBuilder sub = new SqlBuilder();
+        consumer.accept(sub);
+        String subSql = sub.sql();
+        if (StringUtils.isBlank(subSql)) {
+            throw new IllegalArgumentException("Subquery cannot be empty");
+        }
+        if (!subSql.toUpperCase().startsWith("SELECT")) {
+            throw new IllegalArgumentException("Invalid subquery: " + subSql);
+        }
+        this.append("FROM (").append(subSql).append(")", sub.args());
         return this;
     }
 

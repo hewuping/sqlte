@@ -295,4 +295,32 @@ public class SqlBuilderTest {
                 "SELECT * FROM users";
         Assert.assertEquals(expected, builder.sql());
     }
+
+    @Test
+    public void testSubQuery1() {
+        String expected = "SELECT * FROM ( SELECT * FROM users WHERE tenant_id=? ) WHERE email=?";
+        SqlBuilder sql = new SqlBuilder();
+        sql.select("*").from("( SELECT * FROM users WHERE tenant_id=? )");
+        sql.where(where -> {
+            where.and("email=?", "zero@example.com");
+        });
+        Assert.assertEquals(expected, sql.sql());
+    }
+
+    @Test
+    public void testSubQuery2() {
+        String expected = "SELECT * FROM ( SELECT * FROM users WHERE tenant_id=? ) WHERE email=?";
+        SqlBuilder sql = new SqlBuilder();
+        sql.select("*").from(sub -> {
+            sub.from("users").where(where -> {
+                where.and("tenant_id=?", 10000);
+            });
+        });
+        sql.where(where -> {
+            where.and("email=?", "zero@example.com");
+        });
+        Assert.assertEquals(expected, sql.sql());
+    }
+
+
 }
