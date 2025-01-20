@@ -272,6 +272,22 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
+     * 查询全表 (不推荐, 仅数据量特别少时可用)
+     *
+     * <pre>{@code
+     *   List<Employee> list = conn.listAll(Employee.class);
+     * } </pre>
+     *
+     * @param clazz
+     * @param <T>
+     * @return
+     * @since 0.2.28
+     */
+    default <T> List<T> listAll(Class<T> clazz) {
+        return this.list(clazz, Where.EMPTY);
+    }
+
+    /**
      * 查询表数据并返回 List
      *
      * <pre>{@code
@@ -280,12 +296,6 @@ public interface SqlConnection extends AutoCloseable {
      *   });
      * } </pre>
      * <p>
-     * <p>
-     * 如果需要查询全表 (不推荐, 仅数据量特别少时可用)
-     *
-     * <pre>{@code
-     *   List<Employee> list = conn.list(Employee.class, Where.EMPTY);
-     * } </pre>
      *
      * @param clazz
      * @param consumer
