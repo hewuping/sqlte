@@ -450,7 +450,7 @@ public class SqlBuilder implements Builder, Sql {
         //TODO 这里后续可能会改为抛异常
         if (!where.isAllowEmpty() && where.isEmpty()) {
             // WHERE clause cannot be empty.
-            logger.warn("Missing condition in where");
+            logger.warn("Missing condition in where clause");
         }
         return this;
     }
