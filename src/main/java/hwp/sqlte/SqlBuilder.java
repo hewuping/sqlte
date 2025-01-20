@@ -237,12 +237,26 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 生成更新 SQL, 例如: {@code UPDATE table_name SET key1=?, key2=?, ... }
+     *
+     * @param table    表名
+     * @param consumer 更新的列名和对于的值
+     * @return
+     */
     public SqlBuilder update(String table, Consumer<Map<String, Object>> consumer) {
         Map<String, Object> data = new LinkedHashMap<>();
         consumer.accept(data);
         return update(table, data);
     }
 
+    /**
+     * 生成更新 SQL, 例如: {@code UPDATE table_name SET key1=?, key2=?, ... }
+     *
+     * @param table 表名
+     * @param data  更新的列名和对于的值
+     * @return
+     */
     public SqlBuilder update(String table, Map<String, Object> data) {
         this.append("UPDATE ").append(table).append(" SET ");
         Iterator<Map.Entry<String, Object>> it = data.entrySet().iterator();
@@ -267,6 +281,12 @@ public class SqlBuilder implements Builder, Sql {
         return this;
     }
 
+    /**
+     * 追加原始 SQL 片段
+     *
+     * @param sql
+     * @return
+     */
     public SqlBuilder sql(CharSequence sql) {
         this.append(sql);
         return this;
@@ -366,6 +386,18 @@ public class SqlBuilder implements Builder, Sql {
     }
 
 
+    /**
+     * 追加 Where 查询条件, 例如:
+     *
+     * <pre>{@code
+     *  Where where = new Where();
+     *  where.and("column_name=?", value);
+     *  sql.from("table_name").where(where);
+     * }</pre>
+     *
+     * @param where
+     * @return
+     */
     public SqlBuilder where(Where where) {
         if (where != null && !where.isEmpty()) {
             this.append("WHERE ").append(where.sql());
@@ -378,11 +410,12 @@ public class SqlBuilder implements Builder, Sql {
     }
 
     /**
+     * 追加 Where 查询条件, 例如:
      * <pre>{@code
      *  sql.from("table_name").where(where -> {
-     *      where.and(" column_name=?", value);
-     *   });
-     * } </pre>
+     *      where.and("column_name=?", value);
+     *  });
+     * }</pre>
      *
      * @param consumer
      * @return
@@ -454,7 +487,10 @@ public class SqlBuilder implements Builder, Sql {
      * @return
      */
     public SqlBuilder paging(int page, int size) {
-        return this.limit(Math.max(0, (page - 1) * size), Math.max(size, 1));
+        // 这里需要判断是使用 LIMIT 还是 FETCH
+        int offset = Math.max(0, (page - 1) * size);
+        int _size = Math.max(size, 1);
+        return this.limit(offset, _size);
     }
 
     /**
@@ -505,6 +541,42 @@ public class SqlBuilder implements Builder, Sql {
         return paging(pageable);
     }
 
+    /**
+     * <p> Microsoft SQL Server: 从 2012 版本开始支持 OFFSET 和 FETCH NEXT 用法
+     * <p> Oracle: 从 12c 版本开始 OFFSET 和 FETCH NEXT 用法
+     *
+     * <p> 例子: {@code fetch(30, 15)} 生成的 SQL 如下:
+     * <pre>{@code
+     * OFFSET 30 ROWS
+     * FETCH NEXT 15 ROWS ONLY
+     * }</pre>
+     *
+     * @param offset
+     * @param size
+     * @return
+     * @since 0.2.28
+     */
+    public SqlBuilder fetch(int offset, int size) {
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be >= 0 ");
+        }
+        if (size < 1) {
+            throw new IllegalArgumentException("size must be > 0 ");
+        }
+        if (offset == 0) {
+            append("FETCH FIRST " + size + " ROWS ONLY");
+        } else {
+            append("OFFSET " + offset + " ROWS");
+            append("FETCH NEXT " + size + " ROWS ONLY");
+        }
+        return this;
+    }
+
+    public SqlBuilder fetch(Pageable page) {
+        int offset = Math.max(0, (page.getPage() - 1) * page.getPageSize());
+        int _size = Math.max(page.getPageSize(), 1);
+        return this.fetch(offset, _size);
+    }
 
     /**
      * 排序, 例子:
