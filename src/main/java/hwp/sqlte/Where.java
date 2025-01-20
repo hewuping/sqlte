@@ -14,19 +14,33 @@ public class Where {
     private final StringBuilder whereBuilder = new StringBuilder();
     private final List<Object> whereArgs = new ArrayList<>(4);
 
-    protected boolean warnOnEmpty;//当条件为空时, 输出警告信息
-    protected boolean canBeEmpty;//可以为空
+    // 目前, allowEmpty 当为 false 时, 空条件在删除和更新操作中被禁止, 在查询中会输出警告日志
+    protected boolean allowEmpty;
 
     public static final Consumer<Where> EMPTY = where -> {
-        where.warnOnEmpty = false;
-        where.canBeEmpty = true;
+        where.allowEmpty = true;
     };
 
     public Where() {
+        this.allowEmpty = false;
     }
 
     public Where(Consumer<Where> consumer) {
         consumer.accept(this);
+    }
+
+    /**
+     * 允许查询条件为空(不包含任何条件)
+     *
+     * @return
+     */
+    public Where allowEmpty() {
+        allowEmpty = true;
+        return this;
+    }
+
+    public boolean isAllowEmpty() {
+        return allowEmpty;
     }
 
     /**
@@ -492,12 +506,8 @@ public class Where {
     }
 
     protected void check() {
-        if (canBeEmpty) {
-            return;
-        }
-        if (isEmpty()) {
-            // Unconditional deletion of data is not allowed
-            throw new WhereException("The WHERE clause is empty");
+        if (!allowEmpty && isEmpty()) {
+            throw new WhereException("WHERE clause cannot be empty. You can change this using allowEmpty()");
         }
     }
 

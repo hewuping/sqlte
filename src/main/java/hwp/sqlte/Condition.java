@@ -292,7 +292,7 @@ public class Condition {
                 args.add(value);
             }
         }
-        if (args.size() == 0) {
+        if (args.isEmpty()) {
             throw new IllegalArgumentException("IN 参数值不能为空");
         }
         // 构建sql
