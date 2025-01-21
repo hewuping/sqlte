@@ -126,11 +126,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public int update(Consumer<SqlBuilder> consumer) throws SqlteException {
-        return delegate.update(consumer);
-    }
-
-    @Override
     public int update(String table, Map<String, Object> map, Where where) throws SqlteException {
         return delegate.update(table, map, where);
     }
@@ -143,11 +138,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     @Override
     public int update(String table, Consumer<Row> consumer, Consumer<Where> where) throws SqlteException {
         return delegate.update(table, consumer, where);
-    }
-
-    @Override
-    public int updateByPks(String table, Map<String, Object> map, String... pk) throws SqlteException {
-        return delegate.updateByPks(table, map, pk);
     }
 
     @Override
@@ -206,23 +196,8 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
-        return delegate.update(bean, table, columns, ignoreNullValue, where);
-    }
-
-    @Override
-    public boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException {
-        return delegate.update(bean, table, where);
-    }
-
-    @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws SqlteException {
-        return delegate.update(bean, table, columns, ignoreNullValue);
-    }
-
-    @Override
-    public boolean update(Object bean, String columns, boolean ignoreNullValue) throws SqlteException {
-        return delegate.update(bean, columns, ignoreNullValue);
+    public boolean update(Object bean) throws SqlteException {
+        return delegate.update(bean);
     }
 
     @Override
@@ -231,13 +206,13 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public boolean update(Object bean, boolean ignoreNullValue) throws SqlteException {
-        return delegate.update(bean, ignoreNullValue);
+    public boolean update(Object bean, boolean ignoreNullValues) throws SqlteException {
+        return delegate.update(bean, ignoreNullValues);
     }
 
     @Override
-    public boolean update(Object bean) throws SqlteException {
-        return delegate.update(bean);
+    public boolean update(Object bean, UpdateOptions options) throws SqlteException {
+        return delegate.update(bean, options);
     }
 
     @Override

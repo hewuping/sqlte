@@ -204,10 +204,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
         });
     }
 
-    @Override
-    public boolean update(Object bean) throws SqlteException {
-        return this.update(bean, null);
-    }
 
     @Override
     public int insertMap(String table, Map<String, Object> row) throws SqlteException {
@@ -242,13 +238,8 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public int update(Consumer<SqlBuilder> consumer) throws SqlteException {
-        return run(conn -> conn.update(consumer));
-    }
-
-    @Override
-    public boolean update(Object bean, String columns) throws SqlteException {
-        return run(conn -> conn.update(bean, columns));
+    public boolean update(Object bean, UpdateOptions options) throws SqlteException {
+        return run(conn -> conn.update(bean, options));
     }
 
     @Override
@@ -321,11 +312,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
-        return run(conn -> conn.update(bean, table, columns, ignoreNullValue, where));
-    }
-
-    @Override
     public boolean delete(Object bean, String table) throws SqlteException {
         return run(conn -> conn.delete(bean, table));
     }
@@ -342,10 +328,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
         return run(conn -> conn.update(table, data, where));
     }
 
-    @Override
-    public int updateByPks(String table, Map<String, Object> map, String... pk) throws SqlteException {
-        return run(conn -> conn.updateByPks(table, map, pk));
-    }
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SqlteException {

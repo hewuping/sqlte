@@ -7,7 +7,7 @@ CREATE TABLE "public"."users" (
 "email" varchar(255) DEFAULT '@xxx.com'::character varying,
 "password" varchar(64),
 "updated_time" timestamp(6) DEFAULT now(),
-"password_salt" varchar(255),
+"gender" varchar(10),
 "creation_time" date,
 CONSTRAINT "users_pkey" PRIMARY KEY ("id"),
 CONSTRAINT "idx_un" UNIQUE ("username")

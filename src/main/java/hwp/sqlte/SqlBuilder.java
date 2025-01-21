@@ -379,7 +379,7 @@ public class SqlBuilder implements Builder, Sql {
      *
      * @param args
      * @return
-     * @deprecated 使用 setArgs() 代替
+     * @deprecated 使用 setArgs() 替代
      */
     @Deprecated
     public SqlBuilder args(Object... args) {

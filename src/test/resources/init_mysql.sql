@@ -4,7 +4,7 @@ CREATE TABLE `users` (
   `email` varchar(60) DEFAULT NULL,
   `username` varchar(60) DEFAULT NULL,
   `password` varchar(64) DEFAULT NULL,
-  `password_salt` varchar(60) DEFAULT NULL,
+  `gender`   ENUM('MALE', 'FEMALE', 'OTHER') DEFAULT NULL,
   `age` int(4) DEFAULT NULL,
   `updated_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

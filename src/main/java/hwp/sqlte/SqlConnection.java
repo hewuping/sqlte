@@ -62,7 +62,7 @@ public interface SqlConnection extends AutoCloseable {
      * conn.queryPage(Group.class, sql -> {
      *     sql.select(Group.class).paging(1, 10);
      * }, (group, row) -> {
-     *     group.users = getUsers(row.getInteger("group_id"));
+     *     group.users = getUsers(group.id);
      * });
      * }</pre>
      *
@@ -195,6 +195,8 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 统计相似数据条数
+     * <p>
+     * 例如统计18岁的妹子人数: {@code selectCount(new User(FEMALE, 18))}
      *
      * @param example
      * @return
@@ -203,6 +205,13 @@ public interface SqlConnection extends AutoCloseable {
     long selectCount(Object example) throws SqlteException;
 
 
+    /**
+     * {@code SELECT EXISTS( SqlBuilder )}
+     *
+     * @param consumer
+     * @return
+     * @throws SqlteException
+     */
     default boolean selectExists(Consumer<SqlBuilder> consumer) throws SqlteException {
         SqlBuilder sql = new SqlBuilder();
         consumer.accept(sql);
@@ -215,7 +224,9 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 根据 Example 查询表总记录数 (仅适用于单表), 同 selectCount(Object example)
+     * 根据 Example 查询表总记录数 (仅适用于单表), 同 {@link #selectCount(Object)}
+     * <p>
+     * 例如统计18岁的妹子人数: {@code count(new User(FEMALE, 18))}
      *
      * @param example
      * @return
@@ -357,7 +368,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 插入单条数据
      * <p>
-     * 例如: <code>conn.insert("users", "username,password,password_salt", "may", "123456", "xxx");</code>
+     * 例如: <code>conn.insert("users", "username,email,...", "may", "may@example.com", "...");</code>
      *
      * @param table
      * @param columns
@@ -425,6 +436,8 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * MySQL: INSERT IGNORE INTO
+     *
+     * @deprecated
      */
     int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns);
 
@@ -457,8 +470,11 @@ public interface SqlConnection extends AutoCloseable {
      * @param consumer
      * @return
      * @throws SqlteException
+     * @deprecated 请使用 {@link #executeUpdate(Consumer)} 替代
      */
-    int update(Consumer<SqlBuilder> consumer) throws SqlteException;
+    default int update(Consumer<SqlBuilder> consumer) throws SqlteException {
+        return executeUpdate(consumer);
+    }
 
     /**
      * 更新内容
@@ -519,16 +535,6 @@ public interface SqlConnection extends AutoCloseable {
         return update(table, row, w);
     }
 
-    /**
-     * 更新表数据
-     *
-     * @param table 更新表
-     * @param map   更新内容(需要包含主键)
-     * @param pk    主键列名
-     * @return
-     * @throws SqlteException
-     */
-    int updateByPks(String table, Map<String, Object> map, String... pk) throws SqlteException;
 
     ////////////////////////////////////////Simple ORM//////////////////////////////////////////////////////////
 //    <T> List<T> query(Supplier<T> supplier, Consumer<SqlBuilder> sql);
@@ -676,58 +682,18 @@ public interface SqlConnection extends AutoCloseable {
      */
     void insertIgnore(Object bean, String table) throws SqlteException;
 
-    /**
-     * 根据条件更新多条记录 (安全更新)
-     *
-     * @param bean            更新内容
-     * @param table           表名, 可以为 null
-     * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否忽略值为 null 的字段
-     * @param where           更新条件, 条件不能为空
-     * @return
-     * @throws SqlteException
-     */
-    boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException;
-
-    /**
-     * 根据条件更新多条记录 (安全更新)
-     *
-     * @param bean  更新内容
-     * @param table 表名, 可以为 null
-     * @param where 条件
-     * @return
-     * @throws SqlteException
-     */
-    default boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException {
-        return update(bean, table, null, false, where);
-    }
-
-    /**
-     * 更新单条记录 (安全更新)
-     *
-     * @param bean            更新对象
-     * @param table           表名, 可以为 null
-     * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否忽略值为 null 的字段
-     * @return 更新成功返回 true
-     * @throws SqlteException
-     */
-    default boolean update(Object bean, String table, String columns, boolean ignoreNullValue) throws SqlteException {
-        return update(bean, table, columns, ignoreNullValue, null);
-    }
 
     /**
      * 更新单条记录
      *
-     * @param bean            更新对象
-     * @param columns         指定更新的列(是表列名, 非类属性名), 多列使用英文逗号分隔
-     * @param ignoreNullValue 是否忽略值为 null 的字段
+     * @param bean 更新对象
      * @return 更新成功返回 true
      * @throws SqlteException
      */
-    default boolean update(Object bean, String columns, boolean ignoreNullValue) throws SqlteException {
-        return update(bean, null, columns, ignoreNullValue);
+    default boolean update(Object bean) throws SqlteException {
+        return update(bean, (UpdateOptions) null);
     }
+
 
     /**
      * 更新单条记录
@@ -738,31 +704,29 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default boolean update(Object bean, String columns) throws SqlteException {
-        return this.update(bean, columns, false);
+        return this.update(bean, options -> options.columns(columns));
     }
 
     /**
      * 更新单条记录
      *
-     * @param bean            更新对象
-     * @param ignoreNullValue 是否忽略值为 null 的字段
+     * @param bean             更新对象
+     * @param ignoreNullValues 是否忽略值为 null 的字段
      * @return 更新成功返回 true
      * @throws SqlteException
      */
-    default boolean update(Object bean, boolean ignoreNullValue) throws SqlteException {
-        return this.update(bean, null, ignoreNullValue);
+    default boolean update(Object bean, boolean ignoreNullValues) throws SqlteException {
+        return this.update(bean, options -> options.setIgnoreNullValues(ignoreNullValues));
     }
 
-    /**
-     * 更新单条记录
-     *
-     * @param bean 更新对象
-     * @return 更新成功返回 true
-     * @throws SqlteException
-     */
-    default boolean update(Object bean) throws SqlteException {
-        return update(bean, null, false);
+
+    default boolean update(Object bean, Consumer<UpdateOptions> consumer) throws SqlteException {
+        UpdateOptions options = new UpdateOptions();
+        consumer.accept(options);
+        return update(bean, options);
     }
+
+    boolean update(Object bean, UpdateOptions options) throws SqlteException;
 
     /**
      * 插入或更新
@@ -929,7 +893,7 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 批量删除
+     * 批量删除, 根据添加了 {@link Id } 注解的字段和值作为条件
      *
      * @param beans
      * @param <T>
@@ -940,7 +904,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 批量删除
+     * 批量删除, 根据添加了 {@link Id } 注解的字段和值作为条件
      *
      * @param beans
      * @param table 表名, 可以为 null

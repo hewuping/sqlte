@@ -457,7 +457,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     @Override
     public int insertMap(String table, Map<String, Object> row, String... returnColumns) throws SqlteException {
-        return this.insertMap(null, table, row, returnColumns);
+        return this.insertMap("INSERT INTO", table, row, returnColumns);
     }
 
     @Override
@@ -517,47 +517,33 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             if (logger.isDebugEnabled()) {
                 logger.debug("sql: {}\t args: {}", sql, Arrays.toString(args));
             }
-            if (sql.contains("?")) {
-                try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                    Helper.fillStatement(statement, args);
-                    return statement.executeUpdate();
-                }
-            } else {
+            if (args.length == 0) {
                 try (Statement statement = conn.createStatement()) {
                     return statement.executeUpdate(sql);
                 }
+            }
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                Helper.fillStatement(statement, args);
+                return statement.executeUpdate();
             }
         } catch (Exception e) {
             throw new SqlteException(e);
         }
     }
 
-    @Override
-    public int update(Consumer<SqlBuilder> consumer) throws SqlteException {
-        SqlBuilder builder = new SqlBuilder();
-        consumer.accept(builder);
-        String sql = toSql(builder.sql());
-        if (logger.isDebugEnabled()) {
-            logger.debug("sql: {}\t args: {}", sql, Arrays.toString(builder.args()));
-        }
-        try (PreparedStatement statement = conn.prepareStatement(sql)) {
-            Helper.fillStatement(statement, builder.args());
-            return statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new SqlteException(e);
-        }
-    }
 
     @Override
-    public boolean update(Object bean, String table, String columns, boolean ignoreNullValue, Consumer<Where> where) throws SqlteException {
+    public boolean update(Object bean, UpdateOptions options) throws SqlteException {
         try {
             ClassInfo info = getClassInfo(bean.getClass());
 
+            String columns = options.columns();
+            String table = Objects.toString(options.table(), info.getTableName());
             String[] _columns;
-            if (columns == null) {
+            if (StringUtils.isBlank(columns)) {
                 _columns = info.getUpdateColumns();
             } else {
-                _columns = columns.trim().split("\\s*,\\s*");
+                _columns = StringUtils.splitToArray(columns);
             }
 
             if (_columns.length == 0) {
@@ -577,7 +563,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                     nullCount++;
                 }
             }
-            if (ignoreNullValue && nullCount > 0) {
+            if (options.isIgnoreNullValues() && nullCount > 0) {
                 int updateColumnCount = _columns.length - nullCount;
                 if (updateColumnCount < 1) {
 //                    throw new UncheckedException("No fields to update");
@@ -596,32 +582,25 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 args = newArgs;
                 _columns = newColumns;
             }
-            if (table == null) {
-                table = info.getTableName();
-            }
             String sql = Helper.makeUpdateSql(table, _columns, null);
             SqlBuilder builder = new SqlBuilder();
             builder.append(sql, args);
 
-            Where where0 = new Where();
-            if (where == null) {
-                String[] pkColumns = info.getPkColumns();
-                if (pkColumns.length == 0) {
-                    throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
-                }
-                for (String k : pkColumns) {
-                    Field field = info.getFieldByColumn(k);
-                    Object idValue = field.get(bean);
-                    if (idValue == null) {
-                        throw new IllegalArgumentException("Key field value is null: " + field.getName());
-                    }
-                    where0.and(k + "=?", idValue);
-                }
-            } else {
-                where.accept(where0);
+            Where where = new Where();
+            String[] pkColumns = info.getPkColumns();
+            if (pkColumns.length == 0) {
+                throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
             }
-            where0.check();
-            builder.where(where0);
+            for (String k : pkColumns) {
+                Field field = info.getFieldByColumn(k);
+                Object idValue = field.get(bean);
+                if (idValue == null) {
+                    throw new IllegalArgumentException("Key field value is null: " + field.getName());
+                }
+                where.and(k + "=?", idValue);
+            }
+            where.check();
+            builder.where(where);
             return executeUpdate(builder.sql(), builder.args()) == 1;
         } catch (IllegalAccessException e) {
             //Never happen
@@ -786,36 +765,6 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         }
     }
 
-/*    public boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException {
-        try {
-            ClassInfo info = ClassInfo.getClassInfo(bean.getClass());
-            if (table == null) {
-                table = info.getTableName();
-            }
-            SqlBuilder builder = new SqlBuilder();
-            builder.add("UPDATE ").add(table).add(" SET ");
-
-            int updateColumnCount = 0;
-            for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                Object value = entry.getValue().get(bean);
-                if (value != null) {
-                    if (updateColumnCount > 0) {
-                        builder.add(", ");
-                    }
-                    builder.sql(entry.getKey()).add("=?", value);
-                    updateColumnCount++;
-                }
-            }
-            builder.where(where);
-            if (logger.isDebugEnabled()) {
-                logger.debug("sql: {}\t args: {}", builder.sql(), Arrays.toString(builder.args()));
-            }
-            return update(builder.sql(), builder.args()) == 1;
-        } catch (IllegalAccessException e) {
-            throw new SqlteException(e);
-        }
-    }*/
-
     @Override
     public boolean delete(Object bean, String table) throws SqlteException {
         BatchUpdateResult result = this.batchDelete(Arrays.asList(bean), table);
@@ -877,54 +826,32 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         }
     }
 
-    /**
-     * @param table table name
-     * @param map   data
-     * @param ids   default name is "id"
-     * @throws SqlteException if a database access error occurs
-     */
-    @Override
-    public int updateByPks(String table, Map<String, Object> map, String... ids) throws SqlteException {
-        return update(table, new HashMap<>(map), where -> {
-            if (ids.length == 0) {
-                Object v = map.get("id");
-                if (v == null) {
-                    throw new IllegalArgumentException("id is required");
-                }
-                where.and("id=?", v);
-            } else {
-                for (String key : ids) {
-                    Object v = map.get(key);
-                    if (v == null) {
-                        throw new IllegalArgumentException("Can't found not null value by key: " + key);
-                    }
-                    where.and(key + "=?", v);
-                }
-            }
-        });
-    }
-
-    /*
-    <T> void update2(Class<T> clazz, Sql sql, EFunction<T, Boolean> function) throws Exception {
-        String _sql = toSql(sql.sql());
-        try (PreparedStatement stat = createQueryStatement(_sql)) {
-            if (sql.args().length > 0) {
-                Helper.fillStatement(stat, sql.args());
-            }
-            if (logger.isDebugEnabled()) {
-                logger.debug("sql: {}\t args: {}", _sql, Arrays.toString(sql.args()));
-            }
-            try (java.sql.ResultSet rs = stat.executeQuery()) {
-                while (rs.next()) {
-                    T obj = Row.from(rs).map(clazz);
-                    // 如果对象被修改了, 则更新对象
-                    if (function.apply(obj)) {
-                        update(obj);
-                    }
-                }
-            }
-        }
-    }*/
+//    /**
+//     * @param table table name
+//     * @param map   data
+//     * @param ids   default name is "id"
+//     * @throws SqlteException if a database access error occurs
+//     */
+//    @Override
+//    public int updateByPks(String table, Map<String, Object> map, String... ids) throws SqlteException {
+//        return update(table, new HashMap<>(map), where -> {
+//            if (ids.length == 0) {
+//                Object v = map.get("id");
+//                if (v == null) {
+//                    throw new IllegalArgumentException("Primary key columns not specified, and the default id column does not have a value");
+//                }
+//                where.and("id=?", v);
+//            } else {
+//                for (String key : ids) {
+//                    Object v = map.get(key);
+//                    if (v == null) {
+//                        throw new IllegalArgumentException("Values in primary key columns cannot be empty: " + key);
+//                    }
+//                    where.and(key + "=?", v);
+//                }
+//            }
+//        });
+//    }
 
 
     ///////////////////////////////////////////////////////////////////////////

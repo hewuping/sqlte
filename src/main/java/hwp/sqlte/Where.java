@@ -9,6 +9,11 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+/**
+ * <p> 用于构建 Where 子句
+ * <p> 为了避免全表数据被意外更新或删除, 默认情况下 Where 是必须包含查询条件的
+ * <p> 当然你可以以使用 {@link  #allowEmpty() } 设置为允许为空
+ */
 public class Where {
 
     private final StringBuilder whereBuilder = new StringBuilder();
@@ -193,7 +198,7 @@ public class Where {
     }
 
     /**
-     * 使用 指定的 where 对象代替本身
+     * 应用已存在的 where 对象参数
      *
      * @param where
      */
@@ -508,7 +513,7 @@ public class Where {
 
     protected void check() {
         if (!allowEmpty && isEmpty()) {
-            throw new WhereException("WHERE clause cannot be empty. You can change this using allowEmpty()");
+            throw new WhereClauseException("WHERE clause cannot be empty. You can change this using allowEmpty()");
         }
     }
 
