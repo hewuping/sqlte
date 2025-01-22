@@ -235,10 +235,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
         return delegate.batchUpdate(sql, it, consumer);
     }
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
-        return delegate.batchInsert(beans, table);
-    }
 
     @Override
     public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {

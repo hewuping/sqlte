@@ -672,6 +672,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean  插入内容
      * @param table 表名
      * @throws SqlteException
+     * @deprecated
      */
     void insertIgnore(Object bean, String table) throws SqlteException;
 
@@ -939,7 +940,9 @@ public interface SqlConnection extends AutoCloseable {
      * @return 返回 BatchUpdateResult
      * @throws SqlteException
      */
-    <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException;
+    default <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
+        return batchInsert(beans, table, null);
+    }
 
     /**
      * 批量插入
@@ -1018,6 +1021,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
+        //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
         return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 

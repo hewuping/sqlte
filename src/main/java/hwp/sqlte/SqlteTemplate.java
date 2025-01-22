@@ -244,10 +244,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
         });
     }
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
-        return run(conn -> conn.batchInsert(beans, table));
-    }
 
     @Override
     public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {

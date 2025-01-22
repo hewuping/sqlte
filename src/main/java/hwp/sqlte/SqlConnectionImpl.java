@@ -2,6 +2,7 @@ package hwp.sqlte;
 
 
 import hwp.sqlte.util.ClassUtils;
+import hwp.sqlte.util.ObjectUtils;
 import hwp.sqlte.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -373,9 +374,42 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
-        return batchInsert(beans, table, null);
+    /**
+     * 该方法暂时未使用
+     */
+    private <T> BatchUpdateResult batchInsert0(Class<T> clazz, List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
+        // beans 应该是已分好批次的列表
+        if (beans.isEmpty()) {
+            return BatchUpdateResult.EMPTY;
+        }
+        for (T o : beans) {
+            if (o.getClass() != clazz.getClass()) {
+                throw new IllegalArgumentException("The object type in the collection must be consistent");
+            }
+        }
+        ClassInfo info = getClassInfo(clazz);
+        String[] columns = info.getInsertColumns();
+        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
+        try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
+            for (T bean : beans) {
+                Object[] args = new Object[columns.length];
+                for (int i = 0; i < columns.length; i++) {
+                    Field field = info.getFieldByColumn(columns[i]);
+                    args[i] = Helper.getSerializedValue(bean, field);
+                }
+                Helper.fillStatement(stat, args);
+                stat.addBatch();
+            }
+            int[] rs = stat.executeBatch();
+            if (ObjectUtils.isNotEmpty(info.getAutoGenerateColumns())) {
+                getGeneratedKeysAndSet(beans.iterator(), stat.getGeneratedKeys());
+            }
+            BatchUpdateResult result = new BatchUpdateResult();
+            result.addBatchResult(rs);
+            return result;
+        } catch (SQLException e) {
+            throw new SqlteException(e);
+        }
     }
 
     @Override
@@ -404,19 +438,6 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 throw new RuntimeException(e);
             }
         });
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
-        return this.batchInsert(loader, clazz, table, null);
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
-//        ClassInfo info = getClassInfo(clazz);
-//        boolean hasGks = info.getAutoGenerateColumns().length > 0;
-        //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
-        return batchInsert(loader, clazz, table, sqlHandler, null);
     }
 
     @Override
