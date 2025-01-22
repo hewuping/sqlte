@@ -435,13 +435,6 @@ public interface SqlConnection extends AutoCloseable {
     int replaceMap(String table, Map<String, Object> row, String... returnColumns);
 
     /**
-     * MySQL: INSERT IGNORE INTO
-     *
-     * @deprecated
-     */
-    int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns);
-
-    /**
      * 执行更新 SQL
      *
      * @param sql

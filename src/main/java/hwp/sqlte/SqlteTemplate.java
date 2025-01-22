@@ -228,11 +228,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
-        return run(conn -> conn.insertIgnoreMap(table, row, returnColumns));
-    }
-
-    @Override
     public int executeUpdate(String sql, Object... args) throws SqlteException {
         return run(conn -> conn.executeUpdate(sql, args));
     }

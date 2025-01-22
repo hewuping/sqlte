@@ -465,11 +465,6 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         return this.insertMap("REPLACE INTO", table, row, returnColumns);
     }
 
-    @Override
-    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
-        return this.insertMap("INSERT IGNORE INTO", table, row, returnColumns);
-    }
-
     private int insertMap(String insert, String table, Map<String, Object> row, String... returnColumns) throws SqlteException {
         String sql = Helper.makeInsertSql(insert, table, row.keySet().toArray(new String[0]));
 //      insert(sql, row.values().toArray());

@@ -116,11 +116,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public int insertIgnoreMap(String table, Map<String, Object> row, String... returnColumns) {
-        return delegate.insertIgnoreMap(table, row, returnColumns);
-    }
-
-    @Override
     public int executeUpdate(String sql, Object... args) throws SqlteException {
         return delegate.executeUpdate(sql, args);
     }
