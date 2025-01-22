@@ -1043,12 +1043,12 @@ public interface SqlConnection extends AutoCloseable {
      * @param clazz
      * @param table      表名, 可以为 null, 默认通过类名/注解获取
      * @param sqlHandler SQL 处理器, 可以为 null
-     * @param psConsumer 可以获取每个批次受影响行数
+     * @param genKeysConsumer 可以获取每个批次受影响行数
      * @param <T>
      * @return
      * @throws SqlteException
      */
-    <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
+    <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException;
 
     /**
      * 批量插入或更新
@@ -1135,11 +1135,11 @@ public interface SqlConnection extends AutoCloseable {
      * @param sql
      * @param batchSize
      * @param consumer
-     * @param psConsumer
+     * @param genKeysConsumer
      * @return
      * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
+    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws
             SqlteException;
 
     /**
@@ -1148,11 +1148,11 @@ public interface SqlConnection extends AutoCloseable {
      * @param statement
      * @param batchSize
      * @param consumer
-     * @param psConsumer
+     * @param genKeysConsumer
      * @return
      * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException;
+    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException;
 
     /**
      * 批量更新

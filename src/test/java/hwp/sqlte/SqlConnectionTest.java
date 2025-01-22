@@ -542,9 +542,10 @@ public class SqlConnectionTest {
 //                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY ,  ResultSet.CLOSE_CURSORS_AT_COMMIT);
         BatchUpdateResult result = conn.batchUpdate(ps, 10, executor -> {
             users.forEach(user -> executor.exec(user.email, user.username));
-        }, (statement, rs) -> {
-            try (ResultSet keys = statement.getGeneratedKeys()) {//MySQL只有自增ID才会返回
+        }, (keys) -> {
+            try {
                 if (keys != null) {
+                    //MySQL只有自增ID才会返回
                     //bug: h2: Feature not supported
 //                     ResultSet.TYPE_SCROLL_xxx
 //                    if (keys.last()) {

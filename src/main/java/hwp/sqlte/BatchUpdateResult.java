@@ -38,6 +38,12 @@ public class BatchUpdateResult {
         return failedCount > 0;
     }
 
+    public void add(BatchUpdateResult result) {
+        this.affectedRows += result.affectedRows;
+        this.successNoInfoCount += result.successNoInfoCount;
+        this.failedCount += result.failedCount;
+    }
+
     public void addBatchResult(int[] rs) {
         for (int r : rs) {
             if (r > 0) {

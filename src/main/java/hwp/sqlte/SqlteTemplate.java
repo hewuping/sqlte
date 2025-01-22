@@ -261,8 +261,8 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
-        return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler, psConsumer));
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
+        return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler, genKeysConsumer));
     }
 
     @Override
@@ -286,13 +286,13 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(sql, batchSize, consumer, psConsumer));
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
+        return run(conn -> conn.batchUpdate(sql, batchSize, consumer, genKeysConsumer));
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, psConsumer));
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
+        return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, genKeysConsumer));
     }
 
     @Override

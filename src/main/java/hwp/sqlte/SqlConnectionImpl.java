@@ -427,13 +427,13 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         Class<T> aClass = (Class<T>) first.getClass();
         ClassInfo info = getClassInfo(aClass);
         Iterator<T> it = beans.iterator();
-        return batchInsert(consumer -> beans.forEach(consumer::accept), aClass, table, sqlHandler, (stat, ints) -> {
+        return batchInsert(consumer -> beans.forEach(consumer::accept), aClass, table, sqlHandler, genKeysRs -> {
             try {
                 String[] agc = info.getAutoGenerateColumns();
                 if (agc == null || agc.length == 0) {
                     return;
                 }
-                this.getGeneratedKeysAndSet(it, stat.getGeneratedKeys());
+                this.getGeneratedKeysAndSet(it, genKeysRs);
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -441,7 +441,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
         ClassInfo info = getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
@@ -458,7 +458,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                     }
                     executor.exec(args);
                 });
-            }, psConsumer);
+            }, genKeysConsumer);
         } catch (SQLException e) {
             throw new SqlteException(e);
         }
@@ -660,7 +660,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, BiConsumer<PreparedStatement, int[]> psConsumer) throws
+    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws
             SqlteException {
         sql = toSql(sql);
         if (logger.isDebugEnabled()) {
@@ -669,15 +669,14 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
 //        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
         try (PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            return batchUpdate(statement, batchSize, consumer, psConsumer);
+            return batchUpdate(statement, batchSize, consumer, genKeysConsumer);
         } catch (SQLException e) {
             throw new SqlteException(e);
         }
     }
 
     @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer,
-                                         BiConsumer<PreparedStatement, int[]> psConsumer) throws SqlteException {
+    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
         try {
             boolean autoCommit = conn.getAutoCommit();
             if (autoCommit) {
@@ -695,8 +694,8 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                         if (count.add(1) >= batchSize) {
                             int[] rs0 = statement.executeBatch();
                             result.addBatchResult(rs0);
-                            if (psConsumer != null) {
-                                psConsumer.accept(statement, rs0);
+                            if (genKeysConsumer != null) {
+                                genKeysConsumer.accept(statement.getGeneratedKeys());
                             }
                             count.reset();
                         }
@@ -710,8 +709,8 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             if (count.get() > 0) {
                 int[] rs0 = statement.executeBatch();
                 result.addBatchResult(rs0);
-                if (psConsumer != null) {
-                    psConsumer.accept(statement, rs0);
+                if (genKeysConsumer != null) {
+                    genKeysConsumer.accept(statement.getGeneratedKeys());
                 }
             }
             if (autoCommit) {

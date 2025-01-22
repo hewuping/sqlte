@@ -9,6 +9,8 @@ public interface BatchExecutor {
     //Producer
     void exec(Object... args);
 
+    //  void exec(BatchUpdateOptions options, Object... args);
+
     default int batchSize() {
         return 1000;
     }
