@@ -1,5 +1,7 @@
 package hwp.sqlte;
 
+import java.sql.Statement;
+
 /**
  * @author Zero
  * Created on 2018/5/16.
@@ -34,6 +36,18 @@ public class BatchUpdateResult {
 
     public boolean hasFailed() {
         return failedCount > 0;
+    }
+
+    public void addBatchResult(int[] rs) {
+        for (int r : rs) {
+            if (r > 0) {
+                affectedRows += r;
+            } else if (r == Statement.SUCCESS_NO_INFO) {
+                successNoInfoCount++;
+            } else if (r == Statement.EXECUTE_FAILED) {
+                failedCount++;
+            }
+        }
     }
 
     @Override

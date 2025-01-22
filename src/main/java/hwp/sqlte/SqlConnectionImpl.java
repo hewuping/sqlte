@@ -670,27 +670,30 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             Savepoint savepoint = conn.setSavepoint("batchUpdate");
             BatchUpdateResult result = new BatchUpdateResult();
             Counter count = new Counter();
-            BatchExecutor executor = args -> {
-                try {
-                    Helper.fillStatement(statement, args);
-                    statement.addBatch();
-                    if (count.add(1) >= batchSize) {
-                        int[] rs0 = statement.executeBatch();
-                        updateBatchUpdateResult(result, rs0);
-                        if (psConsumer != null) {
-                            psConsumer.accept(statement, rs0);
+            BatchExecutor executor = new BatchExecutor() {
+                @Override
+                public void exec(Object... args) {
+                    try {
+                        Helper.fillStatement(statement, args);
+                        statement.addBatch();
+                        if (count.add(1) >= batchSize) {
+                            int[] rs0 = statement.executeBatch();
+                            result.addBatchResult(rs0);
+                            if (psConsumer != null) {
+                                psConsumer.accept(statement, rs0);
+                            }
+                            count.reset();
                         }
-                        count.reset();
+                        statement.clearParameters();
+                    } catch (SQLException e) {
+                        throw new SqlteException(e);
                     }
-                    statement.clearParameters();
-                } catch (SQLException e) {
-                    throw new SqlteException(e);
                 }
             };
             consumer.accept(executor);
             if (count.get() > 0) {
                 int[] rs0 = statement.executeBatch();
-                updateBatchUpdateResult(result, rs0);
+                result.addBatchResult(rs0);
                 if (psConsumer != null) {
                     psConsumer.accept(statement, rs0);
                 }
@@ -753,17 +756,6 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         });
     }
 
-    private void updateBatchUpdateResult(BatchUpdateResult result, int[] rs) {
-        for (int r : rs) {
-            if (r > 0) {
-                result.affectedRows += r;
-            } else if (r == Statement.SUCCESS_NO_INFO) {
-                result.successNoInfoCount++;
-            } else if (r == Statement.EXECUTE_FAILED) {
-                result.failedCount++;
-            }
-        }
-    }
 
     @Override
     public boolean delete(Object bean, String table) throws SqlteException {
