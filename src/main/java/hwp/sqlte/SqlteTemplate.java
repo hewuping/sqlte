@@ -237,38 +237,18 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
         return run(conn -> conn.update(bean, options));
     }
 
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
-        return run(conn -> {
-            return conn.batchUpdate(sql, it, consumer);
-        });
-    }
 
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
-        return run(conn -> conn.batchInsert(beans, table, sqlHandler));
+    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
+        return run(conn -> conn.batchInsert(beans, options));
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
-        return run(conn -> conn.batchInsert(loader, clazz, table, null));
+    public <T> BatchUpdateResult batchInsert(Class<T> clazz, DataLoader<T> loader, UpdateOptions options) throws SqlteException {
+        return run(conn -> conn.batchInsert(clazz, loader, options));
     }
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
-        return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler));
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return run(conn -> conn.batchInsert(loader, clazz, table, sqlHandler, genKeysConsumer));
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int maxBatchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(sql, maxBatchSize, it, consumer));
-    }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException {
@@ -276,24 +256,10 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return run(conn -> conn.batchInsert(table, columns, consumer));
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer, UpdateOptions options) throws SqlteException {
+        return run(conn -> conn.batchUpdate(sql, consumer, options));
     }
 
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(sql, batchSize, consumer));
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(sql, batchSize, consumer, genKeysConsumer));
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int maxBatchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return run(conn -> conn.batchUpdate(statement, maxBatchSize, consumer, genKeysConsumer));
-    }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException {
@@ -303,12 +269,12 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public boolean delete(Object bean, String table) throws SqlteException {
+    public <T> boolean delete(T bean, String table) throws SqlteException {
         return run(conn -> conn.delete(bean, table));
     }
 
     @Override
-    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException {
+    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
         return run(conn -> {
             return conn.batchDelete(beans, table);
         });

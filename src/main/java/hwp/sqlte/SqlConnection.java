@@ -480,8 +480,6 @@ public interface SqlConnection extends AutoCloseable {
      */
     int update(String table, Map<String, Object> data, Where where) throws SqlteException;
 
-    int update(Class<?> clazz, Map<String, Object> map, Where where) throws SqlteException;
-
     /**
      * 更新内容
      * <pre>{@code
@@ -644,7 +642,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean 插入内容
      * @throws SqlteException
      */
-    default void insert(Object bean) throws SqlteException {
+    default <T> void insert(T bean) throws SqlteException {
         insert(bean, null);
     }
 
@@ -655,7 +653,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名
      * @throws SqlteException
      */
-    void insert(Object bean, String table) throws SqlteException;
+    <T> void insert(T bean, String table) throws SqlteException;
 
     /**
      * 替换插入到指定表
@@ -664,7 +662,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param table 表名
      * @throws SqlteException
      */
-    void replace(Object bean, String table) throws SqlteException;
+    <T> void replace(T bean, String table) throws SqlteException;
 
     /**
      * 插入单条记录到指定表并忽略错误
@@ -672,9 +670,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param bean  插入内容
      * @param table 表名
      * @throws SqlteException
-     * @deprecated
+     * @deprecated 推荐插入前先检查数据是否存在, 而不是直接执行插入操作
      */
-    void insertIgnore(Object bean, String table) throws SqlteException;
+    <T> void insertIgnore(T bean, String table) throws SqlteException;
 
 
     /**
@@ -684,7 +682,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return 更新成功返回 true
      * @throws SqlteException
      */
-    default boolean update(Object bean) throws SqlteException {
+    default <T> boolean update(T bean) throws SqlteException {
         return update(bean, (UpdateOptions) null);
     }
 
@@ -697,8 +695,8 @@ public interface SqlConnection extends AutoCloseable {
      * @return 更新成功返回 true
      * @throws SqlteException
      */
-    default boolean update(Object bean, String columns) throws SqlteException {
-        return this.update(bean, options -> options.columns(columns));
+    default <T> boolean update(T bean, String columns) throws SqlteException {
+        return this.update(bean, options -> options.setUpdateColumns(columns));
     }
 
     /**
@@ -709,18 +707,18 @@ public interface SqlConnection extends AutoCloseable {
      * @return 更新成功返回 true
      * @throws SqlteException
      */
-    default boolean update(Object bean, boolean ignoreNullValues) throws SqlteException {
+    default <T> boolean update(T bean, boolean ignoreNullValues) throws SqlteException {
         return this.update(bean, options -> options.setIgnoreNullValues(ignoreNullValues));
     }
 
 
-    default boolean update(Object bean, Consumer<UpdateOptions> consumer) throws SqlteException {
+    default <T> boolean update(T bean, Consumer<UpdateOptions> consumer) throws SqlteException {
         UpdateOptions options = new UpdateOptions();
         consumer.accept(options);
         return update(bean, options);
     }
 
-    boolean update(Object bean, UpdateOptions options) throws SqlteException;
+    <T> boolean update(T bean, UpdateOptions options) throws SqlteException;
 
     /**
      * 插入或更新
@@ -783,7 +781,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default boolean delete(Object bean) throws SqlteException {
+    default <T> boolean delete(T bean) throws SqlteException {
         return delete(bean, null);
     }
 
@@ -795,7 +793,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    boolean delete(Object bean, String table) throws SqlteException;
+    <T> boolean delete(T bean, String table) throws SqlteException;
 
     /**
      * 根据条件删除多条记录 (安全删除)
@@ -825,7 +823,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    int delete(Class<?> clazz, Consumer<Where> whereConsumer) throws SqlteException;
+    <T> int delete(Class<T> clazz, Consumer<Where> whereConsumer) throws SqlteException;
 
     /**
      * 根据条件删除多条记录 (安全删除), 全部条件使用 = 和 AND
@@ -841,7 +839,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    int deleteByMap(Class<?> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException;
+    <T> int deleteByMap(Class<T> clazz, Consumer<Map<String, Object>> whereConsumer) throws SqlteException;
 
 
     /**
@@ -893,7 +891,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchDelete(List<T> beans) throws SqlteException {
+    default <T> int batchDelete(List<T> beans) throws SqlteException {
         return this.batchDelete(beans, null);
     }
 
@@ -905,21 +903,11 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @throws SqlteException
      */
-    <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException;
+    <T> int batchDelete(List<T> beans, String table) throws SqlteException;
 
 
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
 
-    /**
-     * 批量插入/更新
-     *
-     * @param sql      自定义 SQL
-     * @param it       待更新或插入的数据
-     * @param consumer 设置 SQL 中的参数值
-     * @param <T>
-     * @throws SqlteException
-     */
-    <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
 
     /**
      * 批量插入
@@ -929,7 +917,8 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> BatchUpdateResult batchInsert(List<T> beans) throws SqlteException {
-        return batchInsert(beans, null);
+        // 这里 不使用 UpdateOptions.DEFAULT, 因为 options 可能会被修改
+        return batchInsert(beans, UpdateOptions.of());
     }
 
     /**
@@ -941,20 +930,20 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
-        return batchInsert(beans, table, null);
+        return batchInsert(beans, UpdateOptions.ofTable(table));
     }
 
     /**
      * 批量插入
      *
-     * @param beans      不能为 null
-     * @param table      如果为 null, 会取 list 中的第一个对象映射的表名
-     * @param sqlHandler SQL 处理器
+     * @param beans   不能为 null
+     * @param options 不能为 null, 更新选项
      * @param <T>
      * @return
      * @throws SqlteException
+     * @since 0.3.0
      */
-    <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException;
+    <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException;
 
     /**
      * 批量插入, 例如:
@@ -971,112 +960,39 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException;
-
-    /**
-     * 批量插入 (该方法不会返回自动生成的 ID)
-     *
-     * <pre>{@code
-     * conn.batchInsert(it -> {
-     *      for (int i = 0; i < size; i++) {
-     *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
-     *          user.id = i;
-     *          user.updated_time = new Date();
-     *          it.accept(user);
-     *      }
-     * }, User.class, "users");
-     * } </pre>
-     *
-     * @param loader
-     * @param clazz
-     * @param table
-     * @param <T>
-     * @return 返回 BatchUpdateResult
-     * @throws SqlteException
-     */
-    default <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
-        return batchInsert(loader, clazz, table, null, null);
+    default BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
+        String sql = Helper.makeInsertSql(table, columns);
+        return this.batchUpdate(sql, consumer);
     }
 
+
     /**
      * 批量插入 (该方法不会返回自动生成的 ID)
      *
      * <pre>{@code
-     * conn.batchInsert(it -> {
+     * conn.batchInsert(User.class, it -> {
      *      for (int i = 0; i < size; i++) {
      *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
      *          user.id = i;
      *          user.updated_time = new Date();
      *          it.accept(user);
      *      }
-     * }, User.class, "users", null);
+     * }, UpdateOptions.of());
      * } </pre>
      *
-     * @param loader
-     * @param clazz
-     * @param table      表名, 可以为 null, 默认通过类名/注解获取
-     * @param sqlHandler SQL 处理器, 可以为 null
+     * @param clazz   数据类型
+     * @param loader  数据加载器
+     * @param options 更新选项
      * @param <T>
      * @return
      * @throws SqlteException
+     * @since 0.3.0
      */
-    default <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
-        //返回的stat.getGeneratedKeys(): MySQL 设置RETURN_GENERATED_KEYS是可滚动的, PGSQL是不可滚动的
-        return batchInsert(loader, clazz, table, sqlHandler, null);
-    }
+    <T> BatchUpdateResult batchInsert(Class<T> clazz, DataLoader<T> loader, UpdateOptions options) throws SqlteException;
+
 
     /**
-     * 批量插入 (该方法不会返回自动生成的 ID)
-     *
-     * <pre>{@code
-     * conn.batchInsert(it -> {
-     *      for (int i = 0; i < size; i++) {
-     *          User user = new User("Frank" + i, "frank@xxx.com", "123456");
-     *          user.id = i;
-     *          user.updated_time = new Date();
-     *          it.accept(user);
-     *      }
-     * }, User.class, "users", null, null);
-     * } </pre>
-     *
-     * @param loader
-     * @param clazz
-     * @param table      表名, 可以为 null, 默认通过类名/注解获取
-     * @param sqlHandler SQL 处理器, 可以为 null
-     * @param genKeysConsumer 可以获取每个批次受影响行数
-     * @param <T>
-     * @return
-     * @throws SqlteException
-     */
-    <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException;
-
-    /**
-     * 批量插入或更新
-     * <p>
-     * 一般情况下 {@link #batchInsert(List)} 和 {@link #batchInsert(List)} 方法已能够满足大部分场景
-     *
-     * <pre>{@code
-     *  List<User> users = new ArrayList<>();
-     *  // ...
-     *  conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", 1000, users, user -> {
-     *      for(User user : users){
-     *          executor.exec(user.email, user.username);
-     *      }
-     * });
-     * } </pre>
-     *
-     * @param sql       更新 SQL 语句
-     * @param batchSize 批次大小
-     * @param it        参数源
-     * @param consumer  设置参数
-     * @param <T>
-     * @return
-     * @throws SqlteException
-     */
-    <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException;
-
-    /**
-     * 批量更新(插入/更新/删除), 比忘了添加条件
+     * 批量更新(插入/更新/删除)
      * <p>
      * 批量插入例子
      * <blockquote><pre>
@@ -1099,63 +1015,31 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException;
-
+    default BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException {
+        return batchUpdate(sql, consumer, UpdateOptions.DEFAULT);
+    }
 
     /**
-     * 批量更新(插入/更新/删除), 比忘了添加条件
+     * 批量更新(插入/更新/删除)
      * <p>
-     * 批量插入例子
+     * 批量插入的例子
      * <blockquote><pre>
-     * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", 1000, executor -> {
+     * conn.batchUpdate("INSERT INTO users (email, username)  VALUES (?, ?)", executor -> {
      *      executor.exec("bb@example.com", "bb");
      *      executor.exec("aa@example.com", "aa");
-     * });
+     * }, UpdateOptions.ofBatchSize(1000));
      * </pre></blockquote>
-     * <p>
-     * 批量更新例子
-     * <blockquote><pre>
-     * conn.batchUpdate("UPDATE xxx SET locked=? WHERE id=?", 1000, executor -> {
-     *      executor.exec(true, "101");
-     *      executor.exec(false, "102");
-     * });
-     * </pre></blockquote>
-     *
-     * @param sql       自定义 SQL 语句
-     * @param batchSize 批次大小
-     * @param consumer  设置参数
-     * @return
-     * @throws SqlteException
-     */
-    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws SqlteException;
-
-    /**
-     * 批量更新
      *
      * @param sql
-     * @param batchSize
-     * @param consumer
-     * @param genKeysConsumer
+     * @param options
      * @return
      * @throws SqlteException
+     * @since 0.3.0
      */
-    BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws
-            SqlteException;
+    BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer, UpdateOptions options) throws SqlteException;
 
     /**
-     * 批量更新
-     *
-     * @param statement
-     * @param batchSize
-     * @param consumer
-     * @param genKeysConsumer
-     * @return
-     * @throws SqlteException
-     */
-    BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException;
-
-    /**
-     * 批量更新
+     * 批量更新, 将对象列表的数据同步到数据库
      *
      * @param beans
      * @throws SqlteException
@@ -1165,7 +1049,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 批量更新
+     * 批量更新, 将对象列表的数据同步到数据库中指定的表中
      *
      * @param beans 更新的对象列表, 必需是同一类型
      * @param table 表名, 可以为 null, 如果为 null 则去列表中第一个对象的 class 名作为表名
@@ -1178,7 +1062,7 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
-     * 批量更新
+     * 批量更新, 将对象列表的数据同步到数据库中指定的表中, 仅同步特定列的数据
      *
      * @param beans   更新的对象列表, 必需是同一类型
      * @param table   表名, 可以为 null, 如果为 null 则去列表中第一个对象的 class 名作为表名

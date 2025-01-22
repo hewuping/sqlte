@@ -255,7 +255,7 @@ public class Where {
 
     /**
      * <p> 通过 AND 操作符和单个 {@link Condition } 生成构建 SQL
-     * <p> 当条件的参数值为空(包括: null, "", [])时, 会忽略该条件
+     * <p> 当条件的参数值为空(包括: null, "")时, 会忽略该条件
      *
      * <pre>{@code
      *   where.andIf(Condition.eq("column_name", param_value));
@@ -291,7 +291,7 @@ public class Where {
 
     /**
      * <p> 生成SQL: AND (key1=value1 AND key2=value2 AND key3=value3)
-     * <p> 如果某个条件的值为空(包括: null, "", []), 则忽略该条件
+     * <p> 如果某个条件的值为空(包括: null, ""), 则忽略该条件
      *
      * @param map 通过 AND 连接的多个查询条件
      * @return 该对象的引用

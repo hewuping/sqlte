@@ -66,6 +66,13 @@ public class ConditionTest {
     }
 
     @Test
+    public void testGte() {
+        Condition con = Condition.gte("age", 12);
+        Assert.assertEquals("age >= ?", con.sql());
+        Assert.assertEquals("[12]", Arrays.toString(con.args()));
+    }
+
+    @Test
     public void testLt() {
         Condition con = Condition.lt("age", 12);
         Assert.assertEquals("age < ?", con.sql());
@@ -73,8 +80,36 @@ public class ConditionTest {
     }
 
     @Test
+    public void testLte() {
+        Condition con = Condition.lte("age", 12);
+        Assert.assertEquals("age <= ?", con.sql());
+        Assert.assertEquals("[12]", Arrays.toString(con.args()));
+    }
+
+    @Test
     public void testBetween() {
         Condition con = Condition.between("age", 10, 20);
+        Assert.assertEquals("age BETWEEN ? AND ?", con.sql());
+        Assert.assertEquals("[10, 20]", Arrays.toString(con.args()));
+    }
+
+    @Test
+    public void testBetween2() {
+        Condition con = Condition.between("age", null, 20);
+        Assert.assertEquals("age <= ?", con.sql());
+        Assert.assertEquals("[20]", Arrays.toString(con.args()));
+    }
+
+    @Test
+    public void testBetween3() {
+        Condition con = Condition.between("age", 10, null);
+        Assert.assertEquals("age >= ?", con.sql());
+        Assert.assertEquals("[10]", Arrays.toString(con.args()));
+    }
+
+    @Test
+    public void testBetweenRange() {
+        Condition con = Condition.between("age", Range.of(10, 20));
         Assert.assertEquals("age BETWEEN ? AND ?", con.sql());
         Assert.assertEquals("[10, 20]", Arrays.toString(con.args()));
     }
@@ -107,6 +142,26 @@ public class ConditionTest {
         con = Condition.in("name", Arrays.asList("Zero"), "Frank");
         Assert.assertEquals(sqlExpected, con.sql());
         Assert.assertEquals(argsExpected, Arrays.toString(con.args()));
+
+        con = Condition.in("name", Arrays.asList("Zero", "Frank").stream());
+        Assert.assertEquals(sqlExpected, con.sql());
+        Assert.assertEquals(argsExpected, Arrays.toString(con.args()));
+    }
+
+    @Test
+    public void testNotIn() {
+        String sqlExpected = "name NOT IN (?, ?)";
+        Condition con = Condition.notIn("name", Arrays.asList("Zero", "Frank"));
+        Assert.assertEquals(sqlExpected, con.sql());
+    }
+
+    @Test
+    public void testInEmpty() {
+        try {
+            Condition.in("name", new Object[0]);
+        } catch (IllegalArgumentException e) {
+            Assert.assertEquals("查询条件 name 列的 IN 参数值不能为空", e.getMessage());
+        }
     }
 
 }

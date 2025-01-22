@@ -295,7 +295,7 @@ sql.where(where -> {
 });
 // 这里提供更简单优雅的写法 andIf(), 减少不为空的判断
 sql.where(where -> {
-    // 当参数值为空时(包括: null, "", []), 忽略该查询条件
+    // 当参数值为空时(包括: null, ""), 忽略该查询条件
     where.andIf("username=?", username); // 推荐
     // where.andIf("username=?", username, StringUtils::isNotBlank);// 同上
     // where.and(StringUtils.isNotBlank(username), "username=?", username)// 同上

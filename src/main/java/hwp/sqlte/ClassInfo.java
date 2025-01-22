@@ -152,6 +152,9 @@ public class ClassInfo {
     Object[] getValueByColumns(Object obj, String[] columns) {
         Objects.requireNonNull(obj, "'obj' is null");
         Objects.requireNonNull(columns, "'columns' is null");
+        if (columns.length == 0) {
+            return new Object[0];
+        }
         Object[] values = new Object[columns.length];
         for (int i = 0; i < columns.length; i++) {
             String column = columns[i];

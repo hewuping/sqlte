@@ -191,22 +191,7 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public boolean update(Object bean) throws SqlteException {
-        return delegate.update(bean);
-    }
-
-    @Override
-    public boolean update(Object bean, String columns) throws SqlteException {
-        return delegate.update(bean, columns);
-    }
-
-    @Override
-    public boolean update(Object bean, boolean ignoreNullValues) throws SqlteException {
-        return delegate.update(bean, ignoreNullValues);
-    }
-
-    @Override
-    public boolean update(Object bean, UpdateOptions options) throws SqlteException {
+    public <T> boolean update(T bean, UpdateOptions options) throws SqlteException {
         return delegate.update(bean, options);
     }
 
@@ -226,40 +211,22 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException {
+    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
         return delegate.batchDelete(beans, table);
     }
 
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
-        return delegate.batchUpdate(sql, it, consumer);
-    }
-
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
-        return delegate.batchInsert(beans, table, sqlHandler);
+    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
+        return delegate.batchInsert(beans, options);
     }
 
     @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table) throws SqlteException {
-        return delegate.batchInsert(loader, clazz, table);
+    public <T> BatchUpdateResult batchInsert(Class<T> clazz, DataLoader<T> loader, UpdateOptions options) throws SqlteException {
+        return delegate.batchInsert(clazz, loader, options);
     }
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler) throws SqlteException {
-        return delegate.batchInsert(loader, clazz, table, sqlHandler);
-    }
 
-    @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return delegate.batchInsert(loader, clazz, table, sqlHandler, genKeysConsumer);
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
-        return delegate.batchUpdate(sql, batchSize, it, consumer);
-    }
 
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException {
@@ -267,24 +234,10 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return delegate.batchInsert(table, columns, consumer);
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer, UpdateOptions options) throws SqlteException {
+        return delegate.batchUpdate(sql, consumer, options);
     }
 
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws SqlteException {
-        return delegate.batchUpdate(sql, batchSize, consumer);
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return delegate.batchUpdate(sql, batchSize, consumer, genKeysConsumer);
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
-        return delegate.batchUpdate(statement, batchSize, consumer, genKeysConsumer);
-    }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException {

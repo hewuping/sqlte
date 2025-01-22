@@ -9,10 +9,11 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.junit.*;
 
 import java.net.URL;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -25,7 +26,7 @@ public class SqlConnectionTest {
 
     private SqlConnection conn;
 
-    private static String dbname = "h2";//h2, mysql, pgsql
+    private static final String dbname = "h2";//h2, mysql, pgsql
 
     @BeforeClass
     public static void beforeClass() {
@@ -62,6 +63,26 @@ public class SqlConnectionTest {
     }
 
 
+    @Before
+    public void before() {
+        conn = Sql.open();
+        conn.setAutoCommit(false);
+        conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+        System.out.println("aaaa:" + conn);
+    }
+
+    @After
+    public void after() {
+        deleteAllUsers();
+        if (conn != null) {
+            conn.close();
+        }
+    }
+
+    private boolean isMySQL() {
+        return "mysql".equals(dbname);
+    }
+
     @Test
     public void showMetaData() throws SQLException {
         Connection connection = conn.connection();
@@ -79,31 +100,8 @@ public class SqlConnectionTest {
         System.out.println("-------------------------------");
     }
 
-    @Before
-    public void before() {
-        conn = Sql.open();
-        conn.setAutoCommit(false);
-        conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-    }
-
-    @After
-    public void after() {
-        deleteAllUsers();
-        if (conn != null) {
-            conn.close();
-        }
-    }
-
-    private boolean isMySQL() {
-        return "mysql".equals(dbname);
-    }
-
-
     ////////////////////////////////////ORM////////////////////////////////////////////////////////////////
 
-    private User newUser() {
-        return new User("May", "may@example.com", "123456");
-    }
 
     private User insertUser() {
         User user = User.of("May");
@@ -133,7 +131,7 @@ public class SqlConnectionTest {
     @Test
     public void testInsertIgnoreBean() {
         if (isMySQL()) {
-            User user = newUser();
+            User user = User.of("May");
             user.id = 1;
             conn.insert(user, "users");
             conn.insertIgnore(user, "users");
@@ -190,8 +188,8 @@ public class SqlConnectionTest {
         conn.batchInsert(users);
         List<User> list1 = conn.listAll(User.class);
         Assert.assertEquals(size, list1.size());
-        BatchUpdateResult result = conn.batchDelete(users);
-        Assert.assertEquals(users.size(), result.affectedRows);
+        int affectedRows = conn.batchDelete(users);
+        Assert.assertEquals(users.size(), affectedRows);
         List<User> list2 = conn.listAll(User.class);
         Assert.assertEquals(0, list2.size());
     }
@@ -518,8 +516,10 @@ public class SqlConnectionTest {
         for (int i = 0; i < size; i++) {
             users.add(new User("zero" + i, "zero@example.com", "123456"));
         }
-        BatchUpdateResult result = conn.batchUpdate("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)", 1000, users, (executor, user) -> {
-            executor.exec(user.email, user.username);
+        BatchUpdateResult result = conn.batchUpdate("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)", executor -> {
+            for (User user : users) {
+                executor.exec(user.email, user.username);
+            }
         });
         if (result.hasSuccessNoInfo()) {
             Assert.assertEquals(result.successNoInfoCount, size);
@@ -528,50 +528,47 @@ public class SqlConnectionTest {
         }
     }
 
-    @Test
-    public void testBatchInsert4() throws SQLException {
-        List<User> users = new ArrayList<>();
-        int size = 200;
-        for (int i = 0; i < size; i++) {
-            users.add(new User("zero" + i, "zero@example.com", "123456"));
-        }
-        Counter count = new Counter();
-        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
-                Statement.RETURN_GENERATED_KEYS);
+//    @Test
+//    public void testBatchInsert4() throws SQLException {
+//        List<User> users = new ArrayList<>();
+//        int size = 200;
+//        for (int i = 0; i < size; i++) {
+//            users.add(new User("zero" + i, "zero@example.com", "123456"));
+//        }
+//        Counter count = new Counter();
 //        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
-//                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY ,  ResultSet.CLOSE_CURSORS_AT_COMMIT);
-        BatchUpdateResult result = conn.batchUpdate(ps, 10, executor -> {
-            users.forEach(user -> executor.exec(user.email, user.username));
-        }, (keys) -> {
-            try {
-                if (keys != null) {
-                    //MySQL只有自增ID才会返回
-                    //bug: h2: Feature not supported
-//                     ResultSet.TYPE_SCROLL_xxx
-//                    if (keys.last()) {
-//                        count.add(keys.getRow());
+//                Statement.RETURN_GENERATED_KEYS);
+////        PreparedStatement ps = conn.prepareStatement("INSERT /*IGNORE*/ INTO users (email, username)  VALUES (?, ?)",
+////                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY ,  ResultSet.CLOSE_CURSORS_AT_COMMIT);
+//        BatchUpdateResult result = conn.batchUpdate(ps, 10, executor -> {
+//            users.forEach(user -> executor.exec(user.email, user.username));
+//        }, (keys) -> {
+//            try {
+//                if (keys != null) {
+//                    //MySQL只有自增ID才会返回
+//                    //bug: h2: Feature not supported
+////                     ResultSet.TYPE_SCROLL_xxx
+////                    if (keys.last()) {
+////                        count.add(keys.getRow());
+////                    }
+//                    while (keys.next()) {//Statement.RETURN_GENERATED_KEYS 才会返回, 但是很耗性能
+//                        int cc = keys.getMetaData().getColumnCount();
+//                        //MySQL: GENERATED_KEY
+//                        //H2: 1.4.193 返回固定名称:identity  1.4.197 返回实际列名
+//                        //PGSQL: 返回实际列名, 如果没有指定返回列名而是Statement.RETURN_GENERATED_KEYS, 则会返回所有列数据
+//                        String name = keys.getMetaData().getColumnName(1);
+//                        count.add(1);
 //                    }
-                    while (keys.next()) {//Statement.RETURN_GENERATED_KEYS 才会返回, 但是很耗性能
-                        int cc = keys.getMetaData().getColumnCount();
-                        //MySQL: GENERATED_KEY
-                        //H2: 1.4.193 返回固定名称:identity  1.4.197 返回实际列名
-                        //PGSQL: 返回实际列名, 如果没有指定返回列名而是Statement.RETURN_GENERATED_KEYS, 则会返回所有列数据
-                        String name = keys.getMetaData().getColumnName(1);
-                        count.add(1);
-                    }
-                }
-            } catch (SQLException e) {
-                throw new SqlteException(e);
-            }
-        });
-        ps.close();
-//        conn.commit();
-        System.out.println(count);
-        System.out.println(result);
-    }
+//                }
+//            } catch (SQLException e) {
+//                throw new SqlteException(e);
+//            }
+//        });
+//        ps.close();
+//    }
 
     @Test
-    public void testBatchInsert_Beans() {
+    public void testBatchInsertBeans() {
         //pgsql9.x 自增的id列可以为null, pgsql10.x是不行的
         List<User> users = new ArrayList<>();
         int size = 20000;
@@ -581,7 +578,7 @@ public class SqlConnectionTest {
             user.updatedTime = new Date();
             users.add(user);
         }
-        conn.batchInsert(users, "users");
+        conn.batchInsert(users);
         Set<Integer> ids = new HashSet<>(size);
         for (User user : users) {
             ids.add(user.id);
@@ -590,16 +587,16 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testBatchInsert_Beans2() {
+    public void testBatchInsertBeans2() {
         int size = 2000;
-        BatchUpdateResult result = conn.batchInsert(db -> {
+        BatchUpdateResult result = conn.batchInsert(User.class, exe -> {
             for (int i = 0; i < size; i++) {
                 User user = new User("zero" + i, "zero@example.com", "123456");
                 user.id = i;
                 user.updatedTime = new Date();
-                db.accept(user);
+                exe.accept(user);
             }
-        }, User.class, "users");
+        }, UpdateOptions.DEFAULT);
         if (result.hasSuccessNoInfo()) {
             Assert.assertTrue(result.successNoInfoCount > 0);
         } else {
@@ -608,21 +605,29 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testBatchInsert_Beans_ORM() {
-        int size = 200;
-        BatchUpdateResult result = conn.batchInsert(db -> {
-            for (int i = 0; i < size; i++) {
-                User user = User.of("zero" + i);
-                user.updatedTime = new Date();
-                db.accept(user);
-            }
-        }, User.class, "users");
-        if (result.hasSuccessNoInfo()) {
-            Assert.assertTrue(result.successNoInfoCount > 0);
-        } else {
-            Assert.assertEquals(size, result.affectedRows);
+    public void testBatchInsertBeans3() {
+        //pgsql9.x 自增的id列可以为null, pgsql10.x是不行的
+        List<User> users1 = new ArrayList<>();
+        int size = 1000;
+        for (int i = 0; i < size; i++) {
+            User user = new User("zero" + i, "zero@example.com", "123456");
+            user.id = 1000 + i;
+            user.updatedTime = new Date();
+            users1.add(user);
         }
-        deleteAllUsers();
+        BatchUpdateResult result1 = conn.batchInsert(users1);
+        Assert.assertEquals(result1.affectedRows, users1.size());
+
+        List<User> users2 = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            User user = new User("frank" + i, "frank@example.com", "123456");
+            user.id = 2000 + i;
+            user.updatedTime = new Date();
+            users2.add(user);
+        }
+
+        BatchUpdateResult result2 = conn.batchInsert(users2);
+        Assert.assertEquals(result1.affectedRows, users1.size());
     }
 
 
@@ -671,8 +676,10 @@ public class SqlConnectionTest {
                 users.add(new User("zero" + i, "zero@example.com", "123456"));
             }
             String sql = "INSERT INTO users (email, username)  VALUES (?, ?) ON CONFLICT (username) DO NOTHING";
-            BatchUpdateResult result = conn.batchUpdate(sql, 10, users, (executor, user) -> {
-                executor.exec(user.email, user.username);
+            BatchUpdateResult result = conn.batchUpdate(sql, executor -> {
+                for (User user : users) {
+                    executor.exec(user.email, user.username);
+                }
             });
             if (result.hasSuccessNoInfo()) {
                 Assert.assertEquals(result.successNoInfoCount, size);
@@ -705,7 +712,7 @@ public class SqlConnectionTest {
         conn.insert(user, "users");
         user.username = "My new name";
         user.email = null;
-        conn.update(user, options -> options.columns("username").ignoreNullValues());
+        conn.update(user, options -> options.setUpdateColumns("username").ignoreNullValues());
         User _user = conn.tryGet(User::new, user.id);
         Assert.assertEquals(_user.username, user.username);
         Assert.assertNotNull(_user.email);
@@ -733,12 +740,14 @@ public class SqlConnectionTest {
             user.updatedTime = new Date();
             users.add(user);
         }
-        conn.batchInsert(users);
+        BatchUpdateResult result1 = conn.batchInsert(users);
+        Assert.assertEquals(users.size(), result1.affectedRows);
         for (User user : users) {
+            Assert.assertNotNull(user.id);
             user.username += ".changed";
         }
-        BatchUpdateResult result = conn.batchUpdate(users);
-        Assert.assertEquals(users.size(), result.affectedRows);
+        BatchUpdateResult result2 = conn.batchUpdate(users);
+        Assert.assertEquals(users.size(), result2.affectedRows);
         List<User> list = conn.listAll(User.class);
         for (User user : list) {
             Assert.assertTrue(user.username.endsWith(".changed"));
@@ -833,4 +842,11 @@ public class SqlConnectionTest {
         conn2.close();
     }*/
 
+    //////////////////////////////////////////////////////////////////////////////
+
+    public void test() {
+        conn.statement(statement -> {
+//            statement.getUpdateCount()
+        });
+    }
 }

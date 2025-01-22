@@ -56,6 +56,16 @@ public class BatchUpdateResult {
         }
     }
 
+    public static int sumAffectedRows(int[] rs) {
+        int count = 0;
+        for (int r : rs) {
+            if (r > 0) {
+                count += r;
+            }
+        }
+        return count;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");

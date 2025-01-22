@@ -11,7 +11,6 @@ import java.io.Reader;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -22,8 +21,6 @@ import java.util.function.Supplier;
 class SqlConnectionImpl extends AbstractSqlConnection {
 
     private static final Logger logger = LoggerFactory.getLogger(SqlConnection.class);
-
-    private static final int defalutBatchSize = 1000;
 
     private final Connection conn;
 
@@ -362,7 +359,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             }
             try (ResultSet keys = stat.getGeneratedKeys()) {
                 if (keys != null && keys.next()) {
-                    this.getGeneratedKeysAndSet(info, bean, keys);
+                    setGeneratedValuesToBean(info, bean, keys);
                 }
             } catch (IllegalAccessException e) {
                 throw new SqlteException(e);
@@ -374,50 +371,51 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
 
-    /**
-     * 该方法暂时未使用
-     */
-    private <T> BatchUpdateResult batchInsert0(Class<T> clazz, List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
-        // beans 应该是已分好批次的列表
-        if (beans.isEmpty()) {
-            return BatchUpdateResult.EMPTY;
-        }
-        for (T o : beans) {
-            if (o.getClass() != clazz.getClass()) {
-                throw new IllegalArgumentException("The object type in the collection must be consistent");
-            }
-        }
-        ClassInfo info = getClassInfo(clazz);
-        String[] columns = info.getInsertColumns();
-        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
-        try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
-            for (T bean : beans) {
-                Object[] args = new Object[columns.length];
-                for (int i = 0; i < columns.length; i++) {
-                    Field field = info.getFieldByColumn(columns[i]);
-                    args[i] = Helper.getSerializedValue(bean, field);
-                }
-                Helper.fillStatement(stat, args);
-                stat.addBatch();
-            }
-            int[] rs = stat.executeBatch();
-            if (ObjectUtils.isNotEmpty(info.getAutoGenerateColumns())) {
-                getGeneratedKeysAndSet(beans.iterator(), stat.getGeneratedKeys());
-            }
-            BatchUpdateResult result = new BatchUpdateResult();
-            result.addBatchResult(rs);
-            return result;
-        } catch (SQLException e) {
-            throw new SqlteException(e);
-        }
-    }
+//    /**
+//     * 该方法暂时未使用
+//     */
+//    private <T> BatchUpdateResult batchInsert0(Class<T> clazz, List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
+//        // beans 应该是已分好批次的列表
+//        if (beans.isEmpty()) {
+//            return BatchUpdateResult.EMPTY;
+//        }
+//        for (T o : beans) {
+//            if (o.getClass() != clazz.getClass()) {
+//                throw new IllegalArgumentException("The object type in the collection must be consistent");
+//            }
+//        }
+//        ClassInfo info = getClassInfo(clazz);
+//        String[] columns = info.getInsertColumns();
+//        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
+//        try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
+//            for (T bean : beans) {
+//                Object[] args = new Object[columns.length];
+//                for (int i = 0; i < columns.length; i++) {
+//                    Field field = info.getFieldByColumn(columns[i]);
+//                    args[i] = Helper.getSerializedValue(bean, field);
+//                }
+//                Helper.fillStatement(stat, args);
+//                stat.addBatch();
+//            }
+//            int[] rs = stat.executeBatch();
+//            if (ObjectUtils.isNotEmpty(info.getAutoGenerateColumns())) {
+//                setDatabaseReturnValuesToBeans(beans.iterator(), stat.getGeneratedKeys());
+//            }
+//            BatchUpdateResult result = new BatchUpdateResult();
+//            result.addBatchResult(rs);
+//            return result;
+//        } catch (SQLException e) {
+//            throw new SqlteException(e);
+//        }
+//    }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> BatchUpdateResult batchInsert(List<T> beans, String table, SqlHandler sqlHandler) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
+        Objects.requireNonNull(options, "UpdateOptions can't be null");
         T first = beans.get(0);
         for (T o : beans) {
             if (o.getClass() != first.getClass()) {
@@ -426,30 +424,34 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         }
         Class<T> aClass = (Class<T>) first.getClass();
         ClassInfo info = getClassInfo(aClass);
-        Iterator<T> it = beans.iterator();
-        return batchInsert(consumer -> beans.forEach(consumer::accept), aClass, table, sqlHandler, genKeysRs -> {
-            try {
-                String[] agc = info.getAutoGenerateColumns();
-                if (agc == null || agc.length == 0) {
-                    return;
-                }
-                this.getGeneratedKeysAndSet(it, genKeysRs);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+        if (options.getGeneratedKeysConsumer() == null && !options.isReadOnly()) {
+            String[] agc = info.getAutoGenerateColumns();
+            if (ObjectUtils.isNotEmpty(agc)) {
+                options.setGeneratedKeysConsumer(genKeysRs -> {
+                    try {
+                        setGeneratedValuesToBeans(beans.iterator(), genKeysRs);
+                    } catch (SQLException e) {
+                        throw SqlteException.warp(e);
+                    }
+                });
             }
-        });
+        }
+        return batchInsert(aClass, consumer -> beans.forEach(consumer::accept), options);
     }
 
+    //
     @Override
-    public <T> BatchUpdateResult batchInsert(DataLoader<T> loader, Class<T> clazz, String table, SqlHandler sqlHandler, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(Class<T> clazz, DataLoader<T> loader, UpdateOptions options) throws SqlteException {
         ClassInfo info = getClassInfo(clazz);
-        if (table == null) {
-            table = info.getTableName();
-        }
+        String table = options.getTable(info.getTableName());
         String[] columns = info.getInsertColumns();
-        String sql = sqlHandler == null ? Helper.makeInsertSql(table, columns) : sqlHandler.handle(Helper.makeInsertSql(table, columns));
+
+        String sql = Helper.makeInsertSql(table, columns);
+        if (options.getSqlHandler() != null) {
+            sql = options.getSqlHandler().handle(sql);
+        }
         try (PreparedStatement stat = conn.prepareStatement(sql, info.getAutoGenerateColumns())) {
-            return batchUpdate(stat, 500, executor -> {
+            return batchUpdate0(stat, executor -> {
                 loader.load(bean -> {
                     Object[] args = new Object[columns.length];
                     for (int i = 0; i < columns.length; i++) {
@@ -458,7 +460,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                     }
                     executor.exec(args);
                 });
-            }, genKeysConsumer);
+            }, options);
         } catch (SQLException e) {
             throw new SqlteException(e);
         }
@@ -553,8 +555,8 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         try {
             ClassInfo info = getClassInfo(bean.getClass());
 
-            String columns = options.columns();
-            String table = Objects.toString(options.table(), info.getTableName());
+            String columns = options.getUpdateColumns();
+            String table = Objects.toString(options.getTable(), info.getTableName());
             String[] _columns;
             if (StringUtils.isBlank(columns)) {
                 _columns = info.getUpdateColumns();
@@ -625,42 +627,14 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     }
 
 
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer)
-            throws SqlteException {
-//        return batchUpdate(sql, defalutBatchSize, executor -> it.forEach(item -> consumer.accept(executor, item)), null);
-        return this.batchUpdate(sql, defalutBatchSize, it, consumer);
-    }
-
-    @Override
-    public <T> BatchUpdateResult batchUpdate(String sql, int batchSize, Iterable<
-            T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
-        return batchUpdate(sql, batchSize, executor -> it.forEach(item -> consumer.accept(executor, item)));
-    }
-
-    //分批导入大量数据
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer)
-            throws SqlteException {
-        return this.batchUpdate(sql, defalutBatchSize, consumer);
-    }
+//    @Override
+//    public <T> BatchUpdateResult batchUpdate(String sql, Iterable<T> it, BiConsumer<BatchExecutor, T> consumer) throws SqlteException {
+//        return null;
+//    }
 
 
     @Override
-    public BatchUpdateResult batchInsert(String table, String columns, Consumer<BatchExecutor> consumer)
-            throws SqlteException {
-        String sql = Helper.makeInsertSql(table, columns);
-        return this.batchUpdate(sql, consumer);
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer) throws
-            SqlteException {
-        return batchUpdate(sql, batchSize, consumer, null);
-    }
-
-    @Override
-    public BatchUpdateResult batchUpdate(String sql, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws
+    public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer, UpdateOptions options) throws
             SqlteException {
         sql = toSql(sql);
         if (logger.isDebugEnabled()) {
@@ -668,20 +642,35 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         }
 
 //        try (PreparedStatement statement = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-        try (PreparedStatement statement = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            return batchUpdate(statement, batchSize, consumer, genKeysConsumer);
+        int autoGeneratedKeys = Statement.NO_GENERATED_KEYS;
+        if (options.getGeneratedKeysConsumer() != null) {
+            autoGeneratedKeys = Statement.RETURN_GENERATED_KEYS;
+        }
+        try (PreparedStatement statement = conn.prepareStatement(sql, autoGeneratedKeys)) {
+            return batchUpdate0(statement, consumer, options);
         } catch (SQLException e) {
             throw new SqlteException(e);
         }
     }
 
-    @Override
-    public BatchUpdateResult batchUpdate(PreparedStatement statement, int batchSize, Consumer<BatchExecutor> consumer, GeneratedKeysConsumer genKeysConsumer) throws SqlteException {
+    /**
+     * 批量更新的主要实现方法
+     *
+     * @param statement
+     * @param batchSize
+     * @param consumer
+     * @param genKeysConsumer
+     * @return
+     * @throws SqlteException
+     */
+    private BatchUpdateResult batchUpdate0(PreparedStatement statement, Consumer<BatchExecutor> consumer, UpdateOptions options) throws SqlteException {
         try {
             boolean autoCommit = conn.getAutoCommit();
             if (autoCommit) {
                 conn.setAutoCommit(false);
             }
+            GeneratedKeysConsumer keysConsumer = options.getGeneratedKeysConsumer();
+
             Savepoint savepoint = conn.setSavepoint("batchUpdate");
             BatchUpdateResult result = new BatchUpdateResult();
             Counter count = new Counter();
@@ -691,11 +680,11 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                     try {
                         Helper.fillStatement(statement, args);
                         statement.addBatch();
-                        if (count.add(1) >= batchSize) {
+                        if (count.add(1) >= options.getBatchSize()) {
                             int[] rs0 = statement.executeBatch();
                             result.addBatchResult(rs0);
-                            if (genKeysConsumer != null) {
-                                genKeysConsumer.accept(statement.getGeneratedKeys());
+                            if (keysConsumer != null) {
+                                keysConsumer.accept(statement.getGeneratedKeys());
                             }
                             count.reset();
                         }
@@ -709,8 +698,8 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             if (count.get() > 0) {
                 int[] rs0 = statement.executeBatch();
                 result.addBatchResult(rs0);
-                if (genKeysConsumer != null) {
-                    genKeysConsumer.accept(statement.getGeneratedKeys());
+                if (keysConsumer != null) {
+                    keysConsumer.accept(statement.getGeneratedKeys());
                 }
             }
             if (autoCommit) {
@@ -730,9 +719,6 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     }
 
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws SqlteException {
-        return this.batchUpdate(beans, table, null);
-    }
 
     @Override
     public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String _columns) throws SqlteException {
@@ -755,34 +741,35 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         }
         String[] pkColumns = info.getPkColumns();// ID
         String sql = Helper.makeUpdateSql(table, columns, pkColumns);
-        return batchUpdate(sql, beans, (executor, item) -> {
-            List<Object> args = new ArrayList<>(columns.length + pkColumns.length);
-            for (String column : columns) {
-                Field field = info.getFieldByColumn(column);
-                Object value = Helper.getSerializedValue(item, field);
-                args.add(value);
+        return batchUpdate(sql, executor -> {
+            for (T bean : beans) {
+                List<Object> args = new ArrayList<>();
+                for (String column : columns) {
+                    Field field = info.getFieldByColumn(column);
+                    Object value = Helper.getSerializedValue(bean, field);
+                    args.add(value);
+                }
+                for (String column : pkColumns) {
+                    Field field = info.getFieldByColumn(column);
+                    Object value = Helper.getSerializedValue(bean, field);
+                    args.add(value);
+                }
+                executor.exec(args.toArray());
             }
-            for (String column : pkColumns) {
-                Field field = info.getFieldByColumn(column);
-                Object value = Helper.getSerializedValue(item, field);
-                args.add(value);
-            }
-            executor.exec(args.toArray());
-        });
+        }, UpdateOptions.DEFAULT);
     }
 
 
     @Override
     public boolean delete(Object bean, String table) throws SqlteException {
-        BatchUpdateResult result = this.batchDelete(Arrays.asList(bean), table);
-        return result.affectedRows == 1;
+        return batchDelete(Arrays.asList(bean), table) == 1;
     }
 
-    public <T> BatchUpdateResult batchDelete(List<T> beans, String table) throws SqlteException {
+    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
         try {
             Objects.requireNonNull(beans);
             if (beans.isEmpty()) {
-                return BatchUpdateResult.EMPTY;
+                return 0;
             }
             Object first = beans.get(0);
             ClassInfo info = getClassInfo(first.getClass());
@@ -803,13 +790,25 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 builder.append(pkColumn + "=?");
             }
             String sql = builder.toString();
-            return this.batchUpdate(sql, beans, (executor, bean) -> {
-                Object[] values = info.getValueByColumns(bean, pkColumns);
-                for (Object value : values) {
-                    Objects.requireNonNull(value, "value must not be null");
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                for (T bean : beans) {
+                    Object[] values = info.getValueByColumns(bean, pkColumns);
+                    for (Object value : values) {
+                        Objects.requireNonNull(value, "value must not be null");
+                    }
+                    Helper.fillStatement(statement, values);
+                    statement.addBatch();
                 }
-                executor.exec(values);
-            });
+                int[] rs = statement.executeBatch();
+                return BatchUpdateResult.sumAffectedRows(rs);
+            }
+//            return this.batchUpdate(sql, executor -> {
+//                Object[] values = info.getValueByColumns(bean, pkColumns);
+//                for (Object value : values) {
+//                    Objects.requireNonNull(value, "value must not be null");
+//                }
+//                executor.exec(values);
+//            }, UpdateOptions.DEFAULT);
         } catch (Exception e) {
             throw SqlteException.warp(e);
         }
@@ -1106,12 +1105,12 @@ class SqlConnectionImpl extends AbstractSqlConnection {
     private boolean isOnlyGenerateID() throws SQLException {
         if (_isOnlyGenerateID == null) {
             String driverName = conn.getMetaData().getDriverName().toLowerCase();
-            _isOnlyGenerateID = driverName.contains("sqlite") || driverName.contains("mysql");
+            _isOnlyGenerateID = driverName.contains("mysql") || driverName.contains("sqlite");
         }
         return _isOnlyGenerateID;
     }
 
-    private <T> void getGeneratedKeysAndSet(Iterator<T> it, ResultSet generatedKeys) throws SQLException {
+    private <T> void setGeneratedValuesToBeans(Iterator<T> it, ResultSet generatedKeys) throws SQLException {
         try {
             // SQLite:last_insert_rowid()
             // MySQL:GENERATED_KEY
@@ -1121,14 +1120,14 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 if (info == null) {
                     info = getClassInfo(bean.getClass());
                 }
-                getGeneratedKeysAndSet(info, bean, generatedKeys);
+                setGeneratedValuesToBean(info, bean, generatedKeys);
             }
         } catch (SQLException | IllegalAccessException e) {
             throw new SqlteException(e);
         }
     }
 
-    private void getGeneratedKeysAndSet(ClassInfo info, Object bean, ResultSet keys) throws SQLException, IllegalAccessException {
+    private void setGeneratedValuesToBean(ClassInfo info, Object bean, ResultSet keys) throws SQLException, IllegalAccessException {
         String[] returnColumns = info.getAutoGenerateColumns();
         //Modifier.isFinal(field.getModifiers())
         //MySQL: BigInteger

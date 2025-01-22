@@ -296,7 +296,7 @@ public class Condition {
             }
         }
         if (args.isEmpty()) {
-            throw new IllegalArgumentException("IN 参数值不能为空");
+            throw new IllegalArgumentException(String.format("查询条件 %s 列的 IN 参数值不能为空", column));
         }
         // 构建sql
         StringBuilder builder = new StringBuilder(column);
