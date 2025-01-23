@@ -4,7 +4,6 @@ import javax.sql.DataSource;
 import java.io.Reader;
 import java.sql.*;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -230,7 +229,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
 
-
     @Override
     public <T> BatchUpdateResult batchInsert(Collection<T> beans, UpdateOptions options) throws SqlteException {
         return run(conn -> conn.batchInsert(beans, options));
@@ -254,9 +252,9 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException {
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, UpdateOptions options) throws SqlteException {
         return run(conn -> {
-            return conn.batchUpdate(beans, table, columns);
+            return conn.batchUpdate(beans, options);
         });
     }
 

@@ -5,7 +5,6 @@ import hwp.sqlte.cache.Cache;
 import java.io.Reader;
 import java.sql.*;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -223,7 +222,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
 
-
     @Override
     public BatchUpdateResult batchUpdate(String sql, Consumer<BatchExecutor> consumer) throws SqlteException {
         return delegate.batchUpdate(sql, consumer);
@@ -236,8 +234,8 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException {
-        return delegate.batchUpdate(beans, table, columns);
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, UpdateOptions options) throws SqlteException {
+        return delegate.batchUpdate(beans, options);
     }
 
     @Override

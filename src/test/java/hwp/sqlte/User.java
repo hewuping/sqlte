@@ -7,6 +7,7 @@ public class User {
 
     @Id(generate = true)
     public Integer id;
+//    @Column(name = "USERNAME")
     public String username;
     public String email;
     public String password;

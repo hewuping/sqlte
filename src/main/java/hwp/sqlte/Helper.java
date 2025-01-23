@@ -45,10 +45,12 @@ class Helper {
             cmd.setType(metaData.getColumnType(column));
             cmds.add(cmd);
             // columnNames
-            columnNames.add(cmd.getLabel().toLowerCase().intern());
+//            columnNames.add(cmd.getLabel().toLowerCase());//这里将列名全部转为小写
+            columnNames.add(cmd.getLabel().toLowerCase());//这里将列名全部转为小写
         }
         List<Row> results = new ArrayList<>();
         while (rs.next()) {
+//          Row row = Row.from(rs);
             Row row = new Row();
             for (int i = 1; i <= cols; i++) {
                 row.put(columnNames.get(i - 1), rs.getObject(i));

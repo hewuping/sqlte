@@ -3,7 +3,6 @@ package hwp.sqlte;
 
 import hwp.sqlte.util.ClassUtils;
 import hwp.sqlte.util.ObjectUtils;
-import hwp.sqlte.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -552,23 +551,17 @@ class SqlConnectionImpl extends AbstractSqlConnection {
         try {
             ClassInfo info = getClassInfo(bean.getClass());
 
-            String columns = options.getUpdateColumns();
+            String[] columns = options.getUpdateColumns(info.getUpdateColumns());
             String table = Objects.toString(options.getTable(), info.getTableName());
-            String[] _columns;
-            if (StringUtils.isBlank(columns)) {
-                _columns = info.getUpdateColumns();
-            } else {
-                _columns = StringUtils.splitToArray(columns);
+
+            if (columns.length == 0) {
+                throw new IllegalArgumentException("No update column names specified");
             }
 
-            if (_columns.length == 0) {
-                throw new IllegalArgumentException("No fields to modify: " + columns);
-            }
-
-            Object[] args = new Object[_columns.length];
+            Object[] args = new Object[columns.length];
             int nullCount = 0;
-            for (int i = 0; i < _columns.length; i++) {
-                String column = _columns[i];
+            for (int i = 0; i < columns.length; i++) {
+                String column = columns[i];
                 Field field = info.getFieldByColumn(column);
                 if (field == null) {
                     throw new IllegalArgumentException("No field mapping: " + column);
@@ -579,7 +572,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 }
             }
             if (options.isIgnoreNullValues() && nullCount > 0) {
-                int updateColumnCount = _columns.length - nullCount;
+                int updateColumnCount = columns.length - nullCount;
                 if (updateColumnCount < 1) {
 //                    throw new UncheckedException("No fields to update");
                     return false;
@@ -589,28 +582,28 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 for (int i = 0, ci = 0; i < args.length; i++) {
                     Object v = args[i];
                     if (v != null) {
-                        newColumns[ci] = _columns[i];
+                        newColumns[ci] = columns[i];
                         newArgs[ci] = v;
                         ci++;
                     }
                 }
                 args = newArgs;
-                _columns = newColumns;
+                columns = newColumns;
             }
-            String sql = Helper.makeUpdateSql(table, _columns, null);
+            String sql = Helper.makeUpdateSql(table, columns, null);
             SqlBuilder builder = new SqlBuilder();
             builder.append(sql, args);
 
             Where where = new Where();
             String[] pkColumns = info.getPkColumns();
             if (pkColumns.length == 0) {
-                throw new IllegalArgumentException("No key field mapping for " + bean.getClass().getName());
+                throw new IllegalArgumentException("@Id field is not defined: " + bean.getClass().getName());
             }
             for (String k : pkColumns) {
                 Field field = info.getFieldByColumn(k);
                 Object idValue = field.get(bean);
                 if (idValue == null) {
-                    throw new IllegalArgumentException("Key field value is null: " + field.getName());
+                    throw new IllegalArgumentException("Field value cannot be null: " + field.getName());
                 }
                 where.and(k + "=?", idValue);
             }
@@ -718,21 +711,14 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String _columns) throws SqlteException {
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, UpdateOptions options) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
         Class<T> clazz = checkCollection(beans);
         ClassInfo info = getClassInfo(clazz);
-        if (table == null) {
-            table = info.getTableName();
-        }
-        String[] columns;// 可更新的列
-        if (StringUtils.isNotBlank(_columns)) {
-            columns = StringUtils.splitToArray(_columns);
-        } else {
-            columns = info.getUpdateColumns();
-        }
+        String table = options.getTable(info.getTableName());
+        String[] columns = options.getUpdateColumns(info.getUpdateColumns());// 可更新的列
         if (columns.length == 0) {
             throw new IllegalArgumentException("No fields to modify: " + columns);
         }
@@ -753,7 +739,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 }
                 executor.exec(args.toArray());
             }
-        }, UpdateOptions.DEFAULT);
+        }, options);
     }
 
 

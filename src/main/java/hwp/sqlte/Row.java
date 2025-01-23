@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
+ * 查询结果 Row 中的 key 会全部转为小写
+ *
  * @author Zero
  * Created on 2017/3/20.
  */
@@ -140,13 +142,37 @@ public class Row extends HashMap<String, Object> {
         return this;
     }
 
+//    public boolean isUpperCaseKeys() {
+//        for (Entry<String, Object> entry : entrySet()) {
+//            String key = entry.getKey();
+//            for (int i = 0; i < key.length(); i++) {
+//                char c = key.charAt(i);
+//                // Character.isUpperCase('_') // false
+//                // Character.isLowerCase('_') // false
+//                // 如果包含小写字母, 则返回 false
+//                if (c >= 'a' && c <= 'z') {
+//                    return false;
+//                }
+//            }
+//        }
+//        return true;
+//    }
+
     public static Row from(ResultSet rs) {
+        return from(rs, false);
+    }
+
+    public static Row from(ResultSet rs, boolean columnToLowerCase) {
         try {
             Row row = new Row();
             ResultSetMetaData metaData = rs.getMetaData();
             int cols = metaData.getColumnCount();
             for (int i = 1; i <= cols; i++) {
-                row.put(metaData.getColumnLabel(i).intern(), rs.getObject(i));
+                if (columnToLowerCase) {
+                    row.put(metaData.getColumnLabel(i).toLowerCase(), rs.getObject(i));
+                } else {
+                    row.put(metaData.getColumnLabel(i), rs.getObject(i));
+                }
             }
             return row;
         } catch (SQLException e) {

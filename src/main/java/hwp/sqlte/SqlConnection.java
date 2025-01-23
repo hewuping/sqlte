@@ -5,7 +5,10 @@ import hwp.sqlte.util.ClassUtils;
 import java.io.Reader;
 import java.io.Serializable;
 import java.sql.*;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.*;
 
 /**
@@ -128,6 +131,8 @@ public interface SqlConnection extends AutoCloseable {
     }
 
     /**
+     * 查询并处理数据, 适合场景: 导出数据
+     *
      * @param sql        sql
      * @param rowHandler return true if continue
      * @throws SqlteException if a database access error occurs
@@ -135,6 +140,8 @@ public interface SqlConnection extends AutoCloseable {
     void query(Sql sql, RowHandler rowHandler) throws SqlteException;
 
     /**
+     * 查询并处理数据, 适合场景: 导出数据
+     *
      * @param consumer   build SQL
      * @param rowHandler return true if continue
      * @throws SqlteException
@@ -657,6 +664,9 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量插入, 同 {@link #batchInsert(Collection)}
+     * <p>
+     * 注意: 如果插入的数据特别多(例如从文件中读取数据导入场景),
+     * 请使用 {@link #batchInsert(Class, DataLoader, UpdateOptions)}, 避免内存泄露
      *
      * @param beans
      * @param <T>
@@ -722,6 +732,19 @@ public interface SqlConnection extends AutoCloseable {
     <T> boolean update(T bean, UpdateOptions options) throws SqlteException;
 
     /**
+     * 更新集合中的所有对象, 同 {@link #batchUpdate(Collection, UpdateOptions)}
+     *
+     * @param beans
+     * @param options
+     * @param <T>
+     * @return
+     * @throws SqlteException
+     */
+    default <T> BatchUpdateResult updateAll(Collection<T> beans, UpdateOptions options) throws SqlteException {
+        return batchUpdate(beans, options);
+    }
+
+    /**
      * 插入或更新
      * <pre>{@code
      * conn.save(user, it -> {
@@ -773,7 +796,34 @@ public interface SqlConnection extends AutoCloseable {
         }
     }
 
-    //  boolean update(Object bean, String table, Consumer<Where> where) throws SqlteException;
+//    /**
+//     * 批量保存(批量插入或更新)
+//     * <p>
+//     * 生成的 SQL 是插入还是更新还是混合由第二个参数的返回值决定, 如果同时存在插入和更新,
+//     * 会分别执行插入和更新语句
+//     *
+//     * @param list 保存对象列表, 必需是同一类型
+//     * @param fn   返回 Action.INSERT 表示对该对象执行插入操作, 返回 Action.UPDATE 表示该对对象执行更新操作
+//     * @param <T>
+//     */
+//    default <T> void saveAll2(Collection<T> list, Function<T, Action> fn) {
+//        List<T> inserts = new ArrayList<>();
+//        List<T> updates = new ArrayList<>();
+//        for (T obj : list) {
+//            Action action = fn.apply(obj);
+//            if (Action.INSERT == action) {
+//                inserts.add(obj);
+//            } else {
+//                updates.add(obj);
+//            }
+//        }
+//        if (!inserts.isEmpty()) {
+//            batchInsert(inserts);
+//        }
+//        if (!updates.isEmpty()) {
+//            batchUpdate(updates);
+//        }
+//    }
 
     /**
      * 删除单条记录
@@ -912,6 +962,9 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量插入
+     * <p>
+     * 注意: 如果插入的数据特别多(例如从文件中读取数据导入场景),
+     * 请使用 {@link #batchInsert(Class, DataLoader, UpdateOptions)}, 避免内存泄露
      *
      * @param beans
      * @return
@@ -924,6 +977,9 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量插入
+     * <p>
+     * 注意: 如果插入的数据特别多(例如从文件中读取数据导入场景),
+     * 请使用 {@link #batchInsert(Class, DataLoader, UpdateOptions)}, 避免内存泄露
      *
      * @param beans 不能为 null
      * @param table 如果为 null, 默认值为 list 中的第一个值的类映射的表名
@@ -936,6 +992,9 @@ public interface SqlConnection extends AutoCloseable {
 
     /**
      * 批量插入
+     * <p>
+     * 注意: 如果插入的数据特别多(例如从文件中读取数据导入场景),
+     * 请使用 {@link #batchInsert(Class, DataLoader, UpdateOptions)}, 避免内存泄露
      *
      * @param beans   不能为 null
      * @param options 不能为 null, 更新选项
@@ -968,7 +1027,7 @@ public interface SqlConnection extends AutoCloseable {
 
 
     /**
-     * 批量插入 (该方法不会返回自动生成的 ID)
+     * 批量插入, 适合导入大量数据到数据库中的场景 (该方法不会返回自动生成的 ID)
      *
      * <pre>{@code
      * conn.batchInsert(User.class, it -> {
@@ -1046,7 +1105,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> BatchUpdateResult batchUpdate(Collection<T> beans) throws SqlteException {
-        return batchUpdate(beans, null, null);
+        return batchUpdate(beans, UpdateOptions.of());
     }
 
     /**
@@ -1059,7 +1118,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table) throws SqlteException {
-        return batchUpdate(beans, table, null);
+        return batchUpdate(beans, UpdateOptions.ofTable(table));
     }
 
     /**
@@ -1071,8 +1130,9 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @return
      * @throws SqlteException
+     * @since 0.3.0
      */
-    <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException;
+    <T> BatchUpdateResult batchUpdate(Collection<T> beans, UpdateOptions options) throws SqlteException;
 
     /**
      * 批量更新
@@ -1100,34 +1160,6 @@ public interface SqlConnection extends AutoCloseable {
         action.end();
     }
 
-    /**
-     * 批量保存(批量插入或更新)
-     * <p>
-     * 生成的 SQL 是插入还是更新还是混合由第二个参数的返回值决定, 如果同时存在插入和更新,
-     * 会分别执行插入和更新语句
-     *
-     * @param list 保存对象列表, 必需是同一类型
-     * @param fn   返回 Action.INSERT 表示对该对象执行插入操作, 返回 Action.UPDATE 表示该对对象执行更新操作
-     * @param <T>
-     */
-    default <T> void batchSave(Collection<T> list, Function<T, Action> fn) {
-        List<T> inserts = new ArrayList<>();
-        List<T> updates = new ArrayList<>();
-        for (T obj : list) {
-            Action action = fn.apply(obj);
-            if (Action.INSERT == action) {
-                inserts.add(obj);
-            } else {
-                updates.add(obj);
-            }
-        }
-        if (!inserts.isEmpty()) {
-            batchInsert(inserts);
-        }
-        if (!updates.isEmpty()) {
-            batchUpdate(updates);
-        }
-    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
