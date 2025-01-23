@@ -23,10 +23,10 @@ class BeanMapper<T> implements RowMapper<T> {
 
     static <T> T copy(Row row, T obj) throws SqlteException {
         try {
-            //h2 创建表时字段名虽然为小写, 但是查询结果集中的名称却是全大写
             ClassInfo info = ClassInfo.getClassInfo(obj.getClass());
             for (Map.Entry<String, Field> entry : info.getColumnFieldMap().entrySet()) {
-                Object dbValue = row.getValue(entry.getKey());
+                //h2 创建表时字段名虽然为小写, 但是查询结果集中的名称却是全大写, 这里通过忽略大小写获取值
+                Object dbValue = row.getValueIgnoreCase(entry.getKey());
                 Field field = entry.getValue();
                 if (dbValue != null) {
                     // JSON对象转换

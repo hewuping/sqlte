@@ -297,6 +297,19 @@ public class SqlConnectionTest {
     }
 
     @Test
+    public void testQueryRowHander() {
+        insertUsers(10000);
+        conn.query(sql -> {
+            sql.select(User.class).where(Where.EMPTY);
+        }, (RowHandler) row -> {
+            User user = row.map(User.class);
+            Assert.assertNotNull(user.id);
+            Assert.assertNotNull(user.username);
+            return true;//继续下一条
+        });
+    }
+
+    @Test
     public void testQueryPage() {
         for (int i = 0; i < 100; i++) {
             insertUser();

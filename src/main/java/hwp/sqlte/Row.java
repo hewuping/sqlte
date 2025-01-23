@@ -98,6 +98,23 @@ public class Row extends HashMap<String, Object> {
         return (T) super.get(name);
     }
 
+    /**
+     * 通过忽略大小写尽可能的获取值
+     *
+     * @param name
+     * @param <T>
+     * @return
+     */
+    public <T> T getValueIgnoreCase(String name) {
+        Objects.requireNonNull(name);
+        for (Entry<String, Object> entry : entrySet()) {
+            if (name.equalsIgnoreCase(entry.getKey())) {
+                return (T) entry.getValue();
+            }
+        }
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getValue(String name, Class<T> tClass) {
         Objects.requireNonNull(name);
