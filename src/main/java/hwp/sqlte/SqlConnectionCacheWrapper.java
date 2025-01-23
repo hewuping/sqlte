@@ -4,9 +4,9 @@ import hwp.sqlte.cache.Cache;
 
 import java.io.Reader;
 import java.sql.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -15,10 +15,10 @@ import java.util.function.Supplier;
  * Created on 2019/9/12.
  */
 class SqlConnectionCacheWrapper extends AbstractSqlConnection {
-    private Cache cache;
+    private Cache<Object> cache;
     private SqlConnection delegate;
 
-    public SqlConnectionCacheWrapper(SqlConnection delegate, Cache cache) {
+    public SqlConnectionCacheWrapper(SqlConnection delegate, Cache<Object> cache) {
         this.delegate = delegate;
         this.cache = cache;
     }
@@ -185,10 +185,6 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
         delegate.replace(bean, table);
     }
 
-    @Override
-    public void insertIgnore(Object bean, String table) throws SqlteException {
-        delegate.insertIgnore(bean, table);
-    }
 
     @Override
     public <T> boolean update(T bean, UpdateOptions options) throws SqlteException {
@@ -211,13 +207,13 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
     }
 
     @Override
-    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
-        return delegate.batchDelete(beans, table);
+    public <T> int deleteAll(Collection<T> beans, String table) throws SqlteException {
+        return delegate.deleteAll(beans, table);
     }
 
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(Collection<T> beans, UpdateOptions options) throws SqlteException {
         return delegate.batchInsert(beans, options);
     }
 
@@ -240,7 +236,7 @@ class SqlConnectionCacheWrapper extends AbstractSqlConnection {
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException {
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException {
         return delegate.batchUpdate(beans, table, columns);
     }
 

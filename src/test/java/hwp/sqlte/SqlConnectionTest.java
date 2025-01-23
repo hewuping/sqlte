@@ -68,7 +68,6 @@ public class SqlConnectionTest {
         conn = Sql.open();
         conn.setAutoCommit(false);
         conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-        System.out.println("aaaa:" + conn);
     }
 
     @After
@@ -110,9 +109,40 @@ public class SqlConnectionTest {
         return user;
     }
 
+    private List<User> insertUsers(int size) {
+        List<User> users = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            int id = 1 + i;
+            User user = User.of("zero" + id);
+            user.id = id;
+            user.updatedTime = new Date();
+            users.add(user);
+        }
+        conn.batchInsert(users);
+        return users;
+    }
 
     private void deleteAllUsers() {
         conn.executeUpdate("delete from users");
+    }
+
+    @Test
+    public void testExecuteUpdate() {
+        List<User> users = insertUsers(3);
+        Object[] ids = users.stream().map(user -> user.id).toArray();
+        Assert.assertEquals(1, conn.executeUpdate("delete from users where id = " + ids[0]));
+        Assert.assertEquals(1, conn.executeUpdate("delete from users where id = ?", ids[1]));
+        Assert.assertEquals(1, conn.executeUpdate(sql -> {
+            sql.delete("users").where(where -> {
+                where.and("id=?", ids[2]);
+            });
+        }));
+    }
+
+    @Test
+    public void testExecuteUpdate2() {
+        insertUsers(3);
+        Assert.assertEquals(3, conn.executeUpdate("update  users set username='java'"));
     }
 
     @Test
@@ -126,16 +156,6 @@ public class SqlConnectionTest {
         User user = new User("May", "may@example.com", "123456");
         conn.insert(user, "users");
         Assert.assertNotNull(user.id);
-    }
-
-    @Test
-    public void testInsertIgnoreBean() {
-        if (isMySQL()) {
-            User user = User.of("May");
-            user.id = 1;
-            conn.insert(user, "users");
-            conn.insertIgnore(user, "users");
-        }
     }
 
     @Test
@@ -157,7 +177,6 @@ public class SqlConnectionTest {
         Assert.assertNotNull(tmp.password);
     }
 
-
     @Test
     public void testUpdateBean() {
         User user = new User("May", "may@example.com", "123456");
@@ -177,30 +196,19 @@ public class SqlConnectionTest {
     }
 
     @Test
-    public void testBatchDelete() {
-        List<User> users = new ArrayList<>();
-        int size = 20;
-        for (int i = 0; i < size; i++) {
-            User user = new User("zero" + i, "zero@example.com", "123456");
-            user.updatedTime = new Date();
-            users.add(user);
-        }
-        conn.batchInsert(users);
+    public void testDeleteAll1() {
+        List<User> users = insertUsers(20);
         List<User> list1 = conn.listAll(User.class);
-        Assert.assertEquals(size, list1.size());
-        int affectedRows = conn.batchDelete(users);
+        Assert.assertEquals(users.size(), list1.size());
+        int affectedRows = conn.deleteAll(users);
         Assert.assertEquals(users.size(), affectedRows);
         List<User> list2 = conn.listAll(User.class);
         Assert.assertEquals(0, list2.size());
     }
 
     @Test
-    public void testDeleteAll() {
-        for (int i = 0; i < 10; i++) {
-            String username = "user" + i;
-            User user = new User(username, username + "@example.com", "123456");
-            conn.insert(user, "users");
-        }
+    public void testDeleteAll2() {
+        insertUsers(10);
         Assert.assertEquals(10, conn.listAll(User.class).size());
         conn.delete(User.class, Where.EMPTY);
         Assert.assertTrue(conn.listAll(User.class).isEmpty());

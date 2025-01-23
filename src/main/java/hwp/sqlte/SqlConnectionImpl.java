@@ -300,27 +300,30 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     @Override
     public void insert(Object bean, String table) throws SqlteException {
-        this.insert(null, bean, table);
+        this.insertOne(null, bean, table);
     }
 
     @Override
     public void replace(Object bean, String table) throws SqlteException {
-        this.insert("REPLACE INTO", bean, table);
+        this.insertOne("REPLACE INTO", bean, table);
     }
+//
+//    @Override
+//    public void insertIgnore(Object bean, String table) throws SqlteException {
+//        this.insertOne("INSERT IGNORE INTO", bean, table);
+//    }
 
-    @Override
-    public void insertIgnore(Object bean, String table) throws SqlteException {
-        this.insert("INSERT IGNORE INTO", bean, table);
-    }
-
-    private void insert(String insert, Object bean, String table) throws SqlteException {
+    private void insertOne(String insert, Object bean, String table) throws SqlteException {
+        if (bean instanceof Collection) {
+            throw new IllegalArgumentException("Unsupported object type. If you need to insert multiple objects, please use batchInsert.");
+        }
         ClassInfo info = getClassInfo(bean.getClass());
         if (table == null) {
             table = info.getTableName();
         }
         Map<String, Field> columnFieldMap = info.getColumnFieldMap();
         if (columnFieldMap.isEmpty()) {
-            throw new IllegalArgumentException("The bean must contain public fields");
+            throw new IllegalArgumentException("The bean must contain public fields: " + bean.getClass().getName());
         }
         List<String> columns = new ArrayList<>(columnFieldMap.size());
         List<Object> values = new ArrayList<>(columnFieldMap.size());
@@ -337,7 +340,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             throw new SqlteException(e);
         }
         if (columns.isEmpty()) {
-            throw new IllegalArgumentException("The bean must contain public fields and value is not null");
+            throw new IllegalArgumentException("The bean must contain public fields and value is not null: " + bean.getClass().getName());
         }
 
         String[] returnColumns = info.getAutoGenerateColumns();
@@ -411,19 +414,13 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(Collection<T> beans, UpdateOptions options) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
         Objects.requireNonNull(options, "UpdateOptions can't be null");
-        T first = beans.get(0);
-        for (T o : beans) {
-            if (o.getClass() != first.getClass()) {
-                throw new IllegalArgumentException("The object type in the collection must be consistent");
-            }
-        }
-        Class<T> aClass = (Class<T>) first.getClass();
-        ClassInfo info = getClassInfo(aClass);
+        Class<T> clazz = checkCollection(beans);
+        ClassInfo info = getClassInfo(clazz);
         if (options.getGeneratedKeysConsumer() == null && !options.isReadOnly()) {
             String[] agc = info.getAutoGenerateColumns();
             if (ObjectUtils.isNotEmpty(agc)) {
@@ -436,7 +433,7 @@ class SqlConnectionImpl extends AbstractSqlConnection {
                 });
             }
         }
-        return batchInsert(aClass, consumer -> beans.forEach(consumer::accept), options);
+        return batchInsert(clazz, consumer -> beans.forEach(consumer::accept), options);
     }
 
     //
@@ -721,12 +718,12 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String _columns) throws SqlteException {
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String _columns) throws SqlteException {
         if (beans.isEmpty()) {
             return BatchUpdateResult.EMPTY;
         }
-        Object first = beans.get(0);
-        ClassInfo info = getClassInfo(first.getClass());
+        Class<T> clazz = checkCollection(beans);
+        ClassInfo info = getClassInfo(clazz);
         if (table == null) {
             table = info.getTableName();
         }
@@ -762,17 +759,17 @@ class SqlConnectionImpl extends AbstractSqlConnection {
 
     @Override
     public boolean delete(Object bean, String table) throws SqlteException {
-        return batchDelete(Arrays.asList(bean), table) == 1;
+        return deleteAll(Arrays.asList(bean), table) == 1;
     }
 
-    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
+    public <T> int deleteAll(Collection<T> beans, String table) throws SqlteException {
         try {
             Objects.requireNonNull(beans);
             if (beans.isEmpty()) {
                 return 0;
             }
-            Object first = beans.get(0);
-            ClassInfo info = getClassInfo(first.getClass());
+            Class<T> clazz = checkCollection(beans);
+            ClassInfo info = getClassInfo(clazz);
             if (table == null) {
                 table = info.getTableName();
             }
@@ -1092,6 +1089,24 @@ class SqlConnectionImpl extends AbstractSqlConnection {
             return Config.getConfig().getSqlProvider().getSql(sql.substring(1));
         }
         return sql;
+    }
+
+    // ----------------------
+    private static <T> Class<T> checkCollection(Collection<T> collection) {
+        if (collection == null || collection.isEmpty()) {
+            throw new IllegalArgumentException("The object type in the collection must be consistent");
+        }
+        T first = null;
+        for (T o : collection) {
+            if (first == null) {
+                first = o;
+                continue;
+            }
+            if (o.getClass() != first.getClass()) {
+                throw new IllegalArgumentException("The object type in the collection must be consistent");
+            }
+        }
+        return (Class<T>) first.getClass();
     }
 
     // ----------------------

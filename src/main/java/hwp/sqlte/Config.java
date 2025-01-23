@@ -15,12 +15,12 @@ import java.util.TimeZone;
  */
 final public class Config {
     private static final Config INSTANCE = new Config();
-    private final Cache<?> DEFAULT_CACHE = new LruCache<>(1024);
+    private final Cache<Object> DEFAULT_CACHE = new LruCache<>(1024);
     private SqlProvider sqlProvider = SqlProvider.Default();
     private JsonSerializer jsonSerializer = new GsonSerializer();
     private TimeZone databaseTimeZone = TimeZone.getDefault();//TODO from DB
 
-    private Cache<?> cache;
+    private Cache<Object> cache;
 
 
     private final Map<String, DataSource> dataSourceMap = new HashMap<>();
@@ -79,11 +79,11 @@ final public class Config {
         return this;
     }
 
-    public Cache<?> getCache() {
+    public Cache<Object> getCache() {
         return cache == null ? DEFAULT_CACHE : cache;
     }
 
-    public void setCache(Cache<?> cache) {
+    public void setCache(Cache<Object> cache) {
         this.cache = cache;
     }
 

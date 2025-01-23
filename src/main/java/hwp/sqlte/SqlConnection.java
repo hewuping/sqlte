@@ -435,7 +435,7 @@ public interface SqlConnection extends AutoCloseable {
     int replaceMap(String table, Map<String, Object> row, String... returnColumns);
 
     /**
-     * 执行更新 SQL
+     * 执行更新 SQL, 包括 插入、更新、和删除 SQL 语句
      *
      * @param sql
      * @param args
@@ -445,7 +445,7 @@ public interface SqlConnection extends AutoCloseable {
     int executeUpdate(String sql, Object... args) throws SqlteException;//execute
 
     /**
-     * 执行更新 SQL
+     * 执行更新 SQL, 包括 插入、更新、和删除 SQL 语句
      *
      * @param consumer
      * @return
@@ -656,6 +656,18 @@ public interface SqlConnection extends AutoCloseable {
     <T> void insert(T bean, String table) throws SqlteException;
 
     /**
+     * 批量插入, 同 {@link #batchInsert(Collection)}
+     *
+     * @param beans
+     * @param <T>
+     * @return
+     * @throws SqlteException
+     */
+    default <T> BatchUpdateResult insertAll(Collection<T> beans) throws SqlteException {
+        return batchInsert(beans);
+    }
+
+    /**
      * 替换插入到指定表
      *
      * @param bean  插入内容
@@ -663,17 +675,6 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     <T> void replace(T bean, String table) throws SqlteException;
-
-    /**
-     * 插入单条记录到指定表并忽略错误
-     *
-     * @param bean  插入内容
-     * @param table 表名
-     * @throws SqlteException
-     * @deprecated 推荐插入前先检查数据是否存在, 而不是直接执行插入操作
-     */
-    <T> void insertIgnore(T bean, String table) throws SqlteException;
-
 
     /**
      * 更新单条记录
@@ -764,7 +765,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param fn
      * @param <T>
      */
-    default <T> void saveAll(List<T> beans, Function<T, Action> fn) {
+    default <T> void saveAll(Collection<T> beans, Function<T, Action> fn) {
         Objects.requireNonNull(beans);
         Objects.requireNonNull(fn);
         for (T bean : beans) {
@@ -891,8 +892,8 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @throws SqlteException
      */
-    default <T> int batchDelete(List<T> beans) throws SqlteException {
-        return this.batchDelete(beans, null);
+    default <T> int deleteAll(Collection<T> beans) throws SqlteException {
+        return this.deleteAll(beans, null);
     }
 
     /**
@@ -903,7 +904,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param <T>
      * @throws SqlteException
      */
-    <T> int batchDelete(List<T> beans, String table) throws SqlteException;
+    <T> int deleteAll(Collection<T> beans, String table) throws SqlteException;
 
 
     ////////////////////////////////////////Batch operation//////////////////////////////////////////////////////////
@@ -916,7 +917,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(List<T> beans) throws SqlteException {
+    default <T> BatchUpdateResult batchInsert(Collection<T> beans) throws SqlteException {
         // 这里 不使用 UpdateOptions.DEFAULT, 因为 options 可能会被修改
         return batchInsert(beans, UpdateOptions.of());
     }
@@ -929,7 +930,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return 返回 BatchUpdateResult
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchInsert(List<T> beans, String table) throws SqlteException {
+    default <T> BatchUpdateResult batchInsert(Collection<T> beans, String table) throws SqlteException {
         return batchInsert(beans, UpdateOptions.ofTable(table));
     }
 
@@ -943,7 +944,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      * @since 0.3.0
      */
-    <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException;
+    <T> BatchUpdateResult batchInsert(Collection<T> beans, UpdateOptions options) throws SqlteException;
 
     /**
      * 批量插入, 例如:
@@ -1044,7 +1045,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param beans
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchUpdate(List<T> beans) throws SqlteException {
+    default <T> BatchUpdateResult batchUpdate(Collection<T> beans) throws SqlteException {
         return batchUpdate(beans, null, null);
     }
 
@@ -1057,7 +1058,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    default <T> BatchUpdateResult batchUpdate(List<T> beans, String table) throws SqlteException {
+    default <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table) throws SqlteException {
         return batchUpdate(beans, table, null);
     }
 
@@ -1071,7 +1072,7 @@ public interface SqlConnection extends AutoCloseable {
      * @return
      * @throws SqlteException
      */
-    <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException;
+    <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException;
 
     /**
      * 批量更新
@@ -1109,7 +1110,7 @@ public interface SqlConnection extends AutoCloseable {
      * @param fn   返回 Action.INSERT 表示对该对象执行插入操作, 返回 Action.UPDATE 表示该对对象执行更新操作
      * @param <T>
      */
-    default <T> void batchSave(List<T> list, Function<T, Action> fn) {
+    default <T> void batchSave(Collection<T> list, Function<T, Action> fn) {
         List<T> inserts = new ArrayList<>();
         List<T> updates = new ArrayList<>();
         for (T obj : list) {

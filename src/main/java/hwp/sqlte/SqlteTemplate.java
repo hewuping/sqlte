@@ -3,9 +3,9 @@ package hwp.sqlte;
 import javax.sql.DataSource;
 import java.io.Reader;
 import java.sql.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -196,14 +196,6 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
         });
     }
 
-    @Override
-    public void insertIgnore(Object bean, String table) throws SqlteException {
-        run(conn -> {
-            conn.insertIgnore(bean, table);
-            return null;
-        });
-    }
-
 
     @Override
     public int insertMap(String table, Map<String, Object> row) throws SqlteException {
@@ -240,7 +232,7 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
 
 
     @Override
-    public <T> BatchUpdateResult batchInsert(List<T> beans, UpdateOptions options) throws SqlteException {
+    public <T> BatchUpdateResult batchInsert(Collection<T> beans, UpdateOptions options) throws SqlteException {
         return run(conn -> conn.batchInsert(beans, options));
     }
 
@@ -262,7 +254,7 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
 
 
     @Override
-    public <T> BatchUpdateResult batchUpdate(List<T> beans, String table, String columns) throws SqlteException {
+    public <T> BatchUpdateResult batchUpdate(Collection<T> beans, String table, String columns) throws SqlteException {
         return run(conn -> {
             return conn.batchUpdate(beans, table, columns);
         });
@@ -274,9 +266,9 @@ public class SqlteTemplate extends AbstractSqlConnection {//sql
     }
 
     @Override
-    public <T> int batchDelete(List<T> beans, String table) throws SqlteException {
+    public <T> int deleteAll(Collection<T> beans, String table) throws SqlteException {
         return run(conn -> {
-            return conn.batchDelete(beans, table);
+            return conn.deleteAll(beans, table);
         });
     }
 
