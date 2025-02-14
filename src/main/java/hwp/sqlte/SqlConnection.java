@@ -707,7 +707,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> boolean update(T bean, String columns) throws SqlteException {
-        return this.update(bean, options -> options.setUpdateColumns(columns));
+        return this.update(bean, UpdateOptions.ofColumns(columns));
     }
 
     /**
@@ -719,7 +719,7 @@ public interface SqlConnection extends AutoCloseable {
      * @throws SqlteException
      */
     default <T> boolean update(T bean, boolean ignoreNullValues) throws SqlteException {
-        return this.update(bean, options -> options.setIgnoreNullValues(ignoreNullValues));
+        return this.update(bean, UpdateOptions.ofIgnoreNullValues(ignoreNullValues));
     }
 
 
@@ -879,7 +879,7 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 根据条件删除多条记录 (安全删除), 全部条件使用 = 和 AND
      * <pre>{@code
-     *  conn.deleteByMap(User.class, map->{
+     *  conn.deleteByMap(User.class, map -> {
      *      map.put("age", 18);
      *      map.put("username", "foo");
      *  })
@@ -907,30 +907,36 @@ public interface SqlConnection extends AutoCloseable {
     /**
      * 删除相似数据 (安全删除)
      *
+     * <pre>{@code
+     *  conn.deleteByExample(User.class, example -> {
+     *      example.username = "foo";
+     *  })
+     * } </pre>
+     *
      * @param clazz
-     * @param consumer
+     * @param whereConsumer
      * @param <T>
      * @return
      * @throws SqlteException
      */
-    default <T> int deleteByExample(Class<T> clazz, Consumer<T> consumer) throws SqlteException {
+    default <T> int deleteByExample(Class<T> clazz, Consumer<T> whereConsumer) throws SqlteException {
         T example = ClassUtils.newInstance(clazz);
-        consumer.accept(example);
-        return this.delete(clazz, where -> where.of(example));
+        whereConsumer.accept(example);
+        return this.delete(clazz, it -> it.of(example));
     }
 
     /**
      * 删除相似数据
      *
      * @param supplier
-     * @param consumer
+     * @param whereConsumer
      * @param <T>
      * @return
      * @throws SqlteException
      */
-    default <T> int deleteByExample(Supplier<T> supplier, Consumer<T> consumer) throws SqlteException {
+    default <T> int deleteByExample(Supplier<T> supplier, Consumer<T> whereConsumer) throws SqlteException {
         T example = supplier.get();
-        consumer.accept(example);
+        whereConsumer.accept(example);
         return this.delete(example.getClass(), where -> where.of(example));
     }
 

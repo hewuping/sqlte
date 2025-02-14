@@ -29,8 +29,20 @@ public class UpdateOptions {
         return new UpdateOptions().setTable(table);
     }
 
+    public static UpdateOptions ofColumns(String columns) {
+        return new UpdateOptions().setUpdateColumns(columns);
+    }
+
+    public static UpdateOptions ofColumns(String[] columns) {
+        return new UpdateOptions().setUpdateColumns(columns);
+    }
+
     public static UpdateOptions ofBatchSize(int batchSize) {
         return new UpdateOptions().setBatchSize(batchSize);
+    }
+
+    public static UpdateOptions ofIgnoreNullValues(boolean b) {
+        return new UpdateOptions().setIgnoreNullValues(b);
     }
 
     public String getTable() {
