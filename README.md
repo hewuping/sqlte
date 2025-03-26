@@ -18,7 +18,7 @@ https://mvnrepository.com/artifact/mysql/mysql-connector-java
 ```
 
 ```groovy
-implementation group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
+implementation group: 'com.github.hewuping', name: 'sqlte', version: '0.3.1'
 ```
 
 ## Install from Maven
@@ -34,7 +34,7 @@ implementation group: 'com.github.hewuping', name: 'sqlte', version: 'x.x.x'
 <dependency>
     <groupId>com.github.hewuping</groupId>
     <artifactId>sqlte</artifactId>
-    <version>0.2.28</version>
+    <version>0.3.1</version>
 </dependency>
 </dependencies>
 ```
@@ -47,7 +47,7 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 dependencies {
-    implementation 'com.github.hewuping:sqlte:0.2.28'
+    implementation 'com.github.hewuping:sqlte:0.3.1'
 }
 ```
 

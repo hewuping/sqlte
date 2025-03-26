@@ -4,6 +4,8 @@ import hwp.sqlte.util.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Collections;
+
 public class WhereTest {
 
     @Test
@@ -26,6 +28,29 @@ public class WhereTest {
         Assert.assertEquals("C1", where.args(0));
         Assert.assertEquals("Sean", where.args(1));
     }
+    @Test
+    public void testAndCondition() {
+        Where where = new Where();
+        where.and(Condition.eq("name", ""));
+        Assert.assertEquals("name = ?", where.sql());
+        Assert.assertEquals(1, where.args().size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAndCondition2() {
+        Where where = new Where();
+        where.and(Condition.in("name", Collections.EMPTY_LIST));
+    }
+
+    @Test
+    public void testAndConditions() {
+        Where where = new Where();
+        where.and(Condition.eq("name", ""), Condition.eq("email", ""));
+        Assert.assertEquals("(name = ? AND email = ?)", where.sql());
+        Assert.assertEquals("", where.args(0));
+        Assert.assertEquals("", where.args(1));
+    }
+
 
     @Test
     public void testLike() {
