@@ -90,16 +90,4 @@ public class NameUtils {
         return Character.toUpperCase(c) + name.substring(1);
     }
 
-    public static void main(String[] args) {
-        System.out.println(toUnderscore("upperCamel"));
-        System.out.println(toUnderscore("UpperCamel"));
-        System.out.println(toUnderscore("UpperCamelAbc"));
-        System.out.println(toUpperCamel("upper_camel"));
-        System.out.println(toUpperCamel("_upper_camel_"));
-        System.out.println(toUpperCamel("upper_camel_abc"));
-        System.out.println(toUpperCamel("UPPER_CAMEL_ABC"));
-
-
-    }
-
 }
