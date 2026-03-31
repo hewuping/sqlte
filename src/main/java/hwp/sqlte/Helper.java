@@ -9,6 +9,7 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.Date;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -45,7 +46,6 @@ class Helper {
             cmd.setType(metaData.getColumnType(column));
             cmds.add(cmd);
             // columnNames
-//            columnNames.add(cmd.getLabel().toLowerCase());//这里将列名全部转为小写
             columnNames.add(cmd.getLabel().toLowerCase());//这里将列名全部转为小写
         }
         List<Row> results = new ArrayList<>();
@@ -177,23 +177,18 @@ class Helper {
         }
     }
 
-    private static final Map<Class<?>, Supplier<?>> map = new HashMap<>();
+    private static final ConcurrentHashMap<Class<?>, Supplier<?>> map = new ConcurrentHashMap<>();
 
     public static <T> Supplier<T> toSupplier(Class<T> clazz) {
-        Supplier<?> supplier = map.get(clazz);
-        if (supplier == null) {
-            synchronized (map) {
-                supplier = () -> {
-                    try {
-                        return clazz.getDeclaredConstructor().newInstance();
-                    } catch (ReflectiveOperationException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-                map.put(clazz, supplier);
+        @SuppressWarnings("unchecked")
+        Supplier<T> supplier = (Supplier<T>) map.computeIfAbsent(clazz, k -> () -> {
+            try {
+                return k.getDeclaredConstructor().newInstance();
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
             }
-        }
-        return (Supplier<T>) supplier;
+        });
+        return supplier;
     }
 
     public static final BiConsumer<PreparedStatement, int[]> PRINT_GENERATED_KEYS = (ps, ints) -> {

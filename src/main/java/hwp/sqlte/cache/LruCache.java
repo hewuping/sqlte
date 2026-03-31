@@ -40,11 +40,11 @@ public class LruCache<T> implements Cache<T> {
 
     @Override
     public T get(Object key) {
-        rlock.lock();
+        wlock.lock();
         try {
             return map.get(key);
         } finally {
-            rlock.unlock();
+            wlock.unlock();
         }
     }
 

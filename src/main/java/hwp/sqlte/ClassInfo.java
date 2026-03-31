@@ -5,13 +5,14 @@ import hwp.sqlte.util.NameUtils;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Zero
  * Created on 2018/11/13.
  */
 public class ClassInfo {
-    private static final Map<Class<?>, ClassInfo> map = new HashMap<>();
+    private static final ConcurrentHashMap<Class<?>, ClassInfo> map = new ConcurrentHashMap<>();
 
     private final Class<?> clazz;
     private String schema;
@@ -29,15 +30,7 @@ public class ClassInfo {
 
     public static ClassInfo getClassInfo(Class<?> clazz) {
         Objects.requireNonNull(clazz);
-        ClassInfo info = map.get(clazz);
-        if (info != null) {
-            return info;
-        }
-        synchronized (map) {
-            info = new ClassInfo(clazz);
-            map.put(clazz, info);
-        }
-        return info;
+        return map.computeIfAbsent(clazz, ClassInfo::new);
     }
 
     private ClassInfo(Class<?> clazz) {
